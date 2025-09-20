@@ -385,7 +385,26 @@ function saveAsPNG() {
 	drawUsing(canvas.getContext('2d'));
 	selectedObject = oldSelectedObject;
 	var pngData = canvas.toDataURL('image/png');
-	document.location.href = pngData;
+	
+	// Convert data URL to blob
+	var byteString = atob(pngData.split(',')[1]);
+	var mimeString = pngData.split(',')[0].split(':')[1].split(';')[0];
+	var ab = new ArrayBuffer(byteString.length);
+	var ia = new Uint8Array(ab);
+	for (var i = 0; i < byteString.length; i++) {
+		ia[i] = byteString.charCodeAt(i);
+	}
+	var blob = new Blob([ab], {type: mimeString});
+	
+	// Create download link
+	var url = URL.createObjectURL(blob);
+	var link = document.createElement('a');
+	link.href = url;
+	link.download = 'fsm-diagram.png';
+	document.body.appendChild(link);
+	link.click();
+	document.body.removeChild(link);
+	URL.revokeObjectURL(url);
 }
 
 function saveAsSVG() {
