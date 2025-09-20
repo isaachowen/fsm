@@ -1,7 +1,7 @@
 # Plan: Clear Canvas Button Implementation
 
 ## Overview
-This document outlines the implementation plan for adding a "Clear Canvas" button to the Finite State Machine Designer that will remove all nodes and edges from the canvas.
+This document outlines the implementation plan for adding a "Clear Canvas" button to the Network Doodler that will remove all nodes and edges from the canvas.
 
 ## Current Architecture Analysis
 
