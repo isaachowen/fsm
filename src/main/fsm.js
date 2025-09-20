@@ -487,6 +487,87 @@ function downloadAsSVG() {
 	URL.revokeObjectURL(url);                 // Free memory
 }
 
+function downloadAsJSON() {
+	// Create node ID mapping for link references
+	var nodeIdMap = new Map();
+	var jsonNodes = [];
+	
+	// Serialize nodes with unique IDs
+	for (var i = 0; i < nodes.length; i++) {
+		var node = nodes[i];
+		var nodeId = i;
+		nodeIdMap.set(node, nodeId);
+		
+		jsonNodes.push({
+			id: nodeId,
+			x: node.x,
+			y: node.y, 
+			text: node.text,
+			isAcceptState: node.isAcceptState
+		});
+	}
+	
+	// Serialize links with node ID references
+	var jsonLinks = [];
+	for (var i = 0; i < links.length; i++) {
+		var link = links[i];
+		var linkData = {
+			text: link.text
+		};
+		
+		// Handle different link types
+		if (link instanceof SelfLink) {
+			linkData.type = 'SelfLink';
+			linkData.node = nodeIdMap.get(link.node);
+			linkData.anchorAngle = link.anchorAngle;
+		} else if (link instanceof StartLink) {
+			linkData.type = 'StartLink';
+			linkData.node = nodeIdMap.get(link.node);
+			linkData.deltaX = link.deltaX;
+			linkData.deltaY = link.deltaY;
+		} else if (link instanceof Link) {
+			linkData.type = 'Link';
+			linkData.nodeA = nodeIdMap.get(link.nodeA);
+			linkData.nodeB = nodeIdMap.get(link.nodeB);
+			linkData.parallelPart = link.parallelPart;
+			linkData.perpendicularPart = link.perpendicularPart;
+			linkData.lineAngleAdjust = link.lineAngleAdjust || 0;
+		}
+		
+		jsonLinks.push(linkData);
+	}
+	
+	// Create complete JSON structure
+	var jsonData = {
+		version: '1.0',
+		created: new Date().toISOString(),
+		canvas: {
+			width: canvas.width,
+			height: canvas.height
+		},
+		nodes: jsonNodes,
+		links: jsonLinks
+	};
+	
+	// Convert to JSON string with formatting
+	var jsonString = JSON.stringify(jsonData, null, 2);
+	
+	// Create JSON blob for download
+	var blob = new Blob([jsonString], {type: 'application/json'});
+	var url = URL.createObjectURL(blob);
+	
+	// Create temporary anchor element for download
+	var link = document.createElement('a');
+	link.href = url;
+	link.download = 'fsm-diagram.json';
+	
+	// Trigger download
+	document.body.appendChild(link);
+	link.click();
+	document.body.removeChild(link);
+	URL.revokeObjectURL(url);
+}
+
 function clearCanvas() {
     // Clear all nodes and links
     nodes.length = 0;  // Clear nodes array
