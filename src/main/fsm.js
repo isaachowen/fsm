@@ -486,3 +486,19 @@ function downloadAsSVG() {
 	document.body.removeChild(link);           // Remove from DOM
 	URL.revokeObjectURL(url);                 // Free memory
 }
+
+function clearCanvas() {
+    // Clear all nodes and links
+    nodes.length = 0;  // Clear nodes array
+    links.length = 0;  // Clear links array
+    
+    // Clear any selected objects
+    selectedObject = null;
+    currentLink = null;
+    
+    // Redraw the canvas (will show empty canvas)
+    draw();
+    
+    // Save the cleared state to localStorage
+    saveBackup();
+}
