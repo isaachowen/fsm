@@ -10,16 +10,10 @@
    - [Export System (`src/export_as/`)](#3-export-system-srcexport_as)
    - [Build System (`build.py`)](#4-build-system-buildpy)
    - [User Interface (`www/index.html`)](#5-user-interface-wwwindexhtml)
-4. [Key Design Patterns](#key-design-patterns)
-5. [Data Flow](#data-flow)
-6. [Development Workflow](#development-workflow)
-7. [File-by-File Breakdown](#file-by-file-breakdown)
-   - [Build System](#build-system)
-   - [Core Application Files](#core-application-files)
-   - [Element Classes](#element-classes-1)
-   - [Export System](#export-system-1)
-   - [Web Interface](#web-interface)
-8. [Implementation Details for Code Modification](#implementation-details-for-code-modification)
+4. [Data Flow](#data-flow)
+5. [Development Workflow](#development-workflow)
+6. [Implementation Details for Code Modification](#implementation-details-for-code-modification)
+   - [Key Design Patterns](#key-design-patterns)
    - [Global State Management](#global-state-management)
    - [Event Handling Architecture](#event-handling-architecture)
    - [Rendering Pipeline](#rendering-pipeline)
@@ -32,6 +26,12 @@
    - [Memory Management](#memory-management)
    - [Mathematical Foundations](#mathematical-foundations)
    - [State Validation](#state-validation)
+7. [File-by-File Breakdown](#file-by-file-breakdown)
+   - [Build System](#build-system)
+   - [Core Application Files](#core-application-files)
+   - [Element Classes](#element-classes-1)
+   - [Export System](#export-system-1)
+   - [Web Interface](#web-interface)
 
 ## Project Summary
 A web-based interactive finite state machine designer that allows users to create, edit, and export FSM diagrams. This is a single-page application built with vanilla JavaScript and HTML5 Canvas, originally created by Evan Wallace and forked for enhancements.
@@ -149,31 +149,29 @@ Key responsibilities:
 Object-oriented design with specialized classes for each FSM component:
 
 #### **Node (`node.js`)**
-- Represents FSM states (circles)
-- Properties: position (x,y), text label, accept state flag
-- Methods: drawing, hit detection, positioning
-- Supports accept states (double circle rendering)
+- Represents FSM states as circles with position (x,y), text labels, and accept state flags
+- Handles drawing, hit detection, and positioning methods including double circle rendering for accept states
+- Key members: `x`, `y`, `text`, `isAcceptState`, `draw()`, `containsPoint()`, `closestPointOnCircle()`, `setAnchorPoint()`
 
 #### **Link (`link.js`)**
-- Represents transitions between different states
-- Handles curved arrow rendering between two nodes
-- Dynamic positioning and label placement
-- Mathematical calculations for arc geometry
+- Represents transitions between different states with curved arrow rendering and dynamic label placement
+- Performs mathematical calculations for arc geometry and interactive curve manipulation
+- Key members: `nodeA`, `nodeB`, `text`, `parallelPart`, `perpendicularPart`, `draw()`, `containsPoint()`, `getEndPointsAndCircle()`
 
 #### **SelfLink (`self_link.js`)**
-- Self-transitions (loops back to same state)
-- Specialized circular arc rendering
-- Anchor point management for loop positioning
+- Self-transitions that loop back to the same state with specialized circular arc rendering
+- Manages anchor point positioning for loop placement and geometry
+- Key members: `node`, `text`, `anchorAngle`, `draw()`, `containsPoint()`, `getEndPointsAndCircle()`, `setAnchorPoint()`
 
 #### **StartLink (`start_link.js`)**
-- Entry point indicator for FSM
-- Points to the initial state
-- Simple arrow without source node
+- Entry point indicator for FSM that points to the initial state with simple arrow rendering
+- Provides start state visualization without requiring a source node
+- Key members: `node`, `text`, `deltaX`, `deltaY`, `draw()`, `containsPoint()`, `getEndPoints()`, `setAnchorPoint()`
 
 #### **TemporaryLink (`temporary_link.js`)**
-- Visual feedback during link creation
-- Provides real-time preview while dragging
-- Converts to permanent link on completion
+- Visual feedback during link creation with real-time preview while dragging
+- Converts to permanent link types upon completion of user operations
+- Key members: `from`, `to`, `draw()` (simplified interface for temporary rendering)
 
 ```mermaid
 classDiagram
@@ -250,16 +248,14 @@ classDiagram
 Pluggable export architecture using the Strategy pattern:
 
 #### **SVG Export (`svg.js`)**
-- `ExportAsSVG` class mimics Canvas2D API
-- Generates scalable vector graphics
-- Preserves visual fidelity and text rendering
-- Outputs standards-compliant SVG markup
+- `ExportAsSVG` class mimics Canvas2D API to generate scalable vector graphics with preserved visual fidelity
+- Outputs standards-compliant SVG markup for web and print applications
+- Key members: `toSVG()`, `arc()`, `stroke()`, `fill()`, `fillText()`, `measureText()`, `_svgData`, `_transX`, `_transY`
 
 #### **LaTeX Export (`latex.js`)**
-- `ExportAsLaTeX` class implements Canvas2D interface
-- Generates TikZ/PGF code for academic publications
-- Handles coordinate system transformation
-- Produces publication-ready LaTeX documents
+- `ExportAsLaTeX` class implements Canvas2D interface to generate TikZ/PGF code for academic publications  
+- Handles coordinate system transformation and produces publication-ready LaTeX documents
+- Key members: `toLaTeX()`, `arc()`, `stroke()`, `fill()`, `advancedFillText()`, `measureText()`, `_texData`, `_scale`
 
 ### 4. Build System (`build.py`)
 Simple Python-based build pipeline:
@@ -490,7 +486,9 @@ graph TD
 
 This architecture demonstrates clean separation of concerns, extensible design patterns, and thoughtful user experience considerations while maintaining simplicity and performance.
 
-## File-by-File Breakdown
+## Data Flow
+
+## Implementation Details for Code Modification
 
 ### Build System
 
@@ -542,6 +540,31 @@ Serves as the single-page application entry point containing all HTML structure,
 Contains copyright notices, license text, and attribution information for the original work, being included at the top of the compiled `www/fsm.js` file. This file serves purely informational purposes with no runtime functionality, ensuring proper attribution in distributed code.
 
 ## Implementation Details for Code Modification
+
+### Key Design Patterns
+
+#### 1. **Strategy Pattern**
+Export functionality uses strategy pattern with Canvas2D API mimicry:
+```javascript
+// Same drawing code works for canvas, SVG, and LaTeX
+function draw() {
+    drawUsing(canvas.getContext('2d'));     // Screen rendering
+    drawUsing(new ExportAsSVG());           // SVG export
+    drawUsing(new ExportAsLaTeX());         // LaTeX export
+}
+```
+
+#### 2. **Observer Pattern**
+Canvas automatically redraws when model changes:
+- State changes trigger `draw()` calls
+- Visual feedback updates in real-time
+- Separation of model and view concerns
+
+#### 3. **Factory Pattern**
+Dynamic creation of links based on user interaction:
+- Mouse state determines link type
+- Temporary links convert to permanent ones
+- Context-sensitive object instantiation
 
 ### Global State Management
 The application maintains global state through several key variables in `src/main/fsm.js`:
@@ -634,3 +657,6 @@ The application maintains consistency through implicit validation:
 - No explicit validation layer; state consistency enforced through operational logic
 
 
+### Build System
+
+#### `build.py`
