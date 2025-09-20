@@ -47,6 +47,11 @@ function canvasHasFocus() {
 function drawText(c, originalText, x, y, angleOrNull, isSelected) {
 	text = convertLatexShortcuts(originalText);
 	c.font = '20px "Times New Roman", serif';
+	
+	// Save the current fill style and set text color to black for readability
+	var originalFillStyle = c.fillStyle;
+	c.fillStyle = '#000000';  // black text for readability
+	
 	var width = c.measureText(text).width;
 
 	// center the text
@@ -78,6 +83,9 @@ function drawText(c, originalText, x, y, angleOrNull, isSelected) {
 			c.stroke();
 		}
 	}
+	
+	// Restore the original fill style
+	c.fillStyle = originalFillStyle;
 }
 
 var caretTimer;
