@@ -568,6 +568,100 @@ function downloadAsJSON() {
 	URL.revokeObjectURL(url);
 }
 
+function importFromJSON(fileInput) {
+	if (!fileInput.files || fileInput.files.length === 0) {
+		console.error('No file selected');
+		return;
+	}
+	
+	var file = fileInput.files[0];
+	var reader = new FileReader();
+	
+	reader.onload = function(e) {
+		try {
+			var jsonData = JSON.parse(e.target.result);
+			
+			// Basic validation
+			if (!jsonData.nodes || !jsonData.links) {
+				throw new Error('Invalid JSON structure: missing nodes or links array');
+			}
+			
+			// Clear current state
+			nodes = [];
+			links = [];
+			selectedObject = null;
+			currentLink = null;
+			
+			// Reconstruct nodes
+			var nodeMap = new Map(); // Maps JSON ID to Node object
+			for (var i = 0; i < jsonData.nodes.length; i++) {
+				var nodeData = jsonData.nodes[i];
+				var node = new Node(nodeData.x, nodeData.y);
+				node.text = nodeData.text || '';
+				node.isAcceptState = nodeData.isAcceptState || false;
+				nodes.push(node);
+				nodeMap.set(nodeData.id, node);
+			}
+			
+			// Reconstruct links
+			for (var i = 0; i < jsonData.links.length; i++) {
+				var linkData = jsonData.links[i];
+				var link;
+				
+				if (linkData.type === 'SelfLink') {
+					var targetNode = nodeMap.get(linkData.node);
+					if (!targetNode) {
+						throw new Error('Invalid node reference in SelfLink: ' + linkData.node);
+					}
+					link = new SelfLink(targetNode);
+					link.anchorAngle = linkData.anchorAngle || 0;
+				} else if (linkData.type === 'StartLink') {
+					var targetNode = nodeMap.get(linkData.node);
+					if (!targetNode) {
+						throw new Error('Invalid node reference in StartLink: ' + linkData.node);
+					}
+					link = new StartLink(targetNode);
+					link.deltaX = linkData.deltaX || -50;
+					link.deltaY = linkData.deltaY || 0;
+				} else if (linkData.type === 'Link') {
+					var nodeA = nodeMap.get(linkData.nodeA);
+					var nodeB = nodeMap.get(linkData.nodeB);
+					if (!nodeA || !nodeB) {
+						throw new Error('Invalid node references in Link: ' + linkData.nodeA + ', ' + linkData.nodeB);
+					}
+					link = new Link(nodeA, nodeB);
+					link.parallelPart = linkData.parallelPart || 0.5;
+					link.perpendicularPart = linkData.perpendicularPart || 0;
+					link.lineAngleAdjust = linkData.lineAngleAdjust || 0;
+				} else {
+					throw new Error('Unknown link type: ' + linkData.type);
+				}
+				
+				link.text = linkData.text || '';
+				links.push(link);
+			}
+			
+			// Redraw and save
+			draw();
+			saveBackup();
+			
+			console.log('Successfully imported FSM with ' + nodes.length + ' nodes and ' + links.length + ' links');
+			
+		} catch (error) {
+			console.error('Error importing JSON:', error.message);
+		}
+	};
+	
+	reader.onerror = function() {
+		console.error('Error reading file');
+	};
+	
+	reader.readAsText(file);
+	
+	// Clear the file input for repeated imports
+	fileInput.value = '';
+}
+
 function clearCanvas() {
     // Clear all nodes and links
     nodes.length = 0;  // Clear nodes array

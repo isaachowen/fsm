@@ -155,6 +155,9 @@ if (typeof btoa == 'undefined') {
 			<li><b>Greek:</b> use backslash (\\beta)</li>
 		</ul>
 		<p style="margin: 0;"><strong>Export:</strong> <a href="javascript:saveAsPNG()">PNG</a> | <a href="javascript:saveAsSVG()">SVG</a> | <a href="javascript:downloadAsSVG()">Download SVG</a> | <a href="javascript:saveAsLaTeX()">LaTeX</a> | <a href="javascript:downloadAsLaTeX()">Download LaTeX</a> | <a href="javascript:downloadAsJSON()">Download JSON</a></p>
+		<p style="margin: 8px 0 0 0;"><strong>Import:</strong> 
+			<input type="file" id="jsonFileInput" accept=".json" onchange="importFromJSON(this)">
+		</p>
 		<p style="margin: 8px 0 0 0;"><strong>Actions:</strong> <a href="javascript:clearCanvas()" style="color: #d32f2f;">Clear Canvas</a></p>
 	</div>
 	<p class="author-credit">Forked from <a href="https://github.com/evanw/fsm">https://github.com/evanw/fsm</a> by <a href="http://madebyevan.com/">Evan Wallace</a></p>
