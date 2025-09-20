@@ -428,3 +428,32 @@ function saveAsLaTeX() {
 	var texData = exporter.toLaTeX();
 	output(texData);
 }
+
+function downloadAsLaTeX() {
+	// Generate LaTeX content using same logic as saveAsLaTeX()
+	var exporter = new ExportAsLaTeX();
+	var oldSelectedObject = selectedObject;
+	selectedObject = null;
+	drawUsing(exporter);
+	selectedObject = oldSelectedObject;
+	var texData = exporter.toLaTeX();
+	
+	// Create text blob for download
+	var blob = new Blob([texData], {type: 'text/plain'});
+	var url = URL.createObjectURL(blob);
+	
+	// Create temporary anchor element for download
+	var link = document.createElement('a');
+	link.href = url;                           // Blob URL with our LaTeX data
+	link.download = 'fsm-diagram.tex';         // Forces download with this filename
+	
+	// Must add to DOM for browser compatibility
+	document.body.appendChild(link);           // Some browsers require this
+	
+	// Trigger the download programmatically
+	link.click();                              // Simulates user clicking the link
+	
+	// Clean up immediately
+	document.body.removeChild(link);           // Remove from DOM
+	URL.revokeObjectURL(url);                 // Free memory
+}
