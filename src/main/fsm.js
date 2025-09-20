@@ -108,18 +108,30 @@ function drawUsing(c) {
 	c.translate(0.5, 0.5);
 
 	for(var i = 0; i < nodes.length; i++) {
-		c.lineWidth = 1;
-		c.fillStyle = c.strokeStyle = (nodes[i] == selectedObject) ? 'blue' : 'black';
+		c.lineWidth = 2;
+		if(nodes[i] == selectedObject) {
+			c.strokeStyle = '#ff9500';  // warm orange for selected
+			c.fillStyle = '#ffcc66';    // lighter orange for selected fill
+		} else {
+			c.strokeStyle = '#b8d4b8';  // engineering green accent
+			c.fillStyle = '#fff2a8';    // yellow post-it color
+		}
 		nodes[i].draw(c);
 	}
 	for(var i = 0; i < links.length; i++) {
-		c.lineWidth = 1;
-		c.fillStyle = c.strokeStyle = (links[i] == selectedObject) ? 'blue' : 'black';
+		c.lineWidth = 2;
+		if(links[i] == selectedObject) {
+			c.fillStyle = c.strokeStyle = '#ff9500';  // warm orange for selected
+		} else {
+			c.strokeStyle = '#b8d4b8';  // engineering green accent
+			c.fillStyle = '#2a2a2a';    // very dark gray for arrows
+		}
 		links[i].draw(c);
 	}
 	if(currentLink != null) {
-		c.lineWidth = 1;
-		c.fillStyle = c.strokeStyle = 'black';
+		c.lineWidth = 2;
+		c.strokeStyle = '#b8d4b8';  // engineering green accent
+		c.fillStyle = '#2a2a2a';    // very dark gray for arrows
 		currentLink.draw(c);
 	}
 
@@ -373,7 +385,26 @@ function saveAsPNG() {
 	drawUsing(canvas.getContext('2d'));
 	selectedObject = oldSelectedObject;
 	var pngData = canvas.toDataURL('image/png');
-	document.location.href = pngData;
+	
+	// Convert data URL to blob
+	var byteString = atob(pngData.split(',')[1]);
+	var mimeString = pngData.split(',')[0].split(':')[1].split(';')[0];
+	var ab = new ArrayBuffer(byteString.length);
+	var ia = new Uint8Array(ab);
+	for (var i = 0; i < byteString.length; i++) {
+		ia[i] = byteString.charCodeAt(i);
+	}
+	var blob = new Blob([ab], {type: mimeString});
+	
+	// Create download link
+	var url = URL.createObjectURL(blob);
+	var link = document.createElement('a');
+	link.href = url;
+	link.download = 'fsm-diagram.png';
+	document.body.appendChild(link);
+	link.click();
+	document.body.removeChild(link);
+	URL.revokeObjectURL(url);
 }
 
 function saveAsSVG() {
@@ -396,4 +427,253 @@ function saveAsLaTeX() {
 	selectedObject = oldSelectedObject;
 	var texData = exporter.toLaTeX();
 	output(texData);
+}
+
+function downloadAsLaTeX() {
+	// Generate LaTeX content using same logic as saveAsLaTeX()
+	var exporter = new ExportAsLaTeX();
+	var oldSelectedObject = selectedObject;
+	selectedObject = null;
+	drawUsing(exporter);
+	selectedObject = oldSelectedObject;
+	var texData = exporter.toLaTeX();
+	
+	// Create text blob for download
+	var blob = new Blob([texData], {type: 'text/plain'});
+	var url = URL.createObjectURL(blob);
+	
+	// Create temporary anchor element for download
+	var link = document.createElement('a');
+	link.href = url;                           // Blob URL with our LaTeX data
+	link.download = 'fsm-diagram.tex';         // Forces download with this filename
+	
+	// Must add to DOM for browser compatibility
+	document.body.appendChild(link);           // Some browsers require this
+	
+	// Trigger the download programmatically
+	link.click();                              // Simulates user clicking the link
+	
+	// Clean up immediately
+	document.body.removeChild(link);           // Remove from DOM
+	URL.revokeObjectURL(url);                 // Free memory
+}
+
+function downloadAsSVG() {
+	// Generate SVG content using same logic as saveAsSVG()
+	var exporter = new ExportAsSVG();
+	var oldSelectedObject = selectedObject;
+	selectedObject = null;
+	drawUsing(exporter);
+	selectedObject = oldSelectedObject;
+	var svgData = exporter.toSVG();
+	
+	// Create SVG blob for download
+	var blob = new Blob([svgData], {type: 'image/svg+xml'});
+	var url = URL.createObjectURL(blob);
+	
+	// Create temporary anchor element for download
+	var link = document.createElement('a');
+	link.href = url;                           // Blob URL with our SVG data
+	link.download = 'fsm-diagram.svg';         // Forces download with this filename
+	
+	// Must add to DOM for browser compatibility
+	document.body.appendChild(link);           // Some browsers require this
+	
+	// Trigger the download programmatically
+	link.click();                              // Simulates user clicking the link
+	
+	// Clean up immediately
+	document.body.removeChild(link);           // Remove from DOM
+	URL.revokeObjectURL(url);                 // Free memory
+}
+
+function downloadAsJSON() {
+	// Create node ID mapping for link references
+	var nodeIdMap = new Map();
+	var jsonNodes = [];
+	
+	// Serialize nodes with unique IDs
+	for (var i = 0; i < nodes.length; i++) {
+		var node = nodes[i];
+		var nodeId = i;
+		nodeIdMap.set(node, nodeId);
+		
+		jsonNodes.push({
+			id: nodeId,
+			x: node.x,
+			y: node.y, 
+			text: node.text,
+			isAcceptState: node.isAcceptState
+		});
+	}
+	
+	// Serialize links with node ID references
+	var jsonLinks = [];
+	for (var i = 0; i < links.length; i++) {
+		var link = links[i];
+		var linkData = {
+			text: link.text
+		};
+		
+		// Handle different link types
+		if (link instanceof SelfLink) {
+			linkData.type = 'SelfLink';
+			linkData.node = nodeIdMap.get(link.node);
+			linkData.anchorAngle = link.anchorAngle;
+		} else if (link instanceof StartLink) {
+			linkData.type = 'StartLink';
+			linkData.node = nodeIdMap.get(link.node);
+			linkData.deltaX = link.deltaX;
+			linkData.deltaY = link.deltaY;
+		} else if (link instanceof Link) {
+			linkData.type = 'Link';
+			linkData.nodeA = nodeIdMap.get(link.nodeA);
+			linkData.nodeB = nodeIdMap.get(link.nodeB);
+			linkData.parallelPart = link.parallelPart;
+			linkData.perpendicularPart = link.perpendicularPart;
+			linkData.lineAngleAdjust = link.lineAngleAdjust || 0;
+		}
+		
+		jsonLinks.push(linkData);
+	}
+	
+	// Create complete JSON structure
+	var jsonData = {
+		version: '1.0',
+		created: new Date().toISOString(),
+		canvas: {
+			width: canvas.width,
+			height: canvas.height
+		},
+		nodes: jsonNodes,
+		links: jsonLinks
+	};
+	
+	// Convert to JSON string with formatting
+	var jsonString = JSON.stringify(jsonData, null, 2);
+	
+	// Create JSON blob for download
+	var blob = new Blob([jsonString], {type: 'application/json'});
+	var url = URL.createObjectURL(blob);
+	
+	// Create temporary anchor element for download
+	var link = document.createElement('a');
+	link.href = url;
+	link.download = 'fsm-diagram.json';
+	
+	// Trigger download
+	document.body.appendChild(link);
+	link.click();
+	document.body.removeChild(link);
+	URL.revokeObjectURL(url);
+}
+
+function importFromJSON(fileInput) {
+	if (!fileInput.files || fileInput.files.length === 0) {
+		console.error('No file selected');
+		return;
+	}
+	
+	var file = fileInput.files[0];
+	var reader = new FileReader();
+	
+	reader.onload = function(e) {
+		try {
+			var jsonData = JSON.parse(e.target.result);
+			
+			// Basic validation
+			if (!jsonData.nodes || !jsonData.links) {
+				throw new Error('Invalid JSON structure: missing nodes or links array');
+			}
+			
+			// Clear current state
+			nodes = [];
+			links = [];
+			selectedObject = null;
+			currentLink = null;
+			
+			// Reconstruct nodes
+			var nodeMap = new Map(); // Maps JSON ID to Node object
+			for (var i = 0; i < jsonData.nodes.length; i++) {
+				var nodeData = jsonData.nodes[i];
+				var node = new Node(nodeData.x, nodeData.y);
+				node.text = nodeData.text || '';
+				node.isAcceptState = nodeData.isAcceptState || false;
+				nodes.push(node);
+				nodeMap.set(nodeData.id, node);
+			}
+			
+			// Reconstruct links
+			for (var i = 0; i < jsonData.links.length; i++) {
+				var linkData = jsonData.links[i];
+				var link;
+				
+				if (linkData.type === 'SelfLink') {
+					var targetNode = nodeMap.get(linkData.node);
+					if (!targetNode) {
+						throw new Error('Invalid node reference in SelfLink: ' + linkData.node);
+					}
+					link = new SelfLink(targetNode);
+					link.anchorAngle = linkData.anchorAngle || 0;
+				} else if (linkData.type === 'StartLink') {
+					var targetNode = nodeMap.get(linkData.node);
+					if (!targetNode) {
+						throw new Error('Invalid node reference in StartLink: ' + linkData.node);
+					}
+					link = new StartLink(targetNode);
+					link.deltaX = linkData.deltaX || -50;
+					link.deltaY = linkData.deltaY || 0;
+				} else if (linkData.type === 'Link') {
+					var nodeA = nodeMap.get(linkData.nodeA);
+					var nodeB = nodeMap.get(linkData.nodeB);
+					if (!nodeA || !nodeB) {
+						throw new Error('Invalid node references in Link: ' + linkData.nodeA + ', ' + linkData.nodeB);
+					}
+					link = new Link(nodeA, nodeB);
+					link.parallelPart = linkData.parallelPart || 0.5;
+					link.perpendicularPart = linkData.perpendicularPart || 0;
+					link.lineAngleAdjust = linkData.lineAngleAdjust || 0;
+				} else {
+					throw new Error('Unknown link type: ' + linkData.type);
+				}
+				
+				link.text = linkData.text || '';
+				links.push(link);
+			}
+			
+			// Redraw and save
+			draw();
+			saveBackup();
+			
+			console.log('Successfully imported FSM with ' + nodes.length + ' nodes and ' + links.length + ' links');
+			
+		} catch (error) {
+			console.error('Error importing JSON:', error.message);
+		}
+	};
+	
+	reader.onerror = function() {
+		console.error('Error reading file');
+	};
+	
+	reader.readAsText(file);
+	
+	// Clear the file input for repeated imports
+	fileInput.value = '';
+}
+
+function clearCanvas() {
+    // Clear all nodes and links
+    nodes.length = 0;  // Clear nodes array
+    links.length = 0;  // Clear links array
+    
+    // Clear any selected objects
+    selectedObject = null;
+    currentLink = null;
+    
+    // Redraw the canvas (will show empty canvas)
+    draw();
+    
+    // Save the cleared state to localStorage
+    saveBackup();
 }
