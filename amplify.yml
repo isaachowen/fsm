@@ -1,0 +1,19 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - echo "Installing Python dependencies..."
+    build:
+      commands:
+        - echo "Building the application..."
+        - python3 build_fsm.py
+    postBuild:
+      commands:
+        - echo "Build completed"
+  artifacts:
+    baseDirectory: www
+    files:
+      - '**/*'
+  cache:
+    paths: []
