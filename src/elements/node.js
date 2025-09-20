@@ -21,6 +21,7 @@ Node.prototype.draw = function(c) {
 	// draw the circle
 	c.beginPath();
 	c.arc(this.x, this.y, nodeRadius, 0, 2 * Math.PI, false);
+	c.fill();
 	c.stroke();
 
 	// draw the text

@@ -108,18 +108,30 @@ function drawUsing(c) {
 	c.translate(0.5, 0.5);
 
 	for(var i = 0; i < nodes.length; i++) {
-		c.lineWidth = 1;
-		c.fillStyle = c.strokeStyle = (nodes[i] == selectedObject) ? 'blue' : 'black';
+		c.lineWidth = 2;
+		if(nodes[i] == selectedObject) {
+			c.strokeStyle = '#ff9500';  // warm orange for selected
+			c.fillStyle = '#ffcc66';    // lighter orange for selected fill
+		} else {
+			c.strokeStyle = '#b8d4b8';  // engineering green accent
+			c.fillStyle = '#fff2a8';    // yellow post-it color
+		}
 		nodes[i].draw(c);
 	}
 	for(var i = 0; i < links.length; i++) {
-		c.lineWidth = 1;
-		c.fillStyle = c.strokeStyle = (links[i] == selectedObject) ? 'blue' : 'black';
+		c.lineWidth = 2;
+		if(links[i] == selectedObject) {
+			c.fillStyle = c.strokeStyle = '#ff9500';  // warm orange for selected
+		} else {
+			c.strokeStyle = '#b8d4b8';  // engineering green accent
+			c.fillStyle = '#2a2a2a';    // very dark gray for arrows
+		}
 		links[i].draw(c);
 	}
 	if(currentLink != null) {
-		c.lineWidth = 1;
-		c.fillStyle = c.strokeStyle = 'black';
+		c.lineWidth = 2;
+		c.strokeStyle = '#b8d4b8';  // engineering green accent
+		c.fillStyle = '#2a2a2a';    // very dark gray for arrows
 		currentLink.draw(c);
 	}
 

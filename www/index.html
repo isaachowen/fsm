@@ -7,21 +7,34 @@
 body {
 	text-align: center;
 	background: #DFDFDF;
-	margin: 0 30px 100px 30px;
+	margin: 0;
+	padding: 0;
 	font: 14px/18px 'Lucida Grande', 'Segoe UI', sans-serif;
+	overflow: hidden;
 }
 
 h1 {
 	font: bold italic 50px Georgia, serif;
+	margin: 10px 0;
+	position: absolute;
+	top: 10px;
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: 10;
+	background: rgba(223, 223, 223, 0.9);
+	padding: 5px 15px;
+	border-radius: 10px;
 }
 
 canvas {
 	display: block;
-	max-width: 800px;
-	background: white;
-	border-radius: 20px;
-	-moz-border-radius: 20px;
-	margin: 10px auto;
+	background: #f5f3e8;
+	border-radius: 0;
+	-moz-border-radius: 0;
+	margin: 0;
+	position: absolute;
+	top: 0;
+	left: 0;
 }
 
 a {
@@ -29,9 +42,19 @@ a {
 }
 
 div {
-	margin: 30px auto;
+	position: absolute;
+	bottom: 20px;
+	right: 20px;
+	background: rgba(223, 223, 223, 0.9);
+	border-radius: 10px;
+	padding: 20px;
+	margin: 0;
 	text-align: left;
-	max-width: 800px;
+	max-width: 380px;
+	font-size: 12px;
+	box-shadow: 0 2px 15px rgba(0,0,0,0.15);
+	z-index: 10;
+	border: 1px solid rgba(0,0,0,0.1);
 }
 
 .error {
@@ -53,9 +76,27 @@ p {
 
 textarea {
 	display: none;
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
 	width: 75%;
 	height: 400px;
-	margin: 0 auto;
+	z-index: 20;
+	background: white;
+	border: 2px solid #333;
+	border-radius: 5px;
+}
+
+.author-credit {
+	position: absolute;
+	bottom: 10px;
+	left: 10px;
+	background: rgba(223, 223, 223, 0.9);
+	padding: 5px 10px;
+	border-radius: 5px;
+	font-size: 12px;
+	z-index: 10;
 }
 
   </style>
@@ -101,21 +142,38 @@ if (typeof btoa == 'undefined') {
 	<canvas id="canvas" width="800" height="600">
 		<span class="error">Your browser does not support<br>the HTML5 &lt;canvas&gt; element</span>
 	</canvas>
+	<textarea id="output"></textarea>
 	<div>
-		<p class="center">Export as: <a href="javascript:saveAsPNG()">PNG</a> | <a href="javascript:saveAsSVG()">SVG</a> | <a href="javascript:saveAsLaTeX()">LaTeX</a></p>
-		<textarea id="output"></textarea>
-		<p>The big white box above is the FSM designer.&nbsp; Here's how to use it:</p>
-		<ul>
-			<li><b>Add a state:</b> double-click on the canvas</li>
-			<li><b>Add an arrow:</b> shift-drag on the canvas</li>
-			<li><b>Move something:</b> drag it around</li>
-			<li><b>Delete something:</b> click it and press the delete key (not the backspace key)</li>
-		</ul><ul>
-			<li><b>Make accept state:</b> double-click on an existing state</li>
-			<li><b>Type numeric subscript:</b> put an underscore before the number (like "S_0")</li>
-			<li><b>Type greek letter:</b> put a backslash before it (like "\beta")</li>
+		<p style="margin: 0 0 8px 0; font-weight: bold;">Controls:</p>
+		<ul style="margin: 0 0 15px 0; padding-left: 20px; line-height: 16px;">
+			<li><b>Add state:</b> double-click</li>
+			<li><b>Add arrow:</b> shift-drag</li>
+			<li><b>Move:</b> drag</li>
+			<li><b>Delete:</b> select + delete key</li>
+			<li><b>Accept state:</b> double-click state</li>
+			<li><b>Subscript:</b> use underscore (S_0)</li>
+			<li><b>Greek:</b> use backslash (\\beta)</li>
 		</ul>
-		<p>This was made in HTML5 and JavaScript using the canvas element.</p>
+		<p style="margin: 0;"><strong>Export:</strong> <a href="javascript:saveAsPNG()">PNG</a> | <a href="javascript:saveAsSVG()">SVG</a> | <a href="javascript:saveAsLaTeX()">LaTeX</a></p>
 	</div>
-	<p>Created by <a href="http://madebyevan.com/">Evan Wallace</a> in 2010</p>
+	<p class="author-credit">Forked from <a href="https://github.com/evanw/fsm">https://github.com/evanw/fsm</a> by <a href="http://madebyevan.com/">Evan Wallace</a></p>
+	<script src="fsm.js"></script>
+	<script>
+// Dynamically resize canvas to fill window
+function resizeCanvas() {
+    var canvas = document.getElementById('canvas');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    if (typeof draw === 'function') {
+        draw();
+    }
+}
+
+// Initialize canvas size and set up resize handler
+window.addEventListener('resize', resizeCanvas);
+window.addEventListener('DOMContentLoaded', resizeCanvas);
+
+// Also resize when the page loads
+window.addEventListener('load', resizeCanvas);
+	</script>
 </body></html>
