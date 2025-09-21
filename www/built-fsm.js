@@ -815,7 +815,7 @@ function drawUsing(c) {
 			c.strokeStyle = '#ff9500';  // warm orange for selected
 			c.fillStyle = '#ffcc66';    // lighter orange for selected fill
 		} else {
-			c.strokeStyle = '#b8d4b8';  // engineering green accent
+			c.strokeStyle = '#9ac29a';  // darker engineering green accent
 			c.fillStyle = '#fff2a8';    // yellow post-it color
 		}
 		nodes[i].draw(c);
@@ -825,15 +825,15 @@ function drawUsing(c) {
 		if(links[i] == selectedObject) {
 			c.fillStyle = c.strokeStyle = '#ff9500';  // warm orange for selected
 		} else {
-			c.strokeStyle = '#b8d4b8';  // engineering green accent
-			c.fillStyle = '#2a2a2a';    // very dark gray for arrows
+			c.strokeStyle = '#9ac29a';  // darker engineering green accent
+			c.fillStyle = '#9ac29a';    // darker engineering green accent for arrows too
 		}
 		links[i].draw(c);
 	}
 	if(currentLink != null) {
 		c.lineWidth = 2;
-		c.strokeStyle = '#b8d4b8';  // engineering green accent
-		c.fillStyle = '#2a2a2a';    // very dark gray for arrows
+		c.strokeStyle = '#9ac29a';  // darker engineering green accent
+		c.fillStyle = '#9ac29a';    // darker engineering green accent for arrows too
 		currentLink.draw(c);
 	}
 
