@@ -81,7 +81,7 @@ a {
 }
 
 .primary-button {
-	background: #4a90e2;
+	background: #9aad6b;
 	color: white;
 	border: none;
 	padding: 10px 16px;
@@ -93,11 +93,11 @@ a {
 }
 
 .primary-button:hover {
-	background: #357abd;
+	background: #7a8854;
 }
 
 .danger-button {
-	background: #d32f2f;
+	background: #a67c52;
 	color: white;
 	border: none;
 	padding: 10px 16px;
@@ -109,11 +109,11 @@ a {
 }
 
 .danger-button:hover {
-	background: #b71c1c;
+	background: #8b6640;
 }
 
 .file-button {
-	background: #4a90e2;
+	background: #9aad6b;
 	color: white;
 	display: inline-block;
 	text-align: center;
@@ -121,7 +121,7 @@ a {
 }
 
 .file-button:hover {
-	background: #357abd;
+	background: #7a8854;
 }
 
 /* Update author credit styling since it's now inside guibox */
@@ -212,9 +212,9 @@ if (typeof btoa == 'undefined') {
 	
 	<!-- Action buttons box - top left -->
 	<div id="actionbuttonbox">
-		<button onclick="downloadAsJSON()" class="primary-button">Save Doodle (JSON)</button>
 		<label for="jsonFileInput" class="primary-button file-button">Load Doodle (from JSON)</label>
 		<input type="file" id="jsonFileInput" accept=".json" onchange="importFromJSON(this)" style="display: none;">
+		<button onclick="downloadAsJSON()" class="primary-button">Save Doodle (to JSON)</button>
 		<button onclick="clearCanvas()" class="danger-button">Clear Canvas</button>
 	</div>
 
