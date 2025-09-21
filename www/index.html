@@ -1,6 +1,6 @@
 <!doctype html>
 <html><head>
-	<title>Network Doodler - forked from Finite State Machine Designer by Evan Wallace</title>
+	<title>Network Sketchpad - forked from Finite State Machine Designer by Evan Wallace</title>
   <meta charset="utf-8">
 	<style>
 
@@ -204,7 +204,7 @@ if (typeof btoa == 'undefined') {
 
 	</script>
 </head><body>
-	<h1>Network Doodler</h1>
+	<h1>Network Sketchpad</h1>
 	<canvas id="canvas" width="800" height="600">
 		<span class="error">Your browser does not support<br>the HTML5 &lt;canvas&gt; element</span>
 	</canvas>
@@ -212,10 +212,10 @@ if (typeof btoa == 'undefined') {
 	
 	<!-- Action buttons box - top left -->
 	<div id="actionbuttonbox">
-		<label for="jsonFileInput" class="primary-button file-button">Load Doodle (from JSON)</label>
+		<label for="jsonFileInput" class="primary-button file-button">Load Sketch (from JSON)</label>
 		<input type="file" id="jsonFileInput" accept=".json" onchange="importFromJSON(this)" style="display: none;">
-		<button onclick="downloadAsJSON()" class="primary-button">Save Doodle (to JSON)</button>
-		<button onclick="clearCanvas()" class="danger-button">Clear Canvas</button>
+		<button onclick="downloadAsJSON()" class="primary-button">Save Sketch (to JSON)</button>
+		<button onclick="clearCanvas()" class="danger-button">Clear Sketch</button>
 	</div>
 
 	<!-- Controls/help box - bottom left -->
