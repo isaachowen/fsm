@@ -495,6 +495,54 @@ function downloadAsSVG() {
 	URL.revokeObjectURL(url);                 // Free memory
 }
 
+// Filename management functions for custom JSON save names with browserStorage persistence
+
+// Get the custom filename from the input field, sanitize it, and add .json extension
+function getCustomFilename() {
+	var input = document.getElementById('filenameInput');
+	var filename = (input && input.value.trim()) || 'fsm-diagram';
+	
+	// Replace invalid filesystem characters with underscores for safety
+	filename = filename.replace(/[\/\\:*?"<>|]/g, '_');
+	
+	return filename + '.json';
+}
+
+// Save the current filename to browserStorage so it persists across sessions
+function saveFilenameToBrowserStorage() {
+	var input = document.getElementById('filenameInput');
+	if (input && input.value.trim()) {
+		localStorage.setItem('fsmFilename', input.value.trim());
+	}
+}
+
+// Load the saved filename from browserStorage and populate the input field
+function loadFilenameFromBrowserStorage() {
+	var savedFilename = localStorage.getItem('fsmFilename');
+	var input = document.getElementById('filenameInput');
+	if (input && savedFilename) {
+		input.value = savedFilename;
+	}
+}
+
+// Initialize the filename input system with persistence and debounced auto-save
+function initializeFilenameInput() {
+	// Load any previously saved filename
+	loadFilenameFromBrowserStorage();
+	
+	var input = document.getElementById('filenameInput');
+	if (input) {
+		// Auto-save filename changes with 500ms debounce to avoid excessive browserStorage writes
+		var timeoutId;
+		input.addEventListener('input', function() {
+			clearTimeout(timeoutId);
+			timeoutId = setTimeout(function() {
+				saveFilenameToBrowserStorage();
+			}, 500); // Wait 500ms after user stops typing before saving
+		});
+	}
+}
+
 function downloadAsJSON() {
 	// Create node ID mapping for link references
 	var nodeIdMap = new Map();
@@ -567,7 +615,10 @@ function downloadAsJSON() {
 	// Create temporary anchor element for download
 	var link = document.createElement('a');
 	link.href = url;
-	link.download = 'fsm-diagram.json';
+	link.download = getCustomFilename();
+	
+	// Save the filename to browserStorage when download occurs
+	saveFilenameToBrowserStorage();
 	
 	// Trigger download
 	document.body.appendChild(link);
@@ -653,6 +704,17 @@ function importFromJSON(fileInput) {
 			draw();
 			saveBackup();
 			
+			// Populate filename textbox with uploaded file's name (without .json extension)
+			var filename = file.name;
+			if (filename.toLowerCase().endsWith('.json')) {
+				filename = filename.slice(0, -5); // Remove .json extension
+			}
+			var input = document.getElementById('filenameInput');
+			if (input) {
+				input.value = filename;
+				saveFilenameToBrowserStorage(); // Save the new filename to browserStorage
+			}
+			
 			console.log('Successfully imported FSM with ' + nodes.length + ' nodes and ' + links.length + ' links');
 			
 		} catch (error) {
@@ -678,6 +740,13 @@ function clearCanvas() {
     // Clear any selected objects
     selectedObject = null;
     currentLink = null;
+    
+    // Reset filename to default
+    var input = document.getElementById('filenameInput');
+    if (input) {
+        input.value = '';
+        saveFilenameToBrowserStorage(); // Save the reset filename to browserStorage
+    }
     
     // Redraw the canvas (will show empty canvas)
     draw();
