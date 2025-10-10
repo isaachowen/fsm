@@ -229,7 +229,7 @@ window.onload = function() {
 			
 			// If we used a shape modifier, suppress typing briefly to allow key release
 			if(shapeModifier != null) {
-				suppressTypingUntil = Date.now() + 200; // 200ms suppression
+				suppressTypingUntil = Date.now() + 300; // 300ms suppression
 			}
 			
 			resetCaret();
@@ -239,7 +239,7 @@ window.onload = function() {
 				// Change existing node to specific shape
 				selectedObject.shape = getShapeFromModifier(shapeModifier);
 				// Suppress typing briefly when changing shapes too
-				suppressTypingUntil = Date.now() + 200;
+				suppressTypingUntil = Date.now() + 300;
 			} else {
 				// Cycle through accept state and shapes
 				cycleNodeAppearance(selectedObject);
@@ -385,30 +385,8 @@ function getShapeFromModifier(modifier) {
 }
 
 function cycleNodeAppearance(node) {
-	if(!node.isAcceptState && node.shape === 'circle') {
-		// First click: make accept state
-		node.isAcceptState = true;
-	} else if(node.isAcceptState && node.shape === 'circle') {
-		// Second click: triangle, still accept state
-		node.shape = 'triangle';
-	} else if(node.isAcceptState && node.shape === 'triangle') {
-		// Third click: square, still accept state
-		node.shape = 'square';
-	} else if(node.isAcceptState && node.shape === 'square') {
-		// Fourth click: pentagon, still accept state
-		node.shape = 'pentagon';
-	} else if(node.isAcceptState && node.shape === 'pentagon') {
-		// Fifth click: hexagon, still accept state
-		node.shape = 'hexagon';
-	} else if(node.isAcceptState && node.shape === 'hexagon') {
-		// Sixth click: back to circle, not accept state
-		node.isAcceptState = false;
-		node.shape = 'circle';
-	} else {
-		// Fallback: reset to circle, not accept state
-		node.isAcceptState = false;
-		node.shape = 'circle';
-	}
+	// Simply toggle accept state, keep current shape
+	node.isAcceptState = !node.isAcceptState;
 }
 
 function crossBrowserKey(e) {
@@ -586,7 +564,15 @@ function loadFilenameFromBrowserStorage() {
 	var input = document.getElementById('filenameInput');
 	if (input && savedFilename) {
 		input.value = savedFilename;
+		updateDocumentTitle(); // Update title when loading saved filename
 	}
+}
+
+// Update the document title to include the current filename
+function updateDocumentTitle() {
+	var input = document.getElementById('filenameInput');
+	var filename = input && input.value.trim() ? input.value.trim() : 'sketch_name';
+	document.title = 'NS - ' + filename;
 }
 
 // Initialize the filename input system with persistence and debounced auto-save
@@ -594,11 +580,17 @@ function initializeFilenameInput() {
 	// Load any previously saved filename
 	loadFilenameFromBrowserStorage();
 	
+	// Set initial title
+	updateDocumentTitle();
+	
 	var input = document.getElementById('filenameInput');
 	if (input) {
 		// Auto-save filename changes with 500ms debounce to avoid excessive browserStorage writes
 		var timeoutId;
 		input.addEventListener('input', function() {
+			// Update title immediately for responsive feel
+			updateDocumentTitle();
+			
 			clearTimeout(timeoutId);
 			timeoutId = setTimeout(function() {
 				saveFilenameToBrowserStorage();
@@ -684,6 +676,9 @@ function downloadAsJSON() {
 	
 	// Save the filename to browserStorage when download occurs
 	saveFilenameToBrowserStorage();
+	
+	// Update document title to reflect the saved filename
+	updateDocumentTitle();
 	
 	// Trigger download
 	document.body.appendChild(link);
@@ -781,6 +776,7 @@ function importFromJSON(fileInput) {
 			var input = document.getElementById('filenameInput');
 			if (input) {
 				input.value = filename;
+				updateDocumentTitle(); // Update title when importing file
 				saveFilenameToBrowserStorage(); // Save the new filename to browserStorage
 			}
 			
@@ -814,6 +810,7 @@ function clearCanvas() {
     var input = document.getElementById('filenameInput');
     if (input) {
         input.value = '';
+        updateDocumentTitle(); // Update title when clearing filename
         saveFilenameToBrowserStorage(); // Save the reset filename to browserStorage
     }
     
