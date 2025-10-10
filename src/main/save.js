@@ -8,9 +8,13 @@ function restoreBackup() {
 
 		for(var i = 0; i < backup.nodes.length; i++) {
 			var backupNode = backup.nodes[i];
-			var node = new Node(backupNode.x, backupNode.y);
+			var node = new Node(backupNode.x, backupNode.y, backupNode.shape);
 			node.isAcceptState = backupNode.isAcceptState;
 			node.text = backupNode.text;
+			// Handle backward compatibility - default to circle if no shape specified
+			if (!node.shape) {
+				node.shape = 'circle';
+			}
 			nodes.push(node);
 		}
 		for(var i = 0; i < backup.links.length; i++) {
@@ -57,6 +61,7 @@ function saveBackup() {
 			'y': node.y,
 			'text': node.text,
 			'isAcceptState': node.isAcceptState,
+			'shape': node.shape || 'circle', // Include shape property with fallback
 		};
 		backup.nodes.push(backupNode);
 	}

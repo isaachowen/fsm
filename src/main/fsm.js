@@ -222,12 +222,28 @@ window.onload = function() {
 		selectedObject = selectObject(mouse.x, mouse.y);
 
 		if(selectedObject == null) {
-			selectedObject = new Node(mouse.x, mouse.y);
+			// Create new node with specified shape
+			var shape = getShapeFromModifier(shapeModifier);
+			selectedObject = new Node(mouse.x, mouse.y, shape);
 			nodes.push(selectedObject);
+			
+			// If we used a shape modifier, suppress typing briefly to allow key release
+			if(shapeModifier != null) {
+				suppressTypingUntil = Date.now() + 200; // 200ms suppression
+			}
+			
 			resetCaret();
 			draw();
 		} else if(selectedObject instanceof Node) {
-			selectedObject.isAcceptState = !selectedObject.isAcceptState;
+			if(shapeModifier != null) {
+				// Change existing node to specific shape
+				selectedObject.shape = getShapeFromModifier(shapeModifier);
+				// Suppress typing briefly when changing shapes too
+				suppressTypingUntil = Date.now() + 200;
+			} else {
+				// Cycle through accept state and shapes
+				cycleNodeAppearance(selectedObject);
+			}
 			draw();
 		}
 	};
@@ -284,12 +300,17 @@ window.onload = function() {
 }
 
 var shift = false;
+var shapeModifier = null; // Will store the number key pressed (1, 3, 4, 5, 6)
+var suppressTypingUntil = 0; // Timestamp to suppress typing after node creation
 
 document.onkeydown = function(e) {
 	var key = crossBrowserKey(e);
 
 	if(key == 16) {
 		shift = true;
+	} else if(key >= 49 && key <= 54) { // Keys 1, 3, 4, 5, 6 (skip 2 for future use)
+		if(key === 50) return; // Skip key 2 for now
+		shapeModifier = key - 48; // Convert keycode to number (1, 3, 4, 5, 6)
 	} else if(!canvasHasFocus()) {
 		// don't read keystrokes when other things have focus
 		return true;
@@ -325,6 +346,8 @@ document.onkeyup = function(e) {
 
 	if(key == 16) {
 		shift = false;
+	} else if(key >= 49 && key <= 54 && key !== 50) { // Keys 1, 3, 4, 5, 6 (skip 2)
+		shapeModifier = null;
 	}
 };
 
@@ -334,6 +357,9 @@ document.onkeypress = function(e) {
 	if(!canvasHasFocus()) {
 		// don't read keystrokes when other things have focus
 		return true;
+	} else if(Date.now() < suppressTypingUntil) {
+		// temporarily suppress typing after shape modifier usage
+		return false;
 	} else if(key >= 0x20 && key <= 0x7E && !e.metaKey && !e.altKey && !e.ctrlKey && selectedObject != null && 'text' in selectedObject) {
 		selectedObject.text += String.fromCharCode(key);
 		resetCaret();
@@ -346,6 +372,44 @@ document.onkeypress = function(e) {
 		return false;
 	}
 };
+
+function getShapeFromModifier(modifier) {
+	switch(modifier) {
+		case 1: return 'circle';
+		case 3: return 'triangle';
+		case 4: return 'square';
+		case 5: return 'pentagon';
+		case 6: return 'hexagon';
+		default: return 'circle'; // Default fallback
+	}
+}
+
+function cycleNodeAppearance(node) {
+	if(!node.isAcceptState && node.shape === 'circle') {
+		// First click: make accept state
+		node.isAcceptState = true;
+	} else if(node.isAcceptState && node.shape === 'circle') {
+		// Second click: triangle, still accept state
+		node.shape = 'triangle';
+	} else if(node.isAcceptState && node.shape === 'triangle') {
+		// Third click: square, still accept state
+		node.shape = 'square';
+	} else if(node.isAcceptState && node.shape === 'square') {
+		// Fourth click: pentagon, still accept state
+		node.shape = 'pentagon';
+	} else if(node.isAcceptState && node.shape === 'pentagon') {
+		// Fifth click: hexagon, still accept state
+		node.shape = 'hexagon';
+	} else if(node.isAcceptState && node.shape === 'hexagon') {
+		// Sixth click: back to circle, not accept state
+		node.isAcceptState = false;
+		node.shape = 'circle';
+	} else {
+		// Fallback: reset to circle, not accept state
+		node.isAcceptState = false;
+		node.shape = 'circle';
+	}
+}
 
 function crossBrowserKey(e) {
 	e = e || window.event;
@@ -559,7 +623,8 @@ function downloadAsJSON() {
 			x: node.x,
 			y: node.y, 
 			text: node.text,
-			isAcceptState: node.isAcceptState
+			isAcceptState: node.isAcceptState,
+			shape: node.shape || 'circle' // Include shape property
 		});
 	}
 	
@@ -655,9 +720,13 @@ function importFromJSON(fileInput) {
 			var nodeMap = new Map(); // Maps JSON ID to Node object
 			for (var i = 0; i < jsonData.nodes.length; i++) {
 				var nodeData = jsonData.nodes[i];
-				var node = new Node(nodeData.x, nodeData.y);
+				var node = new Node(nodeData.x, nodeData.y, nodeData.shape);
 				node.text = nodeData.text || '';
 				node.isAcceptState = nodeData.isAcceptState || false;
+				// Handle backward compatibility - default to circle if no shape specified
+				if (!node.shape) {
+					node.shape = 'circle';
+				}
 				nodes.push(node);
 				nodeMap.set(nodeData.id, node);
 			}
