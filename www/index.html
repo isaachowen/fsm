@@ -217,6 +217,14 @@ if (typeof btoa == 'undefined') {
 	
 	<!-- Action buttons box - top left -->
 	<div id="actionbuttonbox">
+		<div style="margin-bottom: 8px;">
+			<label for="filenameInput" style="display: block; margin-bottom: 4px; font-size: 11px; color: #333;">Filename on save:</label>
+			<div style="display: flex; align-items: center; gap: 2px;">
+				<input type="text" id="filenameInput" placeholder="sketch_name" value="fsm-diagram"
+					   style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 3px; font-size: 11px; box-sizing: border-box; font-family: inherit;">
+				<span style="font-size: 11px; color: #666; font-family: inherit;">.json</span>
+			</div>
+		</div>
 		<label for="jsonFileInput" class="primary-button file-button">Load Sketch (from JSON)</label>
 		<input type="file" id="jsonFileInput" accept=".json" onchange="importFromJSON(this)" style="display: none;">
 		<button onclick="downloadAsJSON()" class="primary-button">Save Sketch (to JSON)</button>
@@ -252,7 +260,10 @@ function resizeCanvas() {
 
 // Initialize canvas size and set up resize handler
 window.addEventListener('resize', resizeCanvas);
-window.addEventListener('DOMContentLoaded', resizeCanvas);
+window.addEventListener('DOMContentLoaded', function() {
+	resizeCanvas();
+	initializeFilenameInput();
+});
 
 // Also resize when the page loads
 window.addEventListener('load', resizeCanvas);
