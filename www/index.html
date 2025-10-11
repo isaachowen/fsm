@@ -246,6 +246,46 @@ if (typeof btoa == 'undefined') {
 			<li><b>Greek:</b> use backslash (\beta)</li>
 			<li><b>Pan canvas:</b> middle mouse + drag</li>
 		</ul>
+		
+		<!-- Color/Shape Guide -->
+		<div class="color-shape-guide" style="margin: 15px 0; text-align: center; padding: 8px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">
+			<p style="margin: 0 0 5px 0; font-size: 12px; font-weight: bold;">Color/Shape Guide:</p>
+			<svg width="250" height="60" viewBox="0 0 250 60" style="display: block; margin: 0 auto; max-width: 100%; height: auto;">
+				<!-- Background -->
+				<rect width="250" height="60" fill="#fdfdfd" stroke="#eee" stroke-width="0.5"/>
+				
+				<!-- Shape 1: Circle (1q) -->
+				<g transform="translate(25, 20)">
+					<circle cx="0" cy="0" r="12" fill="#fff2a8" stroke="#9ac29a" stroke-width="1.5"/>
+					<text x="0" y="25" text-anchor="middle" font-size="8" font-family="Arial, sans-serif" fill="#333">1q</text>
+				</g>
+				
+				<!-- Shape 2: Triangle (3w) -->
+				<g transform="translate(75, 20)">
+					<polygon points="0,-12 -10.39,6 10.39,6" fill="#c8e6c9" stroke="#9ac29a" stroke-width="1.5"/>
+					<text x="0" y="25" text-anchor="middle" font-size="8" font-family="Arial, sans-serif" fill="#333">3w</text>
+				</g>
+				
+				<!-- Shape 3: Square (4e) -->
+				<g transform="translate(125, 20)">
+					<rect x="-10.2" y="-10.2" width="20.4" height="20.4" fill="#bbdefb" stroke="#9ac29a" stroke-width="1.5"/>
+					<text x="0" y="25" text-anchor="middle" font-size="8" font-family="Arial, sans-serif" fill="#333">4e</text>
+				</g>
+				
+				<!-- Shape 4: Pentagon (5r) -->
+				<g transform="translate(175, 20)">
+					<polygon points="0,-12 11.4,-3.7 7.1,9.7 -7.1,9.7 -11.4,-3.7" fill="#f8bbd9" stroke="#9ac29a" stroke-width="1.5"/>
+					<text x="0" y="25" text-anchor="middle" font-size="8" font-family="Arial, sans-serif" fill="#333">5r</text>
+				</g>
+				
+				<!-- Shape 5: Hexagon (6t) -->
+				<g transform="translate(225, 20)">
+					<polygon points="0,-12 10.4,-6 10.4,6 0,12 -10.4,6 -10.4,-6" fill="#ffffff" stroke="#9ac29a" stroke-width="1.5"/>
+					<text x="0" y="25" text-anchor="middle" font-size="8" font-family="Arial, sans-serif" fill="#333">6t</text>
+				</g>
+			</svg>
+		</div>
+		
 		<p class="author-credit" style="margin: 15px 0 0 0; font-style: italic;">
 			Forked from <a href="http://madebyevan.com/fsm/">Finite State Machine Designer</a>
 		</p>
