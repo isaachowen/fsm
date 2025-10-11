@@ -463,6 +463,7 @@ Node.prototype.getBaseColor = function() {
 		case 'pink': return '#f8bbd9';     // Soft rose pink
 		case 'purple': return '#e1bee7';   // Light lavender
 		case 'orange': return '#ffe0b2';   // Warm peach
+		case 'white': return '#ffffff';    // Pure white
 		case 'yellow':
 		default: return '#fff2a8';         // Yellow post-it (existing)
 	}
@@ -475,6 +476,7 @@ Node.prototype.getSelectedColor = function() {
 		case 'pink': return '#f48fb1';     // Darker pink for selection
 		case 'purple': return '#ce93d8';   // Darker purple for selection
 		case 'orange': return '#ffcc80';   // Darker orange for selection
+		case 'white': return '#f0f0f0';    // Light gray for white selection
 		case 'yellow':
 		default: return '#ffcc66';         // Existing yellow selection color
 	}
@@ -1439,12 +1441,12 @@ function getShapeFromModifier(modifier) {
 
 function getColorFromModifier(modifier) {
 	switch(modifier) {
-		case 'Q': return 'green';
-		case 'W': return 'blue';
-		case 'E': return 'pink';
-		case 'R': return 'purple';
-		case 'T': return 'orange';
-		default: return 'yellow'; // Default fallback
+		case 'Q': return 'yellow';  // Q for default yellow
+		case 'W': return 'green';   // W for green  
+		case 'E': return 'blue';    // E for blue
+		case 'R': return 'pink';    // R for pink
+		case 'T': return 'white';   // T for white
+		default: return 'yellow';   // Default fallback
 	}
 }
 
@@ -1745,7 +1747,8 @@ function downloadAsJSON() {
 			y: node.y, 
 			text: node.text,
 			isAcceptState: node.isAcceptState,
-			shape: node.shape || 'circle' // Include shape property
+			shape: node.shape || 'circle', // Include shape property
+			color: node.color || 'yellow'  // Include color property
 		});
 	}
 	
@@ -1844,12 +1847,16 @@ function importFromJSON(fileInput) {
 			var nodeMap = new Map(); // Maps JSON ID to Node object
 			for (var i = 0; i < jsonData.nodes.length; i++) {
 				var nodeData = jsonData.nodes[i];
-				var node = new Node(nodeData.x, nodeData.y, nodeData.shape);
+				var node = new Node(nodeData.x, nodeData.y, nodeData.shape, nodeData.color);
 				node.text = nodeData.text || '';
 				node.isAcceptState = nodeData.isAcceptState || false;
 				// Handle backward compatibility - default to circle if no shape specified
 				if (!node.shape) {
 					node.shape = 'circle';
+				}
+				// Handle backward compatibility - default to yellow if no color specified
+				if (!node.color) {
+					node.color = 'yellow';
 				}
 				nodes.push(node);
 				nodeMap.set(nodeData.id, node);
