@@ -251,11 +251,11 @@ if (typeof btoa == 'undefined') {
 
 	<!-- Controls/help box - bottom left -->
 	<div id="guibox">
-		<p id="controls-header" onclick="toggleControls()" style="margin: 0 0 8px 0; font-weight: bold; cursor: pointer; user-select: none; display: flex; align-items: center; justify-content: space-between;">
+		<p id="controls-header" onclick="toggleControls()" style="margin: 0; font-weight: bold; cursor: pointer; user-select: none; display: flex; align-items: center; justify-content: space-between;">
 			<span>Guide</span>
 			<span id="controls-toggle" style="font-size: 14px; font-weight: normal;">▼</span>
 		</p>
-		<div id="controls-content" style="transition: all 0.3s ease-in-out;">
+		<div id="controls-content" style="transition: all 0.3s ease-in-out; margin-top: 12px;">
 			<ul style="margin: 0 0 15px 0; padding-left: 20px; line-height: 16px;">
 				<li><b>Add node:</b> double-click (hold shape/color keys)</li>
 				<li><b>Move node:</b> drag</li>
@@ -279,31 +279,31 @@ if (typeof btoa == 'undefined') {
 					<!-- Shape 1: Circle (1q) -->
 					<g transform="translate(25, 20)">
 						<circle cx="0" cy="0" r="12" fill="#fff2a8" stroke="#9ac29a" stroke-width="1.5"/>
-						<text x="0" y="25" text-anchor="middle" font-size="8" font-family="Arial, sans-serif" fill="#333">1q</text>
+						<text x="0" y="25" text-anchor="middle" font-size="12" font-family="Arial, sans-serif" fill="#333">1q</text>
 					</g>
 					
 					<!-- Shape 2: Triangle (3w) -->
 					<g transform="translate(75, 20)">
 						<polygon points="0,-12 -10.39,6 10.39,6" fill="#c8e6c9" stroke="#9ac29a" stroke-width="1.5"/>
-						<text x="0" y="25" text-anchor="middle" font-size="8" font-family="Arial, sans-serif" fill="#333">3w</text>
+						<text x="0" y="25" text-anchor="middle" font-size="12" font-family="Arial, sans-serif" fill="#333">3w</text>
 					</g>
 					
 					<!-- Shape 3: Square (4e) -->
 					<g transform="translate(125, 20)">
 						<rect x="-10.2" y="-10.2" width="20.4" height="20.4" fill="#bbdefb" stroke="#9ac29a" stroke-width="1.5"/>
-						<text x="0" y="25" text-anchor="middle" font-size="8" font-family="Arial, sans-serif" fill="#333">4e</text>
+						<text x="0" y="25" text-anchor="middle" font-size="12" font-family="Arial, sans-serif" fill="#333">4e</text>
 					</g>
 					
 					<!-- Shape 4: Pentagon (5r) -->
 					<g transform="translate(175, 20)">
 						<polygon points="0,-12 11.4,-3.7 7.1,9.7 -7.1,9.7 -11.4,-3.7" fill="#f8bbd9" stroke="#9ac29a" stroke-width="1.5"/>
-						<text x="0" y="25" text-anchor="middle" font-size="8" font-family="Arial, sans-serif" fill="#333">5r</text>
+						<text x="0" y="25" text-anchor="middle" font-size="12" font-family="Arial, sans-serif" fill="#333">5r</text>
 					</g>
 					
 					<!-- Shape 5: Hexagon (6t) -->
 					<g transform="translate(225, 20)">
 						<polygon points="0,-12 10.4,-6 10.4,6 0,12 -10.4,6 -10.4,-6" fill="#ffffff" stroke="#9ac29a" stroke-width="1.5"/>
-						<text x="0" y="25" text-anchor="middle" font-size="8" font-family="Arial, sans-serif" fill="#333">6t</text>
+						<text x="0" y="25" text-anchor="middle" font-size="12" font-family="Arial, sans-serif" fill="#333">6t</text>
 					</g>
 				</svg>
 			</div>
@@ -322,7 +322,7 @@ function toggleControls() {
         localStorage.setItem('controlsExpanded', 'true');
     } else {
         content.style.display = 'none';
-        toggle.textContent = '►';
+        toggle.textContent = '';
         // Save collapsed state
         localStorage.setItem('controlsExpanded', 'false');
     }
@@ -340,7 +340,7 @@ function initializeControlsState() {
         toggle.textContent = '▼';
     } else {
         content.style.display = 'none';
-        toggle.textContent = '►';
+        toggle.textContent = ' ►';
     }
 }
 
