@@ -435,7 +435,7 @@ Link.prototype.containsPoint = function(x, y) {
 	return false;
 };
 
-function Node(x, y, shape) {
+function Node(x, y, shape, color) {
 	this.x = x;
 	this.y = y;
 	this.mouseOffsetX = 0;
@@ -443,6 +443,7 @@ function Node(x, y, shape) {
 	this.isAcceptState = false;
 	this.text = '';
 	this.shape = shape || 'circle'; // Default to circle for backward compatibility
+	this.color = color || 'yellow'; // Default to yellow for backward compatibility
 }
 
 Node.prototype.setMouseStart = function(x, y) {
@@ -453,6 +454,30 @@ Node.prototype.setMouseStart = function(x, y) {
 Node.prototype.setAnchorPoint = function(x, y) {
 	this.x = x + this.mouseOffsetX;
 	this.y = y + this.mouseOffsetY;
+};
+
+Node.prototype.getBaseColor = function() {
+	switch(this.color) {
+		case 'green': return '#c8e6c9';    // Soft mint green
+		case 'blue': return '#bbdefb';     // Light sky blue
+		case 'pink': return '#f8bbd9';     // Soft rose pink
+		case 'purple': return '#e1bee7';   // Light lavender
+		case 'orange': return '#ffe0b2';   // Warm peach
+		case 'yellow':
+		default: return '#fff2a8';         // Yellow post-it (existing)
+	}
+};
+
+Node.prototype.getSelectedColor = function() {
+	switch(this.color) {
+		case 'green': return '#a5d6a7';    // Darker green for selection
+		case 'blue': return '#90caf9';     // Darker blue for selection
+		case 'pink': return '#f48fb1';     // Darker pink for selection
+		case 'purple': return '#ce93d8';   // Darker purple for selection
+		case 'orange': return '#ffcc80';   // Darker orange for selection
+		case 'yellow':
+		default: return '#ffcc66';         // Existing yellow selection color
+	}
 };
 
 Node.prototype.draw = function(c) {
@@ -1108,10 +1133,10 @@ function drawUsing(c) {
 		c.lineWidth = 2;
 		if(nodes[i] == selectedObject) {
 			c.strokeStyle = '#ff9500';  // warm orange for selected
-			c.fillStyle = '#ffcc66';    // lighter orange for selected fill
+			c.fillStyle = nodes[i].getSelectedColor();  // Use node's selected color
 		} else {
 			c.strokeStyle = '#9ac29a';  // darker engineering green accent
-			c.fillStyle = '#fff2a8';    // yellow post-it color
+			c.fillStyle = nodes[i].getBaseColor();      // Use node's base color
 		}
 		nodes[i].draw(c);
 	}
@@ -1222,13 +1247,14 @@ window.onload = function() {
 		selectedObject = selectObject(worldMouse.x, worldMouse.y);
 
 		if(selectedObject == null) {
-			// Create new node with specified shape
+			// Create new node with specified shape and color
 			var shape = getShapeFromModifier(shapeModifier);
-			selectedObject = new Node(worldMouse.x, worldMouse.y, shape);
+			var color = getColorFromModifier(colorModifier);
+			selectedObject = new Node(worldMouse.x, worldMouse.y, shape, color);
 			nodes.push(selectedObject);
 			
-			// If we used a shape modifier, suppress typing briefly to allow key release
-			if(shapeModifier != null) {
+			// If we used a modifier, suppress typing briefly to allow key release
+			if(shapeModifier != null || colorModifier != null) {
 				suppressTypingUntil = Date.now() + 300; // 300ms suppression
 			}
 			
@@ -1240,8 +1266,15 @@ window.onload = function() {
 				selectedObject.shape = getShapeFromModifier(shapeModifier);
 				// Suppress typing briefly when changing shapes too
 				suppressTypingUntil = Date.now() + 300;
-			} else {
-				// Cycle through accept state and shapes
+			}
+			if(colorModifier != null) {
+				// Change existing node to specific color
+				selectedObject.color = getColorFromModifier(colorModifier);
+				// Suppress typing briefly when changing colors too
+				suppressTypingUntil = Date.now() + 300;
+			}
+			if(shapeModifier == null && colorModifier == null) {
+				// Cycle through accept state when no modifiers
 				cycleNodeAppearance(selectedObject);
 			}
 			draw();
@@ -1316,6 +1349,7 @@ window.onload = function() {
 
 var shift = false;
 var shapeModifier = null; // Will store the number key pressed (1, 3, 4, 5, 6)
+var colorModifier = null; // Will store the letter key pressed (Q, W, E, R, T)
 var suppressTypingUntil = 0; // Timestamp to suppress typing after node creation
 
 document.onkeydown = function(e) {
@@ -1326,6 +1360,8 @@ document.onkeydown = function(e) {
 	} else if(key >= 49 && key <= 54) { // Keys 1, 3, 4, 5, 6 (skip 2 for future use)
 		if(key === 50) return; // Skip key 2 for now
 		shapeModifier = key - 48; // Convert keycode to number (1, 3, 4, 5, 6)
+	} else if(key == 81 || key == 87 || key == 69 || key == 82 || key == 84) { // Q, W, E, R, T keys
+		colorModifier = String.fromCharCode(key); // Convert keycode to letter (Q, W, E, R, T)
 	} else if(!canvasHasFocus()) {
 		// don't read keystrokes when other things have focus
 		return true;
@@ -1363,6 +1399,8 @@ document.onkeyup = function(e) {
 		shift = false;
 	} else if(key >= 49 && key <= 54 && key !== 50) { // Keys 1, 3, 4, 5, 6 (skip 2)
 		shapeModifier = null;
+	} else if(key == 81 || key == 87 || key == 69 || key == 82 || key == 84) { // Q, W, E, R, T keys
+		colorModifier = null;
 	}
 };
 
@@ -1396,6 +1434,17 @@ function getShapeFromModifier(modifier) {
 		case 5: return 'pentagon';
 		case 6: return 'hexagon';
 		default: return 'circle'; // Default fallback
+	}
+}
+
+function getColorFromModifier(modifier) {
+	switch(modifier) {
+		case 'Q': return 'green';
+		case 'W': return 'blue';
+		case 'E': return 'pink';
+		case 'R': return 'purple';
+		case 'T': return 'orange';
+		default: return 'yellow'; // Default fallback
 	}
 }
 
@@ -1622,7 +1671,7 @@ function downloadAsSVG() {
 // Get the custom filename from the input field, sanitize it, and add .json extension
 function getCustomFilename() {
 	var input = document.getElementById('filenameInput');
-	var filename = (input && input.value.trim()) || 'fsm-diagram';
+	var filename = (input && input.value.trim()) || 'network_sketch';
 	
 	// Replace invalid filesystem characters with underscores for safety
 	filename = filename.replace(/[\/\\:*?"<>|]/g, '_');

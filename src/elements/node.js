@@ -1,4 +1,4 @@
-function Node(x, y, shape) {
+function Node(x, y, shape, color) {
 	this.x = x;
 	this.y = y;
 	this.mouseOffsetX = 0;
@@ -6,6 +6,7 @@ function Node(x, y, shape) {
 	this.isAcceptState = false;
 	this.text = '';
 	this.shape = shape || 'circle'; // Default to circle for backward compatibility
+	this.color = color || 'yellow'; // Default to yellow for backward compatibility
 }
 
 Node.prototype.setMouseStart = function(x, y) {
@@ -16,6 +17,30 @@ Node.prototype.setMouseStart = function(x, y) {
 Node.prototype.setAnchorPoint = function(x, y) {
 	this.x = x + this.mouseOffsetX;
 	this.y = y + this.mouseOffsetY;
+};
+
+Node.prototype.getBaseColor = function() {
+	switch(this.color) {
+		case 'green': return '#c8e6c9';    // Soft mint green
+		case 'blue': return '#bbdefb';     // Light sky blue
+		case 'pink': return '#f8bbd9';     // Soft rose pink
+		case 'purple': return '#e1bee7';   // Light lavender
+		case 'orange': return '#ffe0b2';   // Warm peach
+		case 'yellow':
+		default: return '#fff2a8';         // Yellow post-it (existing)
+	}
+};
+
+Node.prototype.getSelectedColor = function() {
+	switch(this.color) {
+		case 'green': return '#a5d6a7';    // Darker green for selection
+		case 'blue': return '#90caf9';     // Darker blue for selection
+		case 'pink': return '#f48fb1';     // Darker pink for selection
+		case 'purple': return '#ce93d8';   // Darker purple for selection
+		case 'orange': return '#ffcc80';   // Darker orange for selection
+		case 'yellow':
+		default: return '#ffcc66';         // Existing yellow selection color
+	}
 };
 
 Node.prototype.draw = function(c) {
