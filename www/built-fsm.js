@@ -1083,9 +1083,25 @@ var currentLink = null; // a Link
 var movingObject = false;
 var originalClick;
 
+// Viewport state for canvas panning and zooming
+var viewport = {
+	x: 0,              // Pan offset X (world units)
+	y: 0,              // Pan offset Y (world units) 
+	scale: 1,          // Zoom level (1 = normal size)
+	isPanning: false,  // Currently dragging viewport
+	lastMouseX: 0,     // Last mouse position for delta calculation
+	lastMouseY: 0,     // Last mouse position for delta calculation
+	panStartX: 0,      // Mouse position when pan started
+	panStartY: 0       // Mouse position when pan started
+};
+
 function drawUsing(c) {
 	c.clearRect(0, 0, canvas.width, canvas.height);
 	c.save();
+	
+	// Apply viewport transform
+	c.translate(viewport.x, viewport.y);
+	c.scale(viewport.scale, viewport.scale);
 	c.translate(0.5, 0.5);
 
 	for(var i = 0; i < nodes.length; i++) {
@@ -1159,23 +1175,32 @@ window.onload = function() {
 
 	canvas.onmousedown = function(e) {
 		var mouse = crossBrowserRelativeMousePos(e);
-		selectedObject = selectObject(mouse.x, mouse.y);
+		
+		// Check for middle-click panning
+		if (e.button === 1) { // Middle mouse button
+			startPanning(mouse.x, mouse.y);
+			return false; // Prevent default middle-click behavior
+		}
+		
+		// Convert to world coordinates for object interaction
+		var worldMouse = screenToWorld(mouse.x, mouse.y);
+		selectedObject = selectObject(worldMouse.x, worldMouse.y);
 		movingObject = false;
-		originalClick = mouse;
+		originalClick = worldMouse;
 
 		if(selectedObject != null) {
 			if(shift && selectedObject instanceof Node) {
-				currentLink = new SelfLink(selectedObject, mouse);
+				currentLink = new SelfLink(selectedObject, worldMouse);
 			} else {
 				movingObject = true;
 				deltaMouseX = deltaMouseY = 0;
 				if(selectedObject.setMouseStart) {
-					selectedObject.setMouseStart(mouse.x, mouse.y);
+					selectedObject.setMouseStart(worldMouse.x, worldMouse.y);
 				}
 			}
 			resetCaret();
 		} else if(shift) {
-			currentLink = new TemporaryLink(mouse, mouse);
+			currentLink = new TemporaryLink(worldMouse, worldMouse);
 		}
 
 		draw();
@@ -1192,12 +1217,14 @@ window.onload = function() {
 
 	canvas.ondblclick = function(e) {
 		var mouse = crossBrowserRelativeMousePos(e);
-		selectedObject = selectObject(mouse.x, mouse.y);
+		// Convert to world coordinates for object interaction
+		var worldMouse = screenToWorld(mouse.x, mouse.y);
+		selectedObject = selectObject(worldMouse.x, worldMouse.y);
 
 		if(selectedObject == null) {
 			// Create new node with specified shape
 			var shape = getShapeFromModifier(shapeModifier);
-			selectedObject = new Node(mouse.x, mouse.y, shape);
+			selectedObject = new Node(worldMouse.x, worldMouse.y, shape);
 			nodes.push(selectedObject);
 			
 			// If we used a shape modifier, suppress typing briefly to allow key release
@@ -1223,9 +1250,18 @@ window.onload = function() {
 
 	canvas.onmousemove = function(e) {
 		var mouse = crossBrowserRelativeMousePos(e);
+		
+		// Handle viewport panning
+		if(viewport.isPanning) {
+			updatePanning(mouse.x, mouse.y);
+			return; // Don't process other mouse actions while panning
+		}
+		
+		// Convert to world coordinates for object interaction
+		var worldMouse = screenToWorld(mouse.x, mouse.y);
 
 		if(currentLink != null) {
-			var targetNode = selectObject(mouse.x, mouse.y);
+			var targetNode = selectObject(worldMouse.x, worldMouse.y);
 			if(!(targetNode instanceof Node)) {
 				targetNode = null;
 			}
@@ -1234,22 +1270,22 @@ window.onload = function() {
 				if(targetNode != null) {
 					currentLink = new StartLink(targetNode, originalClick);
 				} else {
-					currentLink = new TemporaryLink(originalClick, mouse);
+					currentLink = new TemporaryLink(originalClick, worldMouse);
 				}
 			} else {
 				if(targetNode == selectedObject) {
-					currentLink = new SelfLink(selectedObject, mouse);
+					currentLink = new SelfLink(selectedObject, worldMouse);
 				} else if(targetNode != null) {
 					currentLink = new Link(selectedObject, targetNode);
 				} else {
-					currentLink = new TemporaryLink(selectedObject.closestPointOnCircle(mouse.x, mouse.y), mouse);
+					currentLink = new TemporaryLink(selectedObject.closestPointOnCircle(worldMouse.x, worldMouse.y), worldMouse);
 				}
 			}
 			draw();
 		}
 
 		if(movingObject) {
-			selectedObject.setAnchorPoint(mouse.x, mouse.y);
+			selectedObject.setAnchorPoint(worldMouse.x, worldMouse.y);
 			if(selectedObject instanceof Node) {
 				snapNode(selectedObject);
 			}
@@ -1258,6 +1294,12 @@ window.onload = function() {
 	};
 
 	canvas.onmouseup = function(e) {
+		// Handle middle-click panning end
+		if (e.button === 1 && viewport.isPanning) { // Middle mouse button
+			stopPanning();
+			return false;
+		}
+		
 		movingObject = false;
 
 		if(currentLink != null) {
@@ -1394,6 +1436,71 @@ function crossBrowserRelativeMousePos(e) {
 		'x': mouse.x - element.x,
 		'y': mouse.y - element.y
 	};
+}
+
+// Viewport coordinate conversion functions
+function screenToWorld(screenX, screenY) {
+	return {
+		x: (screenX - viewport.x) / viewport.scale,
+		y: (screenY - viewport.y) / viewport.scale
+	};
+}
+
+function worldToScreen(worldX, worldY) {
+	return {
+		x: worldX * viewport.scale + viewport.x,
+		y: worldY * viewport.scale + viewport.y
+	};
+}
+
+// Viewport utility functions
+function resetViewport() {
+	viewport.x = 0;
+	viewport.y = 0;
+	viewport.scale = 1;
+	viewport.isPanning = false;
+	viewport.lastMouseX = 0;
+	viewport.lastMouseY = 0;
+	viewport.panStartX = 0;
+	viewport.panStartY = 0;
+	draw();
+}
+
+function updateMouseCoordinates(e) {
+	var screenMouse = crossBrowserRelativeMousePos(e);
+	var worldMouse = screenToWorld(screenMouse.x, screenMouse.y);
+	return {
+		screen: screenMouse,
+		world: worldMouse
+	};
+}
+
+// Panning functions
+function startPanning(mouseX, mouseY) {
+	viewport.isPanning = true;
+	viewport.panStartX = viewport.lastMouseX = mouseX;
+	viewport.panStartY = viewport.lastMouseY = mouseY;
+	canvas.style.cursor = 'grabbing';
+}
+
+function updatePanning(mouseX, mouseY) {
+	if (!viewport.isPanning) return;
+	
+	var deltaX = mouseX - viewport.lastMouseX;
+	var deltaY = mouseY - viewport.lastMouseY;
+	
+	viewport.x += deltaX;
+	viewport.y += deltaY;
+	
+	viewport.lastMouseX = mouseX;
+	viewport.lastMouseY = mouseY;
+	
+	draw(); // Redraw with new viewport
+}
+
+function stopPanning() {
+	viewport.isPanning = false;
+	canvas.style.cursor = 'default';
 }
 
 function output(text) {
