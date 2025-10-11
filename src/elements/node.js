@@ -26,6 +26,7 @@ Node.prototype.getBaseColor = function() {
 		case 'pink': return '#f8bbd9';     // Soft rose pink
 		case 'purple': return '#e1bee7';   // Light lavender
 		case 'orange': return '#ffe0b2';   // Warm peach
+		case 'white': return '#ffffff';    // Pure white
 		case 'yellow':
 		default: return '#fff2a8';         // Yellow post-it (existing)
 	}
@@ -38,6 +39,7 @@ Node.prototype.getSelectedColor = function() {
 		case 'pink': return '#f48fb1';     // Darker pink for selection
 		case 'purple': return '#ce93d8';   // Darker purple for selection
 		case 'orange': return '#ffcc80';   // Darker orange for selection
+		case 'white': return '#f0f0f0';    // Light gray for white selection
 		case 'yellow':
 		default: return '#ffcc66';         // Existing yellow selection color
 	}
