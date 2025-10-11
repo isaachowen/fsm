@@ -649,7 +649,7 @@ function downloadAsSVG() {
 // Get the custom filename from the input field, sanitize it, and add .json extension
 function getCustomFilename() {
 	var input = document.getElementById('filenameInput');
-	var filename = (input && input.value.trim()) || 'fsm-diagram';
+	var filename = (input && input.value.trim()) || 'network_sketch';
 	
 	// Replace invalid filesystem characters with underscores for safety
 	filename = filename.replace(/[\/\\:*?"<>|]/g, '_');
