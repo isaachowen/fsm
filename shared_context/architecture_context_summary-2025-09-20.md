@@ -1,4 +1,4 @@
-# Network Doodler - Architecture Overview
+# Network Sketchpad - Architecture Overview
 
 ## Table of Contents
 
@@ -34,7 +34,7 @@
    - [Web Interface](#web-interface)
 
 ## Project Summary
-A web-based interactive Network Doodler that allows users to create, edit, and export FSM diagrams. This is a single-page application built with vanilla JavaScript and HTML5 Canvas, originally created by Evan Wallace and forked for enhancements.
+A web-based interactive Network Sketchpad that allows users to create, edit, and export FSM diagrams. This is a single-page application built with vanilla JavaScript and HTML5 Canvas, originally created by Evan Wallace and forked for enhancements.
 
 ## Technology Stack
 - **Frontend**: Vanilla JavaScript, HTML5 Canvas, CSS3

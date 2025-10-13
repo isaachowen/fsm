@@ -1,6 +1,6 @@
-# How to Host Network Doodler on AWS Amplify
+# How to Host Network Sketchpad on AWS Amplify
 
-This guide will walk you through deploying your Network Doodler application to AWS Amplify for free hosting with a custom domain and CI/CD capabilities.
+This guide will walk you through deploying your Network Sketchpad application to AWS Amplify for free hosting with a custom domain and CI/CD capabilities.
 
 ## Prerequisites
 
@@ -10,7 +10,7 @@ This guide will walk you through deploying your Network Doodler application to A
 
 ## Overview
 
-Your Network Doodler app is a static web application that consists of:
+Your Network Sketchpad app is a static web application that consists of:
 - Static HTML (`www/index.html`)
 - Bundled JavaScript (`www/built-fsm.js`)
 - A Python build script (`build_fsm.py`)
@@ -108,7 +108,7 @@ AWS Amplify will now:
 
 After deployment (usually 2-5 minutes):
 1. You'll see a URL like: `https://main.d1234567890.amplifyapp.com`
-2. Click the URL to view your live Network Doodler application
+2. Click the URL to view your live Network Sketchpad application
 3. Test all functionality to ensure everything works correctly
 
 ## Custom Domain Setup (Optional)
@@ -201,7 +201,7 @@ frontend:
 - **Data storage**: $0.023 per GB/month
 - **Data transfer**: $0.15 per GB
 
-For a typical personal project like Network Doodler, you'll likely stay within the free tier limits.
+For a typical personal project like Network Sketchpad, you'll likely stay within the free tier limits.
 
 ## Security Considerations
 
@@ -242,4 +242,4 @@ After successful deployment:
 **Estimated Cost**: Free (within AWS free tier limits)  
 **Difficulty Level**: Beginner to Intermediate
 
-Your Network Doodler application will be live and accessible worldwide with automatic HTTPS, CDN distribution, and continuous deployment from your GitHub repository!
+Your Network Sketchpad application will be live and accessible worldwide with automatic HTTPS, CDN distribution, and continuous deployment from your GitHub repository!

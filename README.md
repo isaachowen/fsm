@@ -1,9 +1,9 @@
-# Network Doodler
+# Network Sketchpad
 
 The original tool was made by Evan Wallace, called `Finite State Machine Designer`.
 I have used this clever little tool for many years to quickly draw my thoughts in the context of design thinking, mind mapping, system design, dependency graph planning, and anything with graph theory.
 I think graph theory style thinking is widely applicable to most types of problem solving and want to make this tool a bit more functional for my own uses, and perhaps the layperson.
-So I'm calling Network Doodler because that's what it is to me, and what I think it could be for other people.
+So I'm calling Network Sketchpad because that's what it is to me, and what I think it could be for other people.
 
 See http://madebyevan.com/fsm/ for Evan's original implementation
 
