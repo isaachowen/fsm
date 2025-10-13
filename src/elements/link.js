@@ -30,7 +30,7 @@ Link.prototype.getAnchorPoint = function() {
 	 * getAnchorPoint - Calculates the current anchor point position for link curvature
 	 * 
 	 * Called by:
-	 * - this.getEndPointsAndCircle() to determine circular arc geometry
+	 * - this.getEndPointsAndArcParams() to determine circular arc geometry
 	 * - Canvas interaction code when displaying anchor points during editing
 	 * 
 	 * Calls:
@@ -77,9 +77,9 @@ Link.prototype.setAnchorPoint = function(x, y) {
 	}
 };
 
-Link.prototype.getEndPointsAndCircle = function() {
+Link.prototype.getEndPointsAndArcParams = function() {
 	/**
-	 * getEndPointsAndCircle - Core geometric calculation for link rendering and hit detection
+	 * getEndPointsAndArcParams - Core geometric calculation for link rendering and hit detection
 	 * 
 	 * Called by:
 	 * - this.draw() for rendering the link arc and positioning text/arrows
@@ -96,11 +96,11 @@ Link.prototype.getEndPointsAndCircle = function() {
 	 * all necessary geometry (start/end points, circle center/radius, angles) for both
 	 * rendering and interaction. This is the mathematical heart of the Link class.
 	 */
-	if(this.perpendicularPart == 0) {
+	if(this.perpendicularPart == 0) { // no perpendicular element=no arc, straight edge 
 		var midX = (this.nodeA.x + this.nodeB.x) / 2;
 		var midY = (this.nodeA.y + this.nodeB.y) / 2;
-		var start = this.nodeA.closestPointOnCircle(midX, midY);
-		var end = this.nodeB.closestPointOnCircle(midX, midY);
+		var start = this.nodeA.closestPointOnShapeToEdgeArc(midX, midY);
+		var end = this.nodeB.closestPointOnShapeToEdgeArc(midX, midY);
 		return {
 			'hasCircle': false,
 			'startX': start.x,
@@ -113,12 +113,19 @@ Link.prototype.getEndPointsAndCircle = function() {
 	var circle = circleFromThreePoints(this.nodeA.x, this.nodeA.y, this.nodeB.x, this.nodeB.y, anchor.x, anchor.y);
 	var isReversed = (this.perpendicularPart > 0);
 	var reverseScale = isReversed ? 1 : -1;
-	var startAngle = Math.atan2(this.nodeA.y - circle.y, this.nodeA.x - circle.x) - reverseScale * nodeRadius / circle.radius;
-	var endAngle = Math.atan2(this.nodeB.y - circle.y, this.nodeB.x - circle.x) + reverseScale * nodeRadius / circle.radius;
-	var startX = circle.x + circle.radius * Math.cos(startAngle);
-	var startY = circle.y + circle.radius * Math.sin(startAngle);
-	var endX = circle.x + circle.radius * Math.cos(endAngle);
-	var endY = circle.y + circle.radius * Math.sin(endAngle);
+	
+	// Calculate intersection points between arc circle and actual node shapes
+	var startIntersection = this.findArcNodeIntersection(circle, this.nodeA, this.nodeB, false);
+	var endIntersection = this.findArcNodeIntersection(circle, this.nodeB, this.nodeA, true);
+	
+	var startX = startIntersection.x;
+	var startY = startIntersection.y;
+	var endX = endIntersection.x;
+	var endY = endIntersection.y;
+	
+	// Calculate angles for arrow/text positioning
+	var startAngle = Math.atan2(startY - circle.y, startX - circle.x);
+	var endAngle = Math.atan2(endY - circle.y, endX - circle.x);
 	return {
 		'hasCircle': true,
 		'startX': startX,
@@ -135,6 +142,68 @@ Link.prototype.getEndPointsAndCircle = function() {
 	};
 };
 
+Link.prototype.findArcNodeIntersection = function(circle, targetNode, otherNode, isEndPoint) {
+	/**
+	 * findArcNodeIntersection - Finds where the arc circle intersects the target node's actual shape boundary
+	 * 
+	 * Called by:
+	 * - this.getEndPointsAndArcParams() for calculating curved arc connection points
+	 * 
+	 * Calls:
+	 * - targetNode.closestPointOnShapeToEdgeArc() for polygon edge calculations
+	 * - Math.atan2(), Math.cos(), Math.sin() for geometric calculations
+	 * - Math.sqrt() for distance calculations
+	 * 
+	 * Purpose: Calculates the exact point where a curved arc should connect to a node's 
+	 * boundary, handling both circular and polygon shapes properly. For circles, uses 
+	 * traditional trigonometric offset. For polygons, finds intersection between arc 
+	 * circle and polygon edges.
+	 */
+	
+	// For circles, use existing circular calculation
+	if (targetNode.shape === 'circle') {
+		var dx = targetNode.x - circle.x;
+		var dy = targetNode.y - circle.y;
+		var distance = Math.sqrt(dx * dx + dy * dy);
+		var angle = Math.atan2(dy, dx);
+		var reverseScale = (this.perpendicularPart > 0) ? 1 : -1;
+		var offsetAngle = angle + (isEndPoint ? reverseScale : -reverseScale) * nodeRadius / circle.radius;
+		return {
+			x: circle.x + circle.radius * Math.cos(offsetAngle),
+			y: circle.y + circle.radius * Math.sin(offsetAngle)
+		};
+	}
+	
+	// For polygons, find intersection between arc circle and polygon edges
+	// Start with rough approximation using node center direction
+	var centerAngle = Math.atan2(targetNode.y - circle.y, targetNode.x - circle.x);
+	var approxX = circle.x + circle.radius * Math.cos(centerAngle);
+	var approxY = circle.y + circle.radius * Math.sin(centerAngle);
+	
+	// Use existing shape-aware method to find closest point on polygon boundary
+	var intersection = targetNode.closestPointOnShapeToEdgeArc(approxX, approxY);
+	
+	// Project this point back onto the arc circle
+	var dx = intersection.x - circle.x;
+	var dy = intersection.y - circle.y;
+	var distance = Math.sqrt(dx * dx + dy * dy);
+	
+	if (distance > 0) {
+		var normalizedX = dx / distance;
+		var normalizedY = dy / distance;
+		return {
+			x: circle.x + circle.radius * normalizedX,
+			y: circle.y + circle.radius * normalizedY
+		};
+	}
+	
+	// Fallback to center-based calculation
+	return {
+		x: circle.x + circle.radius * Math.cos(centerAngle),
+		y: circle.y + circle.radius * Math.sin(centerAngle)
+	};
+};
+
 Link.prototype.draw = function(c) {
 	/**
 	 * draw - Renders the link as either a straight line or curved arc with arrow and text
@@ -144,7 +213,7 @@ Link.prototype.draw = function(c) {
 	 * - All contexts: main canvas, JSON export, and any custom drawing contexts
 	 * 
 	 * Calls:
-	 * - this.getEndPointsAndCircle() to get all geometric data for rendering
+	 * - this.getEndPointsAndArcParams() to get all geometric data for rendering
 	 * - c.beginPath(), c.arc(), c.moveTo(), c.lineTo(), c.stroke() for drawing the path
 	 * - drawArrow() from fsm.js to render the directional arrow head
 	 * - drawText() from fsm.js to render the transition label
@@ -154,7 +223,7 @@ Link.prototype.draw = function(c) {
 	 * curved or straight line, directional arrow, and properly positioned/rotated text label.
 	 * Handles both curved arc geometry and straight line special cases.
 	 */
-	var stuff = this.getEndPointsAndCircle();
+	var stuff = this.getEndPointsAndArcParams();
 	// draw arc
 	c.beginPath();
 	if(stuff.hasCircle) {
@@ -198,7 +267,7 @@ Link.prototype.containsPoint = function(x, y) {
 	 * - Canvas event handlers to determine if mouse is over this link
 	 * 
 	 * Calls:
-	 * - this.getEndPointsAndCircle() to get current geometry for hit testing
+	 * - this.getEndPointsAndArcParams() to get current geometry for hit testing
 	 * - Math.sqrt(), Math.atan2(), Math.abs() for distance and angle calculations
 	 * - hitTargetPadding global variable to define clickable area around the link
 	 * 
@@ -207,7 +276,7 @@ Link.prototype.containsPoint = function(x, y) {
 	 * arc hit detection (checking distance from arc and angle bounds) and straight
 	 * line hit detection (perpendicular distance from line segment).
 	 */
-	var stuff = this.getEndPointsAndCircle();
+	var stuff = this.getEndPointsAndArcParams();
 	if(stuff.hasCircle) {
 		var dx = x - stuff.circleX;
 		var dy = y - stuff.circleY;

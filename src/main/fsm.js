@@ -665,7 +665,7 @@ window.onload = function() {
 				} else if(targetNode != null) {
 					currentLink = new Link(selectedObject, targetNode);
 				} else {
-					currentLink = new TemporaryLink(selectedObject.closestPointOnCircle(worldMouse.x, worldMouse.y), worldMouse);
+					currentLink = new TemporaryLink(selectedObject.closestPointOnShapeToEdgeArc(worldMouse.x, worldMouse.y), worldMouse);
 				}
 			}
 			draw();

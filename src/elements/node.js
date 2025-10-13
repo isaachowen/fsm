@@ -163,9 +163,9 @@ Node.prototype.drawAcceptStatePolygon = function(c, sides, radius) {
 	c.closePath();
 };
 
-Node.prototype.closestPointOnCircle = function(x, y) {
+Node.prototype.closestPointOnShapeToEdgeArc = function(x, y) {
 	if(this.shape === 'circle') {
-		// Original circular logic
+		// Original logic for circle/dot nodes
 		var dx = x - this.x;
 		var dy = y - this.y;
 		var scale = Math.sqrt(dx * dx + dy * dy);

@@ -75,9 +75,9 @@ SelfLink.prototype.setAnchorPoint = function(x, y) {
 	if(this.anchorAngle > Math.PI) this.anchorAngle -= 2 * Math.PI;
 };
 
-SelfLink.prototype.getEndPointsAndCircle = function() {
+SelfLink.prototype.getEndPointsAndArcParams = function() {
 	/**
-	 * getEndPointsAndCircle - Calculates all geometric properties for the self-loop arc
+	 * getEndPointsAndArcParams - Calculates all geometric properties for the self-loop arc
 	 * 
 	 * Called by:
 	 * - this.draw() during rendering to get complete arc geometry
@@ -127,7 +127,7 @@ SelfLink.prototype.draw = function(c) {
 	 * - All drawing contexts: main canvas, JSON export, and custom drawing operations
 	 * 
 	 * Calls:
-	 * - this.getEndPointsAndCircle() to get complete arc geometry
+	 * - this.getEndPointsAndArcParams() to get complete arc geometry
 	 * - c.beginPath(), c.arc(), c.stroke() for drawing the circular arc
 	 * - drawText() from fsm.js to render the transition label
 	 * - drawArrow() from fsm.js to render the directional arrow head
@@ -139,7 +139,7 @@ SelfLink.prototype.draw = function(c) {
 	 * Text is positioned on the farthest point of the loop from the node center.
 	 * Always draws as a circular arc (never straight lines).
 	 */
-	var stuff = this.getEndPointsAndCircle();
+	var stuff = this.getEndPointsAndArcParams();
 	// draw arc
 	c.beginPath();
 	c.arc(stuff.circleX, stuff.circleY, stuff.circleRadius, stuff.startAngle, stuff.endAngle, false);
@@ -161,7 +161,7 @@ SelfLink.prototype.containsPoint = function(x, y) {
 	 * - Used to determine which self-link (if any) was clicked for selection/interaction
 	 * 
 	 * Calls:
-	 * - this.getEndPointsAndCircle() to get the self-link's circular arc properties
+	 * - this.getEndPointsAndArcParams() to get the self-link's circular arc properties
 	 * - Math.sqrt() and Math.abs() for distance calculations
 	 * - hitTargetPadding global variable to define clickable area around the arc
 	 * 
@@ -170,7 +170,7 @@ SelfLink.prototype.containsPoint = function(x, y) {
 	 * the distance from the point to the circle boundary. Returns true if the point
 	 * (x,y) is within tolerance distance of the circular arc path.
 	 */
-	var stuff = this.getEndPointsAndCircle();
+	var stuff = this.getEndPointsAndArcParams();
 	var dx = x - stuff.circleX;
 	var dy = y - stuff.circleY;
 	var distance = Math.sqrt(dx*dx + dy*dy) - stuff.circleRadius;
