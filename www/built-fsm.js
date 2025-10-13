@@ -923,6 +923,12 @@ function restoreBackup() {
 	} catch(e) {
 		localStorage['fsm'] = '';
 	}
+	
+	// Clear any selection state when restoring
+	selectedObject = null;
+	selectedNodes = [];
+	selectionBox.active = false;
+	isSelecting = false;
 }
 
 function saveBackup() {
@@ -1115,6 +1121,17 @@ var currentLink = null; // a Link
 var movingObject = false;
 var originalClick;
 
+// Multi-select and selection box state
+var selectionBox = {
+	active: false,
+	startX: 0,
+	startY: 0,
+	endX: 0,
+	endY: 0
+};
+var selectedNodes = []; // Array of selected Node objects
+var isSelecting = false;
+
 // Viewport state for canvas panning and zooming
 var viewport = {
 	x: 0,              // Pan offset X (world units)
@@ -1127,6 +1144,90 @@ var viewport = {
 	panStartY: 0       // Mouse position when pan started
 };
 
+function drawSelectionBox(c) {
+	if (!selectionBox.active) return;
+	
+	// Calculate rectangle bounds
+	var left = Math.min(selectionBox.startX, selectionBox.endX);
+	var right = Math.max(selectionBox.startX, selectionBox.endX);
+	var top = Math.min(selectionBox.startY, selectionBox.endY);
+	var bottom = Math.max(selectionBox.startY, selectionBox.endY);
+	var width = right - left;
+	var height = bottom - top;
+	
+	// Draw selection rectangle with dashed border and semi-transparent fill
+	c.save();
+	
+	// Set up dashed line style
+	c.strokeStyle = '#0066cc';  // Blue border
+	c.fillStyle = 'rgba(0, 102, 204, 0.1)';  // Semi-transparent blue fill
+	c.lineWidth = 1;
+	
+	// Draw dashed border (manual dashing for older browser compatibility)
+	if (c.setLineDash) {
+		c.setLineDash([5, 5]);  // 5px dash, 5px gap
+	}
+	
+	// Draw filled rectangle
+	c.fillRect(left, top, width, height);
+	
+	// Draw border
+	c.strokeRect(left, top, width, height);
+	
+	c.restore();
+}
+
+function nodeIntersectsRectangle(node, rect) {
+	// Check if a circular node intersects with a rectangle
+	// rect should have properties: left, right, top, bottom
+	
+	// Find the closest point on the rectangle to the circle center
+	var closestX = Math.max(rect.left, Math.min(node.x, rect.right));
+	var closestY = Math.max(rect.top, Math.min(node.y, rect.bottom));
+	
+	// Calculate distance from circle center to closest point
+	var distanceX = node.x - closestX;
+	var distanceY = node.y - closestY;
+	var distanceSquared = distanceX * distanceX + distanceY * distanceY;
+	
+	// Circle intersects rectangle if distance is less than or equal to radius
+	return distanceSquared <= (nodeRadius * nodeRadius);
+}
+
+function getNodesInSelectionBox() {
+	if (!selectionBox.active) return [];
+	
+	// Calculate rectangle bounds
+	var left = Math.min(selectionBox.startX, selectionBox.endX);
+	var right = Math.max(selectionBox.startX, selectionBox.endX);
+	var top = Math.min(selectionBox.startY, selectionBox.endY);
+	var bottom = Math.max(selectionBox.startY, selectionBox.endY);
+	
+	var rect = {
+		left: left,
+		right: right,
+		top: top,
+		bottom: bottom
+	};
+	
+	var intersectingNodes = [];
+	for (var i = 0; i < nodes.length; i++) {
+		if (nodeIntersectsRectangle(nodes[i], rect)) {
+			intersectingNodes.push(nodes[i]);
+		}
+	}
+	
+	return intersectingNodes;
+}
+
+function moveSelectedNodesGroup(deltaX, deltaY) {
+	// Move all nodes in the selectedNodes array by the same delta
+	for (var i = 0; i < selectedNodes.length; i++) {
+		selectedNodes[i].x += deltaX;
+		selectedNodes[i].y += deltaY;
+	}
+}
+
 function drawUsing(c) {
 	c.clearRect(0, 0, canvas.width, canvas.height);
 	c.save();
@@ -1138,14 +1239,22 @@ function drawUsing(c) {
 
 	for(var i = 0; i < nodes.length; i++) {
 		c.lineWidth = 2;
-		if(nodes[i] == selectedObject) {
+		var node = nodes[i];
+		var isSelected = (node == selectedObject);
+		var isMultiSelected = (selectedNodes.indexOf(node) !== -1);
+		
+		if(isSelected) {
 			c.strokeStyle = '#ff9500';  // warm orange for selected
-			c.fillStyle = nodes[i].getSelectedColor();  // Use node's selected color
+			c.fillStyle = node.getSelectedColor();  // Use node's selected color
+		} else if(isMultiSelected) {
+			c.strokeStyle = '#0066cc';  // blue for multi-selected nodes
+			c.fillStyle = node.getSelectedColor();  // Use node's selected color
+			c.lineWidth = 3;  // Thicker border for multi-selected nodes
 		} else {
 			c.strokeStyle = '#9ac29a';  // darker engineering green accent
-			c.fillStyle = nodes[i].getBaseColor();      // Use node's base color
+			c.fillStyle = node.getBaseColor();      // Use node's base color
 		}
-		nodes[i].draw(c);
+		node.draw(c);
 	}
 	for(var i = 0; i < links.length; i++) {
 		c.lineWidth = 2;
@@ -1163,6 +1272,9 @@ function drawUsing(c) {
 		c.fillStyle = '#9ac29a';    // darker engineering green accent for arrows too
 		currentLink.draw(c);
 	}
+
+	// Draw selection rectangle on top of everything else
+	drawSelectionBox(c);
 
 	c.restore();
 }
@@ -1221,6 +1333,14 @@ window.onload = function() {
 		originalClick = worldMouse;
 
 		if(selectedObject != null) {
+			// Check if clicked node is part of current multi-selection
+			var isPartOfMultiSelection = (selectedObject instanceof Node && selectedNodes.indexOf(selectedObject) !== -1);
+			
+			if(!isPartOfMultiSelection) {
+				// Clear group selection when individual object is selected (not part of group)
+				selectedNodes = [];
+			}
+			
 			if(shift && selectedObject instanceof Node) {
 				currentLink = new SelfLink(selectedObject, worldMouse);
 			} else {
@@ -1233,6 +1353,17 @@ window.onload = function() {
 			resetCaret();
 		} else if(shift) {
 			currentLink = new TemporaryLink(worldMouse, worldMouse);
+		} else {
+			// No object selected and no shift - start selection rectangle
+			isSelecting = true;
+			selectionBox.active = true;
+			selectionBox.startX = worldMouse.x;
+			selectionBox.startY = worldMouse.y;
+			selectionBox.endX = worldMouse.x;
+			selectionBox.endY = worldMouse.y;
+			
+			// Clear any existing selection
+			selectedNodes = [];
 		}
 
 		draw();
@@ -1254,6 +1385,9 @@ window.onload = function() {
 		selectedObject = selectObject(worldMouse.x, worldMouse.y);
 
 		if(selectedObject == null) {
+			// Clear group selection when creating new node
+			selectedNodes = [];
+			
 			// Create new node with specified shape and color
 			var shape = getShapeFromModifier(shapeModifier);
 			var color = getColorFromModifier(colorModifier);
@@ -1300,7 +1434,12 @@ window.onload = function() {
 		// Convert to world coordinates for object interaction
 		var worldMouse = screenToWorld(mouse.x, mouse.y);
 
-		if(currentLink != null) {
+		if(isSelecting && selectionBox.active) {
+			// Update selection rectangle end coordinates
+			selectionBox.endX = worldMouse.x;
+			selectionBox.endY = worldMouse.y;
+			draw();
+		} else if(currentLink != null) {
 			var targetNode = selectObject(worldMouse.x, worldMouse.y);
 			if(!(targetNode instanceof Node)) {
 				targetNode = null;
@@ -1325,9 +1464,37 @@ window.onload = function() {
 		}
 
 		if(movingObject) {
-			selectedObject.setAnchorPoint(worldMouse.x, worldMouse.y);
-			if(selectedObject instanceof Node) {
-				snapNode(selectedObject);
+			// Check if we're moving a node that's part of a multi-selection
+			var isGroupMovement = (selectedObject instanceof Node && selectedNodes.length > 0 && selectedNodes.indexOf(selectedObject) !== -1);
+			
+			if(isGroupMovement) {
+				// Calculate movement delta from the selected object's previous position
+				var oldX = selectedObject.x;
+				var oldY = selectedObject.y;
+				
+				// Move the primary selected object
+				selectedObject.setAnchorPoint(worldMouse.x, worldMouse.y);
+				if(selectedObject instanceof Node) {
+					snapNode(selectedObject);
+				}
+				
+				// Calculate the actual delta after snapping
+				var deltaX = selectedObject.x - oldX;
+				var deltaY = selectedObject.y - oldY;
+				
+				// Move all other selected nodes by the same delta
+				for(var i = 0; i < selectedNodes.length; i++) {
+					if(selectedNodes[i] !== selectedObject) {
+						selectedNodes[i].x += deltaX;
+						selectedNodes[i].y += deltaY;
+					}
+				}
+			} else {
+				// Normal individual object movement
+				selectedObject.setAnchorPoint(worldMouse.x, worldMouse.y);
+				if(selectedObject instanceof Node) {
+					snapNode(selectedObject);
+				}
 			}
 			draw();
 		}
@@ -1342,7 +1509,29 @@ window.onload = function() {
 		
 		movingObject = false;
 
-		if(currentLink != null) {
+		if(isSelecting && selectionBox.active) {
+			// Find nodes within selection rectangle
+			selectedNodes = getNodesInSelectionBox();
+			
+			// Clear selection state
+			isSelecting = false;
+			selectionBox.active = false;
+			
+			// If nodes were selected, clear individual selectedObject
+			if(selectedNodes.length > 0) {
+				selectedObject = null;
+			} else {
+				// If no nodes selected and this was a very small rectangle (likely a click), clear all selections
+				var rectWidth = Math.abs(selectionBox.endX - selectionBox.startX);
+				var rectHeight = Math.abs(selectionBox.endY - selectionBox.startY);
+				if(rectWidth < 5 && rectHeight < 5) {
+					selectedObject = null;
+					selectedNodes = [];
+				}
+			}
+			
+			draw();
+		} else if(currentLink != null) {
 			if(!(currentLink instanceof TemporaryLink)) {
 				selectedObject = currentLink;
 				links.push(currentLink);
@@ -1382,7 +1571,32 @@ document.onkeydown = function(e) {
 		// backspace is a shortcut for the back button, but do NOT want to change pages
 		return false;
 	} else if(key == 46) { // delete key
-		if(selectedObject != null) {
+		if(selectedNodes.length > 0) {
+			// Delete all selected nodes and their associated links
+			for(var j = 0; j < selectedNodes.length; j++) {
+				var nodeToDelete = selectedNodes[j];
+				
+				// Remove the node from nodes array
+				for(var i = 0; i < nodes.length; i++) {
+					if(nodes[i] == nodeToDelete) {
+						nodes.splice(i--, 1);
+					}
+				}
+				
+				// Remove all links connected to this node
+				for(var i = 0; i < links.length; i++) {
+					if(links[i].node == nodeToDelete || links[i].nodeA == nodeToDelete || links[i].nodeB == nodeToDelete) {
+						links.splice(i--, 1);
+					}
+				}
+			}
+			
+			// Clear selection
+			selectedNodes = [];
+			selectedObject = null;
+			draw();
+		} else if(selectedObject != null) {
+			// Original single object deletion logic
 			for(var i = 0; i < nodes.length; i++) {
 				if(nodes[i] == selectedObject) {
 					nodes.splice(i--, 1);

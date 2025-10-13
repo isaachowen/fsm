@@ -47,6 +47,12 @@ function restoreBackup() {
 	} catch(e) {
 		localStorage['fsm'] = '';
 	}
+	
+	// Clear any selection state when restoring
+	selectedObject = null;
+	selectedNodes = [];
+	selectionBox.active = false;
+	isSelecting = false;
 }
 
 function saveBackup() {
