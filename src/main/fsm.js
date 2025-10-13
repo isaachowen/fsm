@@ -1,6 +1,22 @@
 var greekLetterNames = [ 'Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Zeta', 'Eta', 'Theta', 'Iota', 'Kappa', 'Lambda', 'Mu', 'Nu', 'Xi', 'Omicron', 'Pi', 'Rho', 'Sigma', 'Tau', 'Upsilon', 'Phi', 'Chi', 'Psi', 'Omega' ];
 
 function convertLatexShortcuts(text) {
+	/**
+	 * convertLatexShortcuts - Converts LaTeX-style shortcuts to Unicode characters
+	 * 
+	 * Called by:
+	 * - drawText() to process text before rendering on canvas
+	 * - Text processing in node and link label rendering
+	 * 
+	 * Calls:
+	 * - String.fromCharCode() to generate Unicode characters
+	 * - RegExp() and text.replace() for pattern matching and replacement
+	 * - greekLetterNames array for Greek letter mappings
+	 * 
+	 * Purpose: Transforms LaTeX-style notation into displayable Unicode characters.
+	 * Converts Greek letters (\\Alpha -> Α, \\alpha -> α) and subscripts (_0 -> ₀).
+	 * Essential for mathematical notation in FSM labels and state names.
+	 */
 	// html greek characters
 	for(var i = 0; i < greekLetterNames.length; i++) {
 		var name = greekLetterNames[i];
@@ -17,6 +33,24 @@ function convertLatexShortcuts(text) {
 }
 
 function drawArrow(c, x, y, angle) {
+	/**
+	 * drawArrow - Renders a directional arrow head at specified position and angle
+	 * 
+	 * Called by:
+	 * - Link.prototype.draw() for transition arrows
+	 * - StartLink.prototype.draw() for start state arrows
+	 * - SelfLink.prototype.draw() for self-loop arrows
+	 * - Any element that needs directional indicators
+	 * 
+	 * Calls:
+	 * - Math.cos(), Math.sin() for angle calculations
+	 * - c.beginPath(), c.moveTo(), c.lineTo(), c.fill() for drawing triangle
+	 * - Canvas 2D API for rendering the arrow shape
+	 * 
+	 * Purpose: Draws a filled triangular arrow head to indicate direction of state
+	 * transitions. Arrow points in the direction specified by angle parameter.
+	 * Used universally across all link types for consistent directional indicators.
+	 */
 	var dx = Math.cos(angle);
 	var dy = Math.sin(angle);
 	c.beginPath();
@@ -27,10 +61,47 @@ function drawArrow(c, x, y, angle) {
 }
 
 function canvasHasFocus() {
+	/**
+	 * canvasHasFocus - Determines if the canvas has keyboard focus for input
+	 * 
+	 * Called by:
+	 * - drawText() to determine if text caret should be visible
+	 * - Keyboard event handlers to check if canvas should receive input
+	 * - Focus management code throughout the application
+	 * 
+	 * Calls:
+	 * - document.activeElement to check currently focused element
+	 * - document.body for fallback comparison
+	 * 
+	 * Purpose: Critical for text editing functionality - determines when the blinking
+	 * text caret should be shown during label editing. Returns true when the canvas
+	 * (document.body) has focus, enabling keyboard input for node/link text editing.
+	 */
 	return (document.activeElement || document.body) == document.body;
 }
 
 function drawText(c, originalText, x, y, angleOrNull, isSelected) {
+	/**
+	 * drawText - Renders text with advanced positioning, angle rotation, and caret display
+	 * 
+	 * Called by:
+	 * - Node.prototype.draw() for node labels
+	 * - Link.prototype.draw() for transition labels
+	 * - StartLink.prototype.draw() and SelfLink.prototype.draw() for arrow labels
+	 * - Any UI element that needs text rendering
+	 * 
+	 * Calls:
+	 * - convertLatexShortcuts() to process LaTeX notation
+	 * - c.measureText(), c.fillText() for text rendering
+	 * - Math.cos(), Math.sin(), Math.abs(), Math.pow() for angle calculations
+	 * - canvasHasFocus(), document.hasFocus() for caret visibility
+	 * - caretVisible global variable for blinking caret animation
+	 * 
+	 * Purpose: Universal text rendering function with intelligent positioning based on
+	 * angle. Handles LaTeX shortcuts, centers text, positions relative to angles,
+	 * and displays blinking caret for selected elements during text editing.
+	 * Essential for all text display in the FSM editor.
+	 */
 	text = convertLatexShortcuts(originalText);
 	c.font = '20px "Times New Roman", serif';
 	
@@ -78,6 +149,24 @@ var caretTimer;
 var caretVisible = true;
 
 function resetCaret() {
+	/**
+	 * resetCaret - Initializes the blinking text caret animation for text editing
+	 * 
+	 * Called by:
+	 * - Text editing initialization code when starting to edit labels
+	 * - Focus change handlers when canvas gains focus
+	 * - Any code that needs to restart the caret blinking animation
+	 * 
+	 * Calls:
+	 * - clearInterval() to stop existing caret timer
+	 * - setInterval() to create new blinking animation timer
+	 * - draw() function indirectly through timer callback
+	 * - caretVisible global variable manipulation
+	 * 
+	 * Purpose: Manages the blinking cursor animation during text editing mode.
+	 * Creates a 500ms interval that toggles caret visibility and triggers redraws.
+	 * Essential for providing visual feedback during node/link label editing.
+	 */
 	clearInterval(caretTimer);
 	caretTimer = setInterval('caretVisible = !caretVisible; draw()', 500);
 	caretVisible = true;
@@ -120,6 +209,23 @@ var viewport = {
 };
 
 function drawSelectionBox(c) {
+	/**
+	 * drawSelectionBox - Renders the multi-selection rectangle with dashed border
+	 * 
+	 * Called by:
+	 * - drawUsing() during main canvas rendering when selection box is active
+	 * - Rendering pipeline to show visual feedback during multi-selection
+	 * 
+	 * Calls:
+	 * - Math.min(), Math.max() for rectangle boundary calculations
+	 * - c.save(), c.restore() for canvas state management
+	 * - c.setLineDash(), c.fillRect(), c.strokeRect() for drawing
+	 * - selectionBox global object for current selection bounds
+	 * 
+	 * Purpose: Provides visual feedback during multi-selection operations by drawing
+	 * a semi-transparent blue rectangle with dashed border. Shows the area being
+	 * selected as user drags to select multiple nodes simultaneously.
+	 */
 	if (!selectionBox.active) return;
 	
 	// Calculate rectangle bounds
@@ -153,6 +259,23 @@ function drawSelectionBox(c) {
 }
 
 function nodeIntersectsRectangle(node, rect) {
+	/**
+	 * nodeIntersectsRectangle - Tests if a circular node intersects with a rectangle
+	 * 
+	 * Called by:
+	 * - getNodesInSelectionBox() to determine which nodes are within selection area
+	 * - Multi-selection algorithms for hit detection
+	 * 
+	 * Calls:
+	 * - Math.max(), Math.min() for closest point calculations
+	 * - nodeRadius global variable for node size
+	 * - Rectangle and circle collision detection algorithm
+	 * 
+	 * Purpose: Core collision detection for multi-selection. Determines if a circular
+	 * node overlaps with the rectangular selection area. Uses closest-point algorithm
+	 * to find distance from circle center to rectangle, enabling accurate selection
+	 * of nodes that are partially within the selection box.
+	 */
 	// Check if a circular node intersects with a rectangle
 	// rect should have properties: left, right, top, bottom
 	
@@ -170,6 +293,23 @@ function nodeIntersectsRectangle(node, rect) {
 }
 
 function getNodesInSelectionBox() {
+	/**
+	 * getNodesInSelectionBox - Returns array of nodes within the current selection rectangle
+	 * 
+	 * Called by:
+	 * - Multi-selection event handlers when completing selection box drag
+	 * - Selection management code to determine selected nodes
+	 * 
+	 * Calls:
+	 * - Math.min(), Math.max() for rectangle boundary calculations
+	 * - nodeIntersectsRectangle() for collision detection with each node
+	 * - selectionBox global object for current selection bounds
+	 * - nodes global array for iterating through all nodes
+	 * 
+	 * Purpose: Core multi-selection functionality that identifies which nodes fall
+	 * within the selection rectangle. Returns array of Node objects that intersect
+	 * with the selection box, enabling bulk operations on multiple selected nodes.
+	 */
 	if (!selectionBox.active) return [];
 	
 	// Calculate rectangle bounds
@@ -196,6 +336,22 @@ function getNodesInSelectionBox() {
 }
 
 function moveSelectedNodesGroup(deltaX, deltaY) {
+	/**
+	 * moveSelectedNodesGroup - Moves all multi-selected nodes by the same offset
+	 * 
+	 * Called by:
+	 * - Mouse drag handlers when moving multiple selected nodes
+	 * - Multi-selection movement operations
+	 * - Group manipulation functions
+	 * 
+	 * Calls:
+	 * - selectedNodes global array for list of currently selected nodes
+	 * - Direct manipulation of Node.x and Node.y properties
+	 * 
+	 * Purpose: Enables bulk movement of multiple selected nodes simultaneously.
+	 * Applies the same deltaX/deltaY offset to all nodes in the selectedNodes array,
+	 * maintaining relative positions while moving the entire group as a unit.
+	 */
 	// Move all nodes in the selectedNodes array by the same delta
 	for (var i = 0; i < selectedNodes.length; i++) {
 		selectedNodes[i].x += deltaX;
@@ -204,6 +360,27 @@ function moveSelectedNodesGroup(deltaX, deltaY) {
 }
 
 function drawUsing(c) {
+	/**
+	 * drawUsing - Main rendering function that draws all FSM elements to the canvas
+	 * 
+	 * Called by:
+	 * - draw() function for normal canvas rendering
+	 * - JSON export functionality for capturing FSM state
+	 * - Any context that needs complete FSM visualization
+	 * 
+	 * Calls:
+	 * - c.clearRect(), c.save(), c.restore() for canvas management
+	 * - c.translate(), c.scale() for viewport transformation
+	 * - Node.draw() for each node in nodes array
+	 * - Link.draw() for each link in links array
+	 * - drawSelectionBox() for multi-selection visual feedback
+	 * - viewport, selectedObject, selectedNodes global variables
+	 * 
+	 * Purpose: Core rendering engine that draws the complete FSM visualization.
+	 * Applies viewport transformations, renders all nodes and links with appropriate
+	 * colors for selection states, and overlays selection rectangle. Central function
+	 * for all visual output of the FSM editor.
+	 */
 	c.clearRect(0, 0, canvas.width, canvas.height);
 	c.save();
 	
@@ -255,11 +432,48 @@ function drawUsing(c) {
 }
 
 function draw() {
+	/**
+	 * draw - Main drawing function that renders to the canvas and saves backup
+	 * 
+	 * Called by:
+	 * - Window load handler for initial rendering
+	 * - All event handlers that modify FSM state (mouse, keyboard)
+	 * - Animation timers (caret blinking)
+	 * - Any operation that changes visual state
+	 * 
+	 * Calls:
+	 * - drawUsing() with canvas 2D context for actual rendering
+	 * - canvas.getContext('2d') to get drawing context
+	 * - saveBackup() to persist current state to localStorage
+	 * 
+	 * Purpose: Primary entry point for triggering complete FSM redraw and state
+	 * persistence. Ensures the canvas always reflects current FSM state and
+	 * automatically saves backup for recovery. Called frequently throughout
+	 * the application lifecycle.
+	 */
 	drawUsing(canvas.getContext('2d'));
 	saveBackup();
 }
 
 function selectObject(x, y) {
+	/**
+	 * selectObject - Finds the topmost FSM element at given coordinates
+	 * 
+	 * Called by:
+	 * - Mouse click handlers to determine what was clicked
+	 * - Hit detection throughout the application
+	 * - Selection and interaction systems
+	 * 
+	 * Calls:
+	 * - Node.containsPoint() for each node in nodes array
+	 * - Link.containsPoint() for each link in links array
+	 * - Prioritizes nodes over links when both overlap
+	 * 
+	 * Purpose: Core hit detection that determines which FSM element (node or link)
+	 * is at a specific coordinate. Returns the first matching object, with nodes
+	 * taking priority over links. Essential for all mouse interaction and selection
+	 * operations in the FSM editor.
+	 */
 	for(var i = 0; i < nodes.length; i++) {
 		if(nodes[i].containsPoint(x, y)) {
 			return nodes[i];
@@ -274,6 +488,25 @@ function selectObject(x, y) {
 }
 
 function snapNode(node) {
+	/**
+	 * snapNode - Aligns a node to nearby nodes for clean positioning
+	 * 
+	 * Called by:
+	 * - Mouse release handlers after dragging nodes
+	 * - Node positioning code to ensure aligned layouts
+	 * - Any operation that benefits from snap-to-grid behavior
+	 * 
+	 * Calls:
+	 * - Math.abs() for distance calculations
+	 * - snapToPadding global variable for snap threshold
+	 * - nodes global array to check against all other nodes
+	 * - Direct manipulation of node.x and node.y properties
+	 * 
+	 * Purpose: Provides snap-to-grid functionality by aligning nodes with nearby
+	 * nodes when they're within the snap threshold. Helps create clean, aligned
+	 * FSM layouts by automatically correcting small positioning differences.
+	 * Essential for professional-looking diagram organization.
+	 */
 	for(var i = 0; i < nodes.length; i++) {
 		if(nodes[i] == node) continue;
 
@@ -623,6 +856,22 @@ document.onkeypress = function(e) {
 };
 
 function getShapeFromModifier(modifier) {
+	/**
+	 * getShapeFromModifier - Maps numeric modifier keys to node shape names
+	 * 
+	 * Called by:
+	 * - Keyboard event handlers when number keys are pressed with selected node
+	 * - Node creation code to set initial shapes
+	 * - Node appearance cycling systems
+	 * 
+	 * Calls:
+	 * - switch statement for modifier-to-shape mapping
+	 * - No external function calls
+	 * 
+	 * Purpose: Translates keyboard input (number keys 1,3,4,5,6) into corresponding
+	 * node shape strings. Enables quick shape changes via keyboard shortcuts.
+	 * Returns shape names that correspond to Node rendering methods.
+	 */
 	switch(modifier) {
 		case 1: return 'circle';
 		case 3: return 'triangle';
@@ -634,6 +883,22 @@ function getShapeFromModifier(modifier) {
 }
 
 function getColorFromModifier(modifier) {
+	/**
+	 * getColorFromModifier - Maps letter modifier keys to node color names
+	 * 
+	 * Called by:
+	 * - Keyboard event handlers when letter keys are pressed with selected node
+	 * - Node creation code to set initial colors
+	 * - Node appearance customization systems
+	 * 
+	 * Calls:
+	 * - switch statement for modifier-to-color mapping
+	 * - No external function calls
+	 * 
+	 * Purpose: Translates keyboard input (letter keys Q,W,E,R,T) into corresponding
+	 * node color strings. Enables quick color changes via keyboard shortcuts.
+	 * Returns color names that correspond to Node color property values.
+	 */
 	switch(modifier) {
 		case 'Q': return 'yellow';  // Q for default yellow
 		case 'W': return 'green';   // W for green  
@@ -645,16 +910,60 @@ function getColorFromModifier(modifier) {
 }
 
 function cycleNodeAppearance(node) {
+	/**
+	 * cycleNodeAppearance - Toggles accept state of a node for visual distinction
+	 * 
+	 * Called by:
+	 * - Keyboard event handlers when Enter/Space is pressed with selected node
+	 * - Node appearance cycling when no other modifiers are active
+	 * - Accept state toggle operations
+	 * 
+	 * Calls:
+	 * - Direct manipulation of node.isAcceptState property
+	 * - No external function calls
+	 * 
+	 * Purpose: Provides simple toggle for node accept state (final state in FSM).
+	 * Accept state affects node rendering with double circle border. Essential
+	 * for marking final/accepting states in finite state machine diagrams.
+	 */
 	// Simply toggle accept state, keep current shape
 	node.isAcceptState = !node.isAcceptState;
 }
 
 function crossBrowserKey(e) {
+	/**
+	 * crossBrowserKey - Gets key code in a cross-browser compatible way
+	 * 
+	 * Called by:
+	 * - All keyboard event handlers throughout the application
+	 * - Key detection and processing code
+	 * 
+	 * Calls:
+	 * - e.which and e.keyCode for browser compatibility
+	 * - window.event fallback for older browsers
+	 * 
+	 * Purpose: Provides consistent key code access across different browsers.
+	 * Essential for keyboard shortcuts and text input functionality.
+	 */
 	e = e || window.event;
 	return e.which || e.keyCode;
 }
 
 function crossBrowserElementPos(e) {
+	/**
+	 * crossBrowserElementPos - Gets element position in a cross-browser compatible way
+	 * 
+	 * Called by:
+	 * - Mouse event handlers that need element positioning
+	 * - Coordinate calculation functions
+	 * 
+	 * Calls:
+	 * - offsetLeft, offsetTop, offsetParent properties for position calculation
+	 * - e.target and e.srcElement for browser compatibility
+	 * 
+	 * Purpose: Calculates absolute position of elements accounting for browser
+	 * differences. Essential for accurate mouse coordinate calculations.
+	 */
 	e = e || window.event;
 	var obj = e.target || e.srcElement;
 	var x = 0, y = 0;
