@@ -88,13 +88,13 @@ Link.prototype.getEndPointsAndArcParams = function() {
 	 * Calls:
 	 * - this.getAnchorPoint() to get current anchor position
 	 * - circleFromThreePoints() from math.js to calculate arc geometry
-	 * - this.nodeA.closestPointOnCircle() and this.nodeB.closestPointOnCircle() for node edge connections
+	 * - this.nodeA.closestPointOnShapeToEdgeArc() and this.nodeB.closestPointOnShapeToEdgeArc() for straight line connections
+	 * - this.findArcNodeIntersection() for curved arc shape-aware connection points
 	 * - Math.atan2(), Math.cos(), Math.sin() for trigonometric calculations
-	 * - nodeRadius global variable for node collision boundaries
 	 * 
 	 * Purpose: Determines whether to render as straight line or curved arc, then calculates
 	 * all necessary geometry (start/end points, circle center/radius, angles) for both
-	 * rendering and interaction. This is the mathematical heart of the Link class.
+	 * rendering and interaction. Uses shape-aware intersection for both straight and curved connections.
 	 */
 	if(this.perpendicularPart == 0) { // no perpendicular element=no arc, straight edge 
 		var midX = (this.nodeA.x + this.nodeB.x) / 2;
@@ -139,68 +139,6 @@ Link.prototype.getEndPointsAndArcParams = function() {
 		'circleRadius': circle.radius,
 		'reverseScale': reverseScale,
 		'isReversed': isReversed,
-	};
-};
-
-Link.prototype.findArcNodeIntersection = function(circle, targetNode, otherNode, isEndPoint) {
-	/**
-	 * findArcNodeIntersection - Finds where the arc circle intersects the target node's actual shape boundary
-	 * 
-	 * Called by:
-	 * - this.getEndPointsAndArcParams() for calculating curved arc connection points
-	 * 
-	 * Calls:
-	 * - targetNode.closestPointOnShapeToEdgeArc() for polygon edge calculations
-	 * - Math.atan2(), Math.cos(), Math.sin() for geometric calculations
-	 * - Math.sqrt() for distance calculations
-	 * 
-	 * Purpose: Calculates the exact point where a curved arc should connect to a node's 
-	 * boundary, handling both circular and polygon shapes properly. For circles, uses 
-	 * traditional trigonometric offset. For polygons, finds intersection between arc 
-	 * circle and polygon edges.
-	 */
-	
-	// For circles, use existing circular calculation
-	if (targetNode.shape === 'circle') {
-		var dx = targetNode.x - circle.x;
-		var dy = targetNode.y - circle.y;
-		var distance = Math.sqrt(dx * dx + dy * dy);
-		var angle = Math.atan2(dy, dx);
-		var reverseScale = (this.perpendicularPart > 0) ? 1 : -1;
-		var offsetAngle = angle + (isEndPoint ? reverseScale : -reverseScale) * nodeRadius / circle.radius;
-		return {
-			x: circle.x + circle.radius * Math.cos(offsetAngle),
-			y: circle.y + circle.radius * Math.sin(offsetAngle)
-		};
-	}
-	
-	// For polygons, find intersection between arc circle and polygon edges
-	// Start with rough approximation using node center direction
-	var centerAngle = Math.atan2(targetNode.y - circle.y, targetNode.x - circle.x);
-	var approxX = circle.x + circle.radius * Math.cos(centerAngle);
-	var approxY = circle.y + circle.radius * Math.sin(centerAngle);
-	
-	// Use existing shape-aware method to find closest point on polygon boundary
-	var intersection = targetNode.closestPointOnShapeToEdgeArc(approxX, approxY);
-	
-	// Project this point back onto the arc circle
-	var dx = intersection.x - circle.x;
-	var dy = intersection.y - circle.y;
-	var distance = Math.sqrt(dx * dx + dy * dy);
-	
-	if (distance > 0) {
-		var normalizedX = dx / distance;
-		var normalizedY = dy / distance;
-		return {
-			x: circle.x + circle.radius * normalizedX,
-			y: circle.y + circle.radius * normalizedY
-		};
-	}
-	
-	// Fallback to center-based calculation
-	return {
-		x: circle.x + circle.radius * Math.cos(centerAngle),
-		y: circle.y + circle.radius * Math.sin(centerAngle)
 	};
 };
 
@@ -309,4 +247,52 @@ Link.prototype.containsPoint = function(x, y) {
 		return (percent > 0 && percent < 1 && Math.abs(distance) < hitTargetPadding);
 	}
 	return false;
+};
+
+Link.prototype.findArcNodeIntersection = function(circle, targetNode, otherNode, isEndPoint) {
+	/**
+	 * findArcNodeIntersection - Finds where the arc circle intersects the target node's actual shape boundary
+	 * 
+	 * Called by:
+	 * - this.getEndPointsAndArcParams() for calculating curved arc connection points
+	 * 
+	 * Calls:
+	 * - targetNode.closestPointOnShapeToEdgeArc() for polygon boundary detection
+	 * - Math.atan2(), Math.cos(), Math.sin() for geometric calculations
+	 * - Math.sqrt() for distance calculations
+	 * 
+	 * Purpose: Replaces the fixed nodeRadius assumption with actual shape-aware intersection
+	 * calculation. For circles, preserves existing behavior. For polygons, finds proper
+	 * intersection between the arc circle and polygon edges.
+	 */
+	
+	// For circles, use existing circular calculation
+	if (targetNode.shape === 'circle') {
+		var dx = targetNode.x - circle.x;
+		var dy = targetNode.y - circle.y;
+		var angle = Math.atan2(dy, dx);
+		var reverseScale = (this.perpendicularPart > 0) ? 1 : -1;
+		var offsetAngle = angle + (isEndPoint ? reverseScale : -reverseScale) * nodeRadius / circle.radius;
+		return {
+			x: circle.x + circle.radius * Math.cos(offsetAngle),
+			y: circle.y + circle.radius * Math.sin(offsetAngle)
+		};
+	}
+	
+	// For polygons, we need to find where the arc circle actually intersects the polygon
+	// Start with the direction from arc center to node center
+	var centerAngle = Math.atan2(targetNode.y - circle.y, targetNode.x - circle.x);
+	
+	// Use the same offset logic as circles to get the approximate connection angle
+	var reverseScale = (this.perpendicularPart > 0) ? 1 : -1;
+	var offsetAngle = centerAngle + (isEndPoint ? reverseScale : -reverseScale) * nodeRadius / circle.radius;
+	
+	// Calculate point on arc circle at this angle
+	var arcX = circle.x + circle.radius * Math.cos(offsetAngle);
+	var arcY = circle.y + circle.radius * Math.sin(offsetAngle);
+	
+	// Now find the closest point on the polygon boundary to this arc point
+	var intersection = targetNode.closestPointOnShapeToEdgeArc(arcX, arcY);
+	
+	return intersection;
 };
