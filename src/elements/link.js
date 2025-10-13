@@ -1,4 +1,17 @@
 function Link(a, b) {
+	/**
+	 * Link Constructor - Creates a state transition arrow between two nodes
+	 * 
+	 * Called by:
+	 * - canvas.onmousemove() when creating new links via shift+drag
+	 * - importFromJSON() when reconstructing links from saved data
+	 * 
+	 * Calls:
+	 * - No other functions (constructor only sets initial properties)
+	 * 
+	 * Purpose: Represents a directed transition between two FSM states (nodeA -> nodeB)
+	 * with customizable curvature controlled by anchor point positioning.
+	 */
 	this.nodeA = a;
 	this.nodeB = b;
 	this.text = '';
@@ -7,9 +20,25 @@ function Link(a, b) {
 	// make anchor point relative to the locations of nodeA and nodeB
 	this.parallelPart = 0.5; // percentage from nodeA to nodeB
 	this.perpendicularPart = 0; // pixels from line between nodeA and nodeB
+    
+
+    // Isaac question: what is parallelPart and perpendicularPart? I'm still confused, what is this used for? something with screen coordinates??
 }
 
 Link.prototype.getAnchorPoint = function() {
+	/**
+	 * getAnchorPoint - Calculates the current anchor point position for link curvature
+	 * 
+	 * Called by:
+	 * - this.getEndPointsAndCircle() to determine circular arc geometry
+	 * - Canvas interaction code when displaying anchor points during editing
+	 * 
+	 * Calls:
+	 * - Math.sqrt() for distance calculations
+	 * 
+	 * Purpose: Converts the relative anchor position (parallelPart, perpendicularPart)
+	 * into absolute screen coordinates. This point determines how curved the link appears.
+	 */
 	var dx = this.nodeB.x - this.nodeA.x;
 	var dy = this.nodeB.y - this.nodeA.y;
 	var scale = Math.sqrt(dx * dx + dy * dy);
@@ -17,9 +46,25 @@ Link.prototype.getAnchorPoint = function() {
 		'x': this.nodeA.x + dx * this.parallelPart - dy * this.perpendicularPart / scale,
 		'y': this.nodeA.y + dy * this.parallelPart + dx * this.perpendicularPart / scale
 	};
+    // Isaac question: is the anchorpoint the ROOT node of the link? or the endpoint node of the link? Or somewhere in between the two nodes
 };
 
 Link.prototype.setAnchorPoint = function(x, y) {
+	/**
+	 * setAnchorPoint - Updates the link's anchor point based on absolute coordinates
+	 * 
+	 * Called by:
+	 * - selectedObject.setAnchorPoint() in canvas.onmousemove() during link dragging
+	 * - General object manipulation functions when moving links
+	 * 
+	 * Calls:
+	 * - Math.sqrt() and Math.abs() for geometric calculations
+	 * - snapToPadding global variable for snap-to-straight-line behavior
+	 * 
+	 * Purpose: Converts absolute anchor point coordinates back to relative position
+	 * (parallelPart, perpendicularPart). Includes smart snapping to straight lines
+	 * when the anchor is close to the direct path between nodes.
+	 */
 	var dx = this.nodeB.x - this.nodeA.x;
 	var dy = this.nodeB.y - this.nodeA.y;
 	var scale = Math.sqrt(dx * dx + dy * dy);
@@ -33,6 +78,24 @@ Link.prototype.setAnchorPoint = function(x, y) {
 };
 
 Link.prototype.getEndPointsAndCircle = function() {
+	/**
+	 * getEndPointsAndCircle - Core geometric calculation for link rendering and hit detection
+	 * 
+	 * Called by:
+	 * - this.draw() for rendering the link arc and positioning text/arrows
+	 * - this.containsPoint() for hit detection during mouse interactions
+	 * 
+	 * Calls:
+	 * - this.getAnchorPoint() to get current anchor position
+	 * - circleFromThreePoints() from math.js to calculate arc geometry
+	 * - this.nodeA.closestPointOnCircle() and this.nodeB.closestPointOnCircle() for node edge connections
+	 * - Math.atan2(), Math.cos(), Math.sin() for trigonometric calculations
+	 * - nodeRadius global variable for node collision boundaries
+	 * 
+	 * Purpose: Determines whether to render as straight line or curved arc, then calculates
+	 * all necessary geometry (start/end points, circle center/radius, angles) for both
+	 * rendering and interaction. This is the mathematical heart of the Link class.
+	 */
 	if(this.perpendicularPart == 0) {
 		var midX = (this.nodeA.x + this.nodeB.x) / 2;
 		var midY = (this.nodeA.y + this.nodeB.y) / 2;
@@ -73,6 +136,24 @@ Link.prototype.getEndPointsAndCircle = function() {
 };
 
 Link.prototype.draw = function(c) {
+	/**
+	 * draw - Renders the link as either a straight line or curved arc with arrow and text
+	 * 
+	 * Called by:
+	 * - drawUsing() in fsm.js during main canvas rendering loop
+	 * - All contexts: main canvas, JSON export, and any custom drawing contexts
+	 * 
+	 * Calls:
+	 * - this.getEndPointsAndCircle() to get all geometric data for rendering
+	 * - c.beginPath(), c.arc(), c.moveTo(), c.lineTo(), c.stroke() for drawing the path
+	 * - drawArrow() from fsm.js to render the directional arrow head
+	 * - drawText() from fsm.js to render the transition label
+	 * - selectedObject global variable to determine if this link should be highlighted
+	 * 
+	 * Purpose: Main rendering function that draws the complete link visualization:
+	 * curved or straight line, directional arrow, and properly positioned/rotated text label.
+	 * Handles both curved arc geometry and straight line special cases.
+	 */
 	var stuff = this.getEndPointsAndCircle();
 	// draw arc
 	c.beginPath();
@@ -109,6 +190,23 @@ Link.prototype.draw = function(c) {
 };
 
 Link.prototype.containsPoint = function(x, y) {
+	/**
+	 * containsPoint - Hit detection for mouse interactions with the link
+	 * 
+	 * Called by:
+	 * - selectObject() in fsm.js during mouse click/hover detection
+	 * - Canvas event handlers to determine if mouse is over this link
+	 * 
+	 * Calls:
+	 * - this.getEndPointsAndCircle() to get current geometry for hit testing
+	 * - Math.sqrt(), Math.atan2(), Math.abs() for distance and angle calculations
+	 * - hitTargetPadding global variable to define clickable area around the link
+	 * 
+	 * Purpose: Determines if a given mouse coordinate (x, y) is close enough to the
+	 * link to be considered a "hit" for selection/interaction. Handles both curved
+	 * arc hit detection (checking distance from arc and angle bounds) and straight
+	 * line hit detection (perpendicular distance from line segment).
+	 */
 	var stuff = this.getEndPointsAndCircle();
 	if(stuff.hasCircle) {
 		var dx = x - stuff.circleX;

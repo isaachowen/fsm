@@ -1,15 +1,15 @@
 # Network Sketchpad - Architecture Context Summary
-*Updated: October 12, 2025 - Post Export System Purge*
+*Generated: October 12, 2025*
 
 ## Table of Contents
 
 1. [Project Overview & Browser Execution Model](#project-overview--browser-execution-model)
-2. [Simplified System Architecture](#simplified-system-architecture)
+2. [High-Level System Architecture](#high-level-system-architecture)
 3. [Component Relationships & Data Flow](#component-relationships--data-flow)
 4. [Detailed Implementation Analysis](#detailed-implementation-analysis)
    - [4.1 Core Application Controller](#41-core-application-controller)
    - [4.2 Element Class System](#42-element-class-system)
-   - [4.3 JSON Persistence System](#43-json-persistence-system)
+   - [4.3 Export Strategy Pattern](#43-export-strategy-pattern)
    - [4.4 Event Handling & State Management](#44-event-handling--state-management)
    - [4.5 Mathematical & Geometric Foundations](#45-mathematical--geometric-foundations)
 5. [Technical Infrastructure](#technical-infrastructure)
@@ -20,7 +20,7 @@
 ## Project Overview & Browser Execution Model
 
 ### Core Concept
-Network Sketchpad is a sophisticated client-side finite state machine (FSM) designer that leverages the HTML5 Canvas API to provide an interactive drawing environment entirely within the browser. Originally created by Evan Wallace, this fork has been significantly enhanced with advanced navigation, multi-selection capabilities, extended customization features, and a streamlined JSON-based persistence system.
+Network Sketchpad is a sophisticated client-side finite state machine (FSM) designer that leverages the HTML5 Canvas API to provide an interactive drawing environment entirely within the browser. Originally created by Evan Wallace, this fork has been significantly enhanced with advanced navigation, multi-selection capabilities, and extended customization features.
 
 ### Browser Execution Flow
 ```mermaid
@@ -47,7 +47,7 @@ sequenceDiagram
 
 The application executes as a pure client-side solution with zero external dependencies, making it extremely portable and fast to load.
 
-## Simplified System Architecture
+## High-Level System Architecture
 
 ```mermaid
 graph TB
@@ -90,20 +90,21 @@ graph TB
             • Drag Preview`"]
         end
 
-        subgraph "JSON Persistence System"
-            JSON_EXPORT["`**JSON Export**
-            Structured Data
-            • Full state serialization
-            • Custom filenames
-            • Automatic download`"]
-            JSON_IMPORT["`**JSON Import**
-            State Restoration
-            • File parsing
-            • Object reconstruction
-            • Backward compatibility`"]
+        subgraph "Export System Layer"
+            PNG["`**PNG Export**
+            Raster Graphics
+            • Canvas toDataURL()
+            • Blob Conversion
+            • Automatic Download`"]
+            SVG["`**ExportAsSVG**
+            Vector Graphics
+            • Scalable Output`"]
+            LATEX["`**ExportAsLaTeX**
+            Academic Format
+            • TikZ/PGF Code`"]
         end
 
-        subgraph "Enhanced Features Layer"
+        subgraph "New Features Layer"
             VIEWPORT["`**Viewport System**
             Navigation
             • Pan & Zoom
@@ -140,8 +141,9 @@ graph TB
     FSM --> TEMP
     FSM --> MATH
     FSM --> SAVE
-    FSM --> JSON_EXPORT
-    FSM --> JSON_IMPORT
+    FSM --> PNG
+    FSM --> SVG
+    FSM --> LATEX
     FSM --> VIEWPORT
     FSM --> MULTISELECT
     FSM --> CUSTOMIZATION
@@ -160,13 +162,11 @@ graph TB
     style VIEWPORT fill:#e1bee7,color:#000
     style MULTISELECT fill:#bbdefb,color:#000
     style CUSTOMIZATION fill:#c8e6c9,color:#000
-    style JSON_EXPORT fill:#d4edda,color:#000
-    style JSON_IMPORT fill:#d4edda,color:#000
 ```
 
-## Simplified Function & Class Dependency DAG
+## Function & Class Dependency DAG
 
-This diagram shows the streamlined function dependencies after removing the export system complexity:
+This detailed diagram shows the specific function and method dependencies between modules, revealing the intricate relationships within the codebase:
 
 ```mermaid
 graph TD
@@ -183,6 +183,9 @@ graph TD
         Text Processing
         • Greek letters
         • Subscripts`"]
+        TEXT_XML["`**textToXML()**
+        XML Escaping
+        • Export safety`"]
         SELECT_OBJECT["`**selectObject()**
         Hit Detection
         • Object picking`"]
@@ -198,6 +201,9 @@ graph TD
         CIRCLE_THREE["`**circleFromThreePoints()**
         Circle Geometry
         • Arc calculations`"]
+        FIXED["`**fixed()**
+        Number Formatting
+        • Export precision`"]
     end
 
     subgraph "Persistence Layer (src/main/save.js)"
@@ -209,17 +215,6 @@ graph TD
         State Restoration
         • Object reconstruction
         • localStorage read`"]
-    end
-
-    subgraph "JSON Import/Export System"
-        DOWNLOAD_JSON["`**downloadAsJSON()**
-        Export Functionality
-        • Complete state export
-        • Custom filenames`"]
-        IMPORT_JSON["`**importFromJSON()**
-        Import Functionality
-        • File parsing
-        • State reconstruction`"]
     end
 
     subgraph "Node Class Methods (src/elements/node.js)"
@@ -248,14 +243,51 @@ graph TD
         LINK_CONTAINS["`**Link.containsPoint()**
         Hit Detection
         • Arc geometry`"]
+        LINK_ANCHOR["`**Link.getAnchorPoint()**
+        **Link.setAnchorPoint()**
+        Position Management`"]
+    end
+
+    subgraph "SelfLink Class Methods (src/elements/self_link.js)"
+        SELF_DRAW["`**SelfLink.draw()**
+        Loop Rendering`"]
+        SELF_ENDPOINTS["`**SelfLink.getEndPointsAndCircle()**
+        Circle Geometry`"]
+        SELF_CONTAINS["`**SelfLink.containsPoint()**
+        Hit Detection`"]
+    end
+
+    subgraph "StartLink Class Methods (src/elements/start_link.js)"
+        START_DRAW["`**StartLink.draw()**
+        Arrow Rendering`"]
+        START_ENDPOINTS["`**StartLink.getEndPoints()**
+        Line Geometry`"]
+        START_CONTAINS["`**StartLink.containsPoint()**
+        Hit Detection`"]
+    end
+
+    subgraph "TemporaryLink Class Methods (src/elements/temporary_link.js)"
+        TEMP_DRAW["`**TemporaryLink.draw()**
+        Preview Rendering`"]
+    end
+
+    subgraph "Export System Methods"
+        SVG_METHODS["`**ExportAsSVG Methods**
+        • arc(), stroke(), fill()
+        • fillText(), measureText()`"]
+        LATEX_METHODS["`**ExportAsLaTeX Methods**
+        • arc(), stroke(), fill()
+        • advancedFillText()`"]
     end
 
     %% Core dependencies
     DRAW_TEXT --> CONVERT_LATEX
+    CONVERT_LATEX --> TEXT_XML
     
     %% Math dependencies
     LINK_ENDPOINTS --> CIRCLE_THREE
     CIRCLE_THREE --> DET
+    SELF_ENDPOINTS --> DET
     
     %% Node class dependencies
     NODE_DRAW --> DRAW_TEXT
@@ -271,23 +303,47 @@ graph TD
     SELECT_OBJECT --> LINK_CONTAINS
     LINK_CONTAINS --> LINK_ENDPOINTS
     
+    %% SelfLink dependencies
+    SELF_DRAW --> SELF_ENDPOINTS
+    SELF_DRAW --> DRAW_ARROW
+    SELF_DRAW --> DRAW_TEXT
+    SELECT_OBJECT --> SELF_CONTAINS
+    SELF_CONTAINS --> SELF_ENDPOINTS
+    
+    %% StartLink dependencies
+    START_DRAW --> START_ENDPOINTS
+    START_DRAW --> DRAW_ARROW
+    START_DRAW --> DRAW_TEXT
+    START_ENDPOINTS --> NODE_CLOSEST
+    SELECT_OBJECT --> START_CONTAINS
+    START_CONTAINS --> START_ENDPOINTS
+    
+    %% TemporaryLink dependencies
+    TEMP_DRAW --> DRAW_ARROW
+    
+    %% Export dependencies
+    SVG_METHODS --> TEXT_XML
+    SVG_METHODS --> FIXED
+    LATEX_METHODS --> FIXED
+    
     %% Main rendering dependencies
     DRAW_USING --> NODE_DRAW
     DRAW_USING --> LINK_DRAW
+    DRAW_USING --> SELF_DRAW
+    DRAW_USING --> START_DRAW
+    DRAW_USING --> TEMP_DRAW
     
     %% Persistence dependencies
     SAVE_BACKUP --> NODE_COLORS
     RESTORE_BACKUP --> NODE_COLORS
-    DOWNLOAD_JSON --> NODE_COLORS
-    IMPORT_JSON --> NODE_COLORS
     
     style DET fill:#ff9500,color:#fff
     style CIRCLE_THREE fill:#ff9500,color:#fff
     style DRAW_TEXT fill:#c8e6c9,color:#000
     style DRAW_ARROW fill:#c8e6c9,color:#000
-    style CONVERT_LATEX fill:#bbdefb,color:#000
-    style DOWNLOAD_JSON fill:#d4edda,color:#000
-    style IMPORT_JSON fill:#d4edda,color:#000
+    style NODE_CLOSEST fill:#bbdefb,color:#000
+    style LINK_ENDPOINTS fill:#bbdefb,color:#000
+    style SELF_ENDPOINTS fill:#bbdefb,color:#000
 ```
 
 ### Key Dependency Insights
@@ -299,13 +355,20 @@ graph TD
 
 #### **Rendering Pipeline Dependencies**
 - **All element classes depend on core drawing functions**: `drawText()`, `drawArrow()`
-- **`drawText()` processes LaTeX**: Uses `convertLatexShortcuts()` for Greek letters and subscripts
+- **`drawText()` processes LaTeX**: Uses `convertLatexShortcuts()` → `textToXML()` for export safety
 - **Geometric methods enable link connections**: `Node.closestPointOnCircle()` used by all link types
 
-#### **Simplified Persistence System**
-- **Single persistence format**: JSON-only import/export eliminates complexity
-- **Direct object serialization**: No intermediate format conversion needed
-- **Custom filename support**: Enhanced user experience with localStorage persistence
+#### **Hit Detection Hierarchy**
+- **`selectObject()` calls all `.containsPoint()` methods**: Tests nodes first, then links
+- **Complex geometric hit detection**: Link classes use their respective `getEndPointsAndCircle()` methods
+- **Shape-specific node hit detection**: Different algorithms for different node shapes
+
+#### **Export System Integration**
+- **Canvas2D API mimicry**: Export classes implement same interface as canvas context
+- **Shared utility functions**: `textToXML()` and `fixed()` used by SVG/LaTeX exports
+- **Same drawing code, different outputs**: `drawUsing()` accepts any context-like object
+
+This dependency structure reveals the elegant design where mathematical utilities support geometric calculations, which enable complex visual elements, all unified through a consistent rendering interface.
 
 ### Architecture Highlights
 
@@ -314,6 +377,7 @@ The HTML5 Canvas API serves as the primary rendering engine, enabling:
 - Real-time drawing and manipulation
 - Pixel-perfect hit detection
 - Smooth animation and visual feedback
+- Export capabilities to multiple formats
 
 #### **Coordinate System Transformation**
 A sophisticated viewport system transforms between:
@@ -395,34 +459,43 @@ flowchart TD
     H --> I[saveBackup()]
 ```
 
-### JSON Persistence Flow
+### Export Process Flow
 ```mermaid
 flowchart TD
-    A[Persistence Request] --> B{Operation Type?}
+    A[Export Request] --> B{Export Type?}
     
-    B -->|Export| C[JSON Export Path]
-    B -->|Import| D[JSON Import Path]
+    B -->|PNG| C[Canvas Export Path]
+    B -->|SVG| D[Vector Export Path]
+    B -->|LaTeX| E[Academic Export Path]
+    B -->|JSON| F[Data Export Path]
     
-    C --> C1[Serialize Current State]
-    C1 --> C2[Create Node ID Mapping]
-    C2 --> C3[Serialize Links with References]
-    C3 --> C4[Add Metadata (version, timestamp)]
-    C4 --> C5[Convert to JSON String]
-    C5 --> C6[Create Blob with Custom Filename]
-    C6 --> C7[Trigger Download]
+    C --> C1[Temporarily Reset Viewport]
+    C1 --> C2[Canvas toDataURL()]
+    C2 --> C3[Convert to Blob]
+    C3 --> C4[Trigger Download]
+    C4 --> C5[Restore Viewport]
     
-    D --> D1[Read File Content]
-    D1 --> D2[Parse JSON Structure]
-    D2 --> D3[Validate Data Format]
-    D3 --> D4[Clear Current State]
-    D4 --> D5[Reconstruct Nodes]
-    D5 --> D6[Reconstruct Links]
-    D6 --> D7[Update UI Filename]
-    D7 --> D8[Redraw Canvas]
-    D8 --> D9[Save to localStorage]
+    D --> G[Clear Selection]
+    E --> G
     
-    C7 --> E[Complete]
-    D9 --> E
+    G --> H[Create Export Context]
+    H --> I[drawUsing(exportContext)]
+    I --> J[Replay All Draw Calls]
+    J --> K{Export Type?}
+    
+    K -->|SVG| L[Generate SVG Markup]
+    K -->|LaTeX| M[Generate TikZ Code]
+    
+    L --> N[Display in Textarea]
+    M --> N
+    
+    F --> F1[Serialize State to JSON]
+    F1 --> F2[Apply Custom Filename]
+    F2 --> F3[Download JSON File]
+    
+    C5 --> O[Complete]
+    N --> O
+    F3 --> O
 ```
 
 ## Detailed Implementation Analysis
@@ -430,7 +503,7 @@ flowchart TD
 ### 4.1 Core Application Controller
 
 #### **Enhanced fsm.js Architecture**
-The main controller (`src/main/fsm.js`) has evolved significantly beyond the original architecture, now streamlined to focus on essential functionality:
+The main controller (`src/main/fsm.js`) has evolved significantly beyond the original architecture to support advanced features:
 
 **Global State Management**
 ```javascript
@@ -460,12 +533,59 @@ var selectionBox = {
 };
 ```
 
-**Current built file size: 1849 lines** (significantly reduced from previous versions)
+**Coordinate Transformation System**
+```javascript
+function screenToWorld(screenX, screenY) {
+    return {
+        x: (screenX - viewport.x) / viewport.scale,
+        y: (screenY - viewport.y) / viewport.scale
+    };
+}
+
+function worldToScreen(worldX, worldY) {
+    return {
+        x: worldX * viewport.scale + viewport.x,
+        y: worldY * viewport.scale + viewport.y
+    };
+}
+```
+
+This transformation system enables:
+- Infinite canvas navigation via middle-mouse panning
+- Accurate object interaction regardless of viewport position
+- Seamless coordinate conversion for all operations
+- Future zoom functionality support
+
+#### **Advanced Event Handling Pipeline**
+The event system now handles multiple interaction modes simultaneously:
+
+```javascript
+canvas.onmousedown = function(e) {
+    var mouse = crossBrowserRelativeMousePos(e);
+    
+    // Priority 1: Viewport panning (middle button)
+    if (e.button === 1) {
+        startPanning(mouse.x, mouse.y);
+        return false;
+    }
+    
+    // Priority 2: Multi-selection (shift + left button)
+    var worldMouse = screenToWorld(mouse.x, mouse.y);
+    if (e.shiftKey) {
+        handleMultiSelection(worldMouse);
+        return;
+    }
+    
+    // Priority 3: Standard object interaction
+    selectedObject = selectObject(worldMouse.x, worldMouse.y);
+    // ... standard logic with world coordinates
+};
+```
 
 ### 4.2 Element Class System
 
 #### **Enhanced Node Class with Customization**
-The Node class supports extensive customization options:
+The Node class has been significantly extended beyond simple circles:
 
 ```javascript
 function Node(x, y, shape, color) {
@@ -475,6 +595,7 @@ function Node(x, y, shape, color) {
     this.color = color || 'yellow';    // 7 color options
     this.isAcceptState = false;
     this.text = '';
+    // ... position and interaction properties
 }
 
 // Shape rendering methods
@@ -505,61 +626,67 @@ Node.prototype.getBaseColor = function() {
 - **Square**: Rectangular state representation
 - **Pentagon**: Five-sided polygonal state
 - **Hexagon**: Six-sided polygonal state
+- **Future extensibility**: Pattern supports additional shapes
 
 **Color Customization**
 - **7 Color Options**: Yellow (default), Green, Blue, Pink, Purple, Orange, White
 - **Selection States**: Each color has distinct selected appearance
 - **Visual Hierarchy**: Colors help organize complex state machines
 
-### 4.3 JSON Persistence System
+#### **Link System Unchanged but Enhanced**
+While the core Link classes remain architecturally unchanged, they now work seamlessly with the viewport system:
 
-The application now uses a single, robust JSON-based persistence system:
+- All drawing operations transformed through viewport
+- Hit detection adapted for world coordinates
+- Mathematical calculations preserved for accuracy
 
-#### **Enhanced JSON Export with Custom Filenames**
+### 4.3 Export Strategy Pattern
+
+#### **Viewport-Aware Export System**
+Export functionality has been enhanced to handle viewport state properly:
+
 ```javascript
-function downloadAsJSON() {
-    // Create node ID mapping for link references
-    var nodeIdMap = new Map();
-    var jsonNodes = [];
-    
-    // Serialize nodes with unique IDs
-    for (var i = 0; i < nodes.length; i++) {
-        var node = nodes[i];
-        var nodeId = i;
-        nodeIdMap.set(node, nodeId);
-        
-        jsonNodes.push({
-            id: nodeId,
-            x: node.x,
-            y: node.y, 
-            text: node.text,
-            isAcceptState: node.isAcceptState,
-            shape: node.shape || 'circle',
-            color: node.color || 'yellow'
-        });
-    }
-    
-    // Serialize links with node ID references
-    // ... complete link serialization
-    
-    // Create complete JSON structure
-    var jsonData = {
-        version: '1.0',
-        created: new Date().toISOString(),
-        canvas: { width: canvas.width, height: canvas.height },
-        nodes: jsonNodes,
-        links: jsonLinks
+function exportSafely(exportFunction) {
+    // Save current viewport state
+    var savedViewport = {
+        x: viewport.x,
+        y: viewport.y,
+        scale: viewport.scale
     };
+    
+    // Reset to canonical view
+    viewport.x = 0;
+    viewport.y = 0;
+    viewport.scale = 1;
+    
+    try {
+        return exportFunction();
+    } finally {
+        // Restore viewport state
+        viewport.x = savedViewport.x;
+        viewport.y = savedViewport.y;
+        viewport.scale = savedViewport.scale;
+        draw();
+    }
 }
 ```
 
-#### **Robust JSON Import with Validation**
+This ensures consistent export output regardless of current viewport position.
+
+#### **Enhanced JSON Export with Custom Filenames**
 ```javascript
-function importFromJSON(fileInput) {
-    // File reading and parsing with error handling
-    // Complete state reconstruction
-    // Backward compatibility support
-    // UI filename population
+function getCustomFilename() {
+    var input = document.getElementById('filename-input');
+    var filename = input ? input.value.trim() : '';
+    
+    // Sanitize filename
+    filename = filename.replace(/[^a-zA-Z0-9\-_]/g, '');
+    
+    if (!filename) {
+        filename = 'fsm_diagram';
+    }
+    
+    return filename + '.json';
 }
 ```
 
@@ -583,17 +710,66 @@ function drawSelectionBox(c) {
     c.fillRect(left, top, right - left, bottom - top);
     c.strokeRect(left, top, right - left, bottom - top);
 }
+
+// Group movement for multiple selected nodes
+function moveSelectedNodesGroup(deltaX, deltaY) {
+    for(var i = 0; i < selectedNodes.length; i++) {
+        selectedNodes[i].x += deltaX;
+        selectedNodes[i].y += deltaY;
+    }
+}
+```
+
+#### **Viewport Panning Implementation**
+```javascript
+function startPanning(mouseX, mouseY) {
+    viewport.isPanning = true;
+    viewport.panStartX = viewport.lastMouseX = mouseX;
+    viewport.panStartY = viewport.lastMouseY = mouseY;
+    canvas.style.cursor = 'grabbing';
+}
+
+function updatePanning(mouseX, mouseY) {
+    if (!viewport.isPanning) return;
+    
+    var deltaX = mouseX - viewport.lastMouseX;
+    var deltaY = mouseY - viewport.lastMouseY;
+    
+    viewport.x += deltaX;
+    viewport.y += deltaY;
+    
+    viewport.lastMouseX = mouseX;
+    viewport.lastMouseY = mouseY;
+    
+    draw();
+}
 ```
 
 ### 4.5 Mathematical & Geometric Foundations
 
-The mathematical foundations remain robust:
+The mathematical foundations remain robust while being enhanced for new features:
 
 #### **Coordinate System Mathematics**
 - **World-to-Screen Transform**: `screen = world * scale + offset`
 - **Screen-to-World Transform**: `world = (screen - offset) / scale`
 - **Hit Detection**: Adapted for transformed coordinates
 - **Geometric Calculations**: Preserved accuracy through coordinate systems
+
+#### **Selection Box Geometry**
+```javascript
+function nodeIntersectsRectangle(node, rect) {
+    // Find closest point on rectangle to circle center
+    var closestX = Math.max(rect.left, Math.min(node.x, rect.right));
+    var closestY = Math.max(rect.top, Math.min(node.y, rect.bottom));
+    
+    // Calculate distance from circle center to closest point
+    var distanceX = node.x - closestX;
+    var distanceY = node.y - closestY;
+    var distanceSquared = distanceX * distanceX + distanceY * distanceY;
+    
+    return distanceSquared <= (nodeRadius * nodeRadius);
+}
+```
 
 ## Technical Infrastructure
 
@@ -614,7 +790,39 @@ def build():
     print('built %s (%u bytes)' % (path, len(data)))
 ```
 
-**Current build output: 1849 lines** (reduced from previous versions)
+**Features:**
+- Recursive source file discovery
+- Simple concatenation (no dependency resolution)
+- Watch mode for development
+- Fast build times (< 1 second)
+
+#### **AWS Amplify Deployment (amplify.yml)**
+```yaml
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - echo "Installing Python dependencies..."
+    build:
+      commands:
+        - echo "Building the application..."
+        - python3 build_fsm.py
+    postBuild:
+      commands:
+        - echo "Build completed"
+  artifacts:
+    baseDirectory: www
+    files:
+      - '**/*'
+```
+
+**Deployment Features:**
+- Automated CI/CD pipeline
+- Python build environment
+- Static file hosting
+- Global CDN distribution
+- HTTPS by default
 
 ### 5.2 File-by-File Implementation Guide
 
@@ -622,11 +830,11 @@ def build():
 graph TD
     subgraph "Source Files Structure"
         subgraph "Core Application (/src/main/)"
-            FSM_JS["`**fsm.js** 
+            FSM_JS["`**fsm.js** (1167 lines)
             • Main application controller
             • Viewport & multi-select systems
             • Enhanced event handling
-            • JSON import/export functions`"]
+            • Coordinate transformations`"]
             MATH_JS["`**math.js**
             • Geometric utilities
             • Distance calculations
@@ -638,7 +846,7 @@ graph TD
         end
         
         subgraph "Element Classes (/src/elements/)"
-            NODE_JS["`**node.js**
+            NODE_JS["`**node.js** (352 lines)
             • Enhanced with 6 shapes
             • 7 color options
             • Accept state rendering
@@ -661,6 +869,17 @@ graph TD
             • Temporary rendering`"]
         end
         
+        subgraph "Export System (/src/export_as/)"
+            SVG_JS["`**svg.js** (94 lines)
+            • Canvas2D API mimicry
+            • SVG markup generation
+            • Vector graphics output`"]
+            LATEX_JS["`**latex.js**
+            • TikZ/PGF code generation
+            • Academic formatting
+            • Publication-ready output`"]
+        end
+        
         LICENSE["`**_license.js**
         • Copyright notices
         • Attribution text
@@ -668,12 +887,12 @@ graph TD
     end
     
     subgraph "Build Output (/www/)"
-        BUILT_JS["`**built-fsm.js** (1849 lines)
+        BUILT_JS["`**built-fsm.js**
         Concatenated result of all source files`"]
-        INDEX_HTML["`**index.html**
+        INDEX_HTML["`**index.html** (371 lines)
         • Canvas setup
-        • Streamlined controls
-        • JSON import/export UI
+        • Embedded styles
+        • Control interface
         • Responsive design`"]
         ASSETS["`**Assets**
         • Favicons
@@ -682,7 +901,7 @@ graph TD
     end
     
     subgraph "Build & Deploy"
-        BUILD_PY["`**build_fsm.py**
+        BUILD_PY["`**build_fsm.py** (29 lines)
         • File concatenation
         • Watch mode
         • Source discovery`"]
@@ -700,6 +919,8 @@ graph TD
     SELF_JS --> BUILT_JS
     START_JS --> BUILT_JS
     TEMP_JS --> BUILT_JS
+    SVG_JS --> BUILT_JS
+    LATEX_JS --> BUILT_JS
     LICENSE --> BUILT_JS
     
     BUILD_PY --> BUILT_JS
@@ -714,20 +935,23 @@ graph TD
 
 #### **Key Implementation Files**
 
-**src/main/fsm.js** - Streamlined Core Controller
-- **Enhanced Features**: Viewport management, multi-select, JSON persistence
-- **Removed Complexity**: No export system functions, cleaner codebase
-- **Core Functions**: `drawText()`, `drawArrow()`, `downloadAsJSON()`, `importFromJSON()`
+**src/main/fsm.js (1167 lines)** - Enhanced Core Controller
+- **Lines 108-130**: Viewport state management and multi-select variables
+- **Lines 136-220**: Selection box drawing and node intersection logic
+- **Lines 221-280**: Enhanced `drawUsing()` with viewport transforms and multi-select rendering
+- **Lines 409-490**: Advanced mouse event handling with coordinate transformation
+- **Lines 700-760**: Viewport coordinate conversion and panning functions
 
-**src/elements/node.js** - Enhanced Node Class
-- **6 Shape Options**: Circle, Triangle, Square, Pentagon, Hexagon
-- **7 Color Options**: Full customization system
-- **Hit Detection**: Shape-specific collision detection
+**src/elements/node.js (352 lines)** - Enhanced Node Class
+- **Lines 1-10**: Constructor with shape and color parameters
+- **Lines 20-45**: Color system with base and selected color methods
+- **Lines 50-100**: Shape-specific drawing methods (circle, triangle, square, pentagon, hexagon)
+- **Lines 200-350**: Hit detection and geometric calculations for all shapes
 
-**www/index.html** - Simplified UI
-- **JSON-Only Persistence**: Clean, focused interface
-- **Custom Filename Support**: Enhanced user experience
-- **Responsive Design**: Works across devices
+**www/index.html (371 lines)** - Enhanced UI
+- **Lines 1-50**: Responsive design and favicon integration
+- **Lines 100-200**: Enhanced control panel with export options
+- **Lines 300-371**: Canvas setup and embedded JavaScript utilities
 
 ## Development Workflow & Extension Points
 
@@ -749,25 +973,40 @@ switch(this.shape) {
 }
 ```
 
-#### 2. **Navigation Enhancement Points**
+#### 2. **Export Format Extensibility**
+```javascript
+// New export formats follow Canvas2D API pattern:
+function ExportAsNewFormat() {
+    // Mimic Canvas2D methods
+    this.beginPath = function() { /* ... */ };
+    this.arc = function(x, y, radius, start, end) { /* ... */ };
+    // ... other Canvas2D methods
+    
+    this.toNewFormat = function() {
+        return this.generatedOutput;
+    };
+}
+```
+
+#### 3. **Navigation Enhancement Points**
 - **Zoom functionality**: Viewport scale property prepared
 - **Minimap**: Could overlay on canvas corner
 - **Keyboard shortcuts**: Event system ready for extension
 - **Touch gestures**: Mouse event pattern adaptable to touch
 
-### **Simplified Design Patterns**
+### **Unexpected Design Patterns Discovered**
 
 #### 1. **Viewport Transform as First-Class Citizen**
-Every mouse interaction, drawing operation, and hit detection goes through the coordinate system.
+Unlike typical canvas applications that treat viewport as an afterthought, this implementation makes coordinate transformation central to every operation. Every mouse interaction, drawing operation, and hit detection goes through the coordinate system.
 
 #### 2. **Multi-Selection as Core Feature**
-Implemented as a fundamental state management feature with its own event handling priority and visual feedback system.
+Rather than adding multi-selection as a UI enhancement, it's implemented as a fundamental state management feature with its own event handling priority and visual feedback system.
 
-#### 3. **JSON-Only Persistence**
-Simplified from multiple export formats to a single, robust JSON format that preserves all application state.
+#### 3. **Canvas2D API Mimicry for Exports**
+The export system's strategy of implementing Canvas2D-compatible interfaces allows the same drawing code to produce different output formats—an elegant abstraction that could support additional export formats easily.
 
 #### 4. **Modular Build with Zero Bundler**
-Python concatenation approach achieves modular development without webpack/babel complexity.
+The Python concatenation approach achieves modular development without webpack/babel complexity, resulting in readable output code and fast build times.
 
 ### **Development Workflow**
 
@@ -788,25 +1027,4 @@ git push origin master               # Triggers Amplify CI/CD
 4. **Animation**: Leverage existing draw() loop
 5. **Collaboration**: Add WebSocket layer above current state management
 
-### **Achieved Simplifications**
-
-#### **Code Reduction Results**
-- **~400+ lines of export code eliminated**
-- **Built file: 1849 lines** (significantly reduced)
-- **Entire export system removed**: PNG, SVG, LaTeX functionality purged
-- **Single persistence format**: JSON-only import/export
-
-#### **Complexity Reduction**
-- **Eliminated Canvas2D API abstraction pattern**
-- **Removed multiple export format maintenance burden**
-- **Cleaner separation of concerns**
-- **Focused functionality**: Core drawing + JSON persistence
-
-#### **Preserved Functionality**
-✅ **JSON import/export with custom filenames**  
-✅ **LaTeX shortcuts in text rendering** (`\alpha`, `\beta`, etc.)  
-✅ **All core canvas functionality** (drawing, editing, shapes, colors)  
-✅ **Viewport and multi-selection features**  
-✅ **Node customization** (6 shapes, 7 colors)
-
-This architecture demonstrates that sophisticated features can be achieved through careful design patterns and thoughtful abstractions. The result is a fast, maintainable, and focused application that leverages web platform capabilities directly while maintaining a clean, understandable codebase.
+This architecture demonstrates that sophisticated features can be achieved through careful design patterns and thoughtful abstractions, even without modern frameworks. The result is a fast, maintainable, and extensible application that leverages web platform capabilities directly.

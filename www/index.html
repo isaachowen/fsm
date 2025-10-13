@@ -168,20 +168,6 @@ p {
 	text-align: center;
 }
 
-textarea {
-	display: none;
-	position: absolute;
-	top: 50%;
-	left: 50%;
-	transform: translate(-50%, -50%);
-	width: 75%;
-	height: 400px;
-	z-index: 20;
-	background: white;
-	border: 2px solid #333;
-	border-radius: 5px;
-}
-
   </style>
 	<script src="built-fsm.js"></script>
 	<script>
@@ -231,7 +217,6 @@ if (typeof btoa == 'undefined') {
 	<canvas id="canvas" width="800" height="600">
 		<span class="error">Your browser does not support<br>the HTML5 &lt;canvas&gt; element</span>
 	</canvas>
-	<textarea id="output"></textarea>
 	
 	<!-- Action buttons box - top left -->
 	<div id="actionbuttonbox">
