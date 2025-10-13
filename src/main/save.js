@@ -13,7 +13,7 @@ function restoreBackup() {
 			node.text = backupNode.text;
 			// Handle backward compatibility - default to circle if no shape specified
 			if (!node.shape) {
-				node.shape = 'circle';
+				node.shape = 'dot';
 			}
 			// Handle backward compatibility - default to yellow if no color specified
 			if (!node.color) {
@@ -71,7 +71,7 @@ function saveBackup() {
 			'y': node.y,
 			'text': node.text,
 			'isAcceptState': node.isAcceptState,
-			'shape': node.shape || 'circle', // Include shape property with fallback
+			'shape': node.shape || 'dot', // Include shape property with fallback
 			'color': node.color || 'yellow', // Include color property with fallback
 		};
 		backup.nodes.push(backupNode);

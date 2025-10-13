@@ -5,7 +5,7 @@ function Node(x, y, shape, color) {
 	this.mouseOffsetY = 0;
 	this.isAcceptState = false;
 	this.text = '';
-	this.shape = shape || 'circle'; // Default to circle for backward compatibility
+	this.shape = shape || 'dot'; // Default to dot for backward compatibility
 	this.color = color || 'yellow'; // Default to yellow for backward compatibility
 }
 
@@ -50,7 +50,7 @@ Node.prototype.draw = function(c) {
 	c.beginPath();
 	
 	switch(this.shape) {
-		case 'circle':
+		case 'dot':
 			this.drawCircle(c);
 			break;
 		case 'triangle': 
@@ -124,7 +124,7 @@ Node.prototype.drawAcceptState = function(c) {
 	c.beginPath();
 	var innerRadius = nodeRadius - 6;
 	switch(this.shape) {
-		case 'circle':
+		case 'dot':
 			c.arc(this.x, this.y, innerRadius, 0, 2 * Math.PI, false);
 			break;
 		case 'triangle':
@@ -164,7 +164,7 @@ Node.prototype.drawAcceptStatePolygon = function(c, sides, radius) {
 };
 
 Node.prototype.closestPointOnShapeToEdgeArc = function(x, y) {
-	if(this.shape === 'circle') {
+	if(this.shape === 'dot') {
 		// Original logic for circle/dot nodes
 		var dx = x - this.x;
 		var dy = y - this.y;
@@ -289,7 +289,7 @@ Node.prototype.closestPointOnLineSegment = function(px, py, x1, y1, x2, y2) {
 
 Node.prototype.containsPoint = function(x, y) {
 	switch(this.shape) {
-		case 'circle':
+		case 'dot':
 			return (x - this.x)*(x - this.x) + (y - this.y)*(y - this.y) < nodeRadius*nodeRadius;
 		case 'triangle':
 			return this.pointInTriangle(x, y);

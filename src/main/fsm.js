@@ -873,12 +873,12 @@ function getShapeFromModifier(modifier) {
 	 * Returns shape names that correspond to Node rendering methods.
 	 */
 	switch(modifier) {
-		case 1: return 'circle';
+		case 1: return 'dot';
 		case 3: return 'triangle';
 		case 4: return 'square';
 		case 5: return 'pentagon';
 		case 6: return 'hexagon';
-		default: return 'circle'; // Default fallback
+		default: return 'dot'; // Default fallback
 	}
 }
 
@@ -1136,7 +1136,7 @@ function downloadAsJSON() {
 			y: node.y, 
 			text: node.text,
 			isAcceptState: node.isAcceptState,
-			shape: node.shape || 'circle', // Include shape property
+			shape: node.shape || 'dot', // Include shape property
 			color: node.color || 'yellow'  // Include color property
 		});
 	}
@@ -1241,7 +1241,7 @@ function importFromJSON(fileInput) {
 				node.isAcceptState = nodeData.isAcceptState || false;
 				// Handle backward compatibility - default to circle if no shape specified
 				if (!node.shape) {
-					node.shape = 'circle';
+					node.shape = 'dot';
 				}
 				// Handle backward compatibility - default to yellow if no color specified
 				if (!node.color) {

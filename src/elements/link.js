@@ -267,7 +267,7 @@ Link.prototype.findArcNodeIntersection = function(circle, targetNode, otherNode,
 	 */
 	
 	// For circles, use existing circular calculation
-	if (targetNode.shape === 'circle') {
+	if (targetNode.shape === 'dot') {
 		var dx = targetNode.x - circle.x;
 		var dy = targetNode.y - circle.y;
 		var angle = Math.atan2(dy, dx);
