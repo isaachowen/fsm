@@ -59,6 +59,23 @@ function restoreBackup() {
 		}
 	}
 
+	// Restore legend descriptions if available
+	if (backup.legend && typeof legendEntries !== 'undefined') {
+		// Pre-populate legendEntries with saved descriptions before updating the legend
+		for (var key in backup.legend) {
+			if (backup.legend.hasOwnProperty(key)) {
+				if (!legendEntries[key]) {
+					legendEntries[key] = {};
+				}
+				legendEntries[key].description = backup.legend[key];
+			}
+		}
+		// Trigger legend update to refresh display with restored descriptions
+		if (typeof updateLegendEntries === 'function') {
+			updateLegendEntries();
+		}
+	}
+
 	// Clear any selection state when restoring
 	selectedObject = null;
 	selectedNodes = [];
@@ -75,10 +92,19 @@ function saveBackup() {
 	var input = document.getElementById('filenameInput');
 	var currentFilename = input ? input.value.trim() : '';
 
+	// Create legend data for backup
+	var backupLegend = {};
+	for (var key in legendEntries) {
+		if (legendEntries.hasOwnProperty(key) && legendEntries[key].description !== undefined) {
+			backupLegend[key] = legendEntries[key].description;
+		}
+	}
+
 	var backup = {
 		'nodes': [],
 		'links': [],
 		'filename': currentFilename,
+		'legend': backupLegend,
 	};
 	for(var i = 0; i < nodes.length; i++) {
 		var node = nodes[i];

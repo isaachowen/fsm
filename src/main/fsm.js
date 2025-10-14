@@ -1612,6 +1612,14 @@ function downloadAsJSON() {
 		jsonLinks.push(linkData);
 	}
 	
+	// Serialize legend descriptions (exclude DOM elements and counts)
+	var jsonLegend = {};
+	for (var key in legendEntries) {
+		if (legendEntries[key].description && legendEntries[key].description.trim() !== '') {
+			jsonLegend[key] = legendEntries[key].description;
+		}
+	}
+
 	// Create complete JSON structure
 	var jsonData = {
 		version: '1.0',
@@ -1621,7 +1629,8 @@ function downloadAsJSON() {
 			height: canvas.height
 		},
 		nodes: jsonNodes,
-		links: jsonLinks
+		links: jsonLinks,
+		legend: jsonLegend
 	};
 	
 	// Convert to JSON string with formatting
@@ -1718,6 +1727,36 @@ function processJSONData(jsonData, filename) {
 		links.push(link);
 	}
 	
+	// Restore legend descriptions if present (before updating legend)
+	if (jsonData.legend) {
+		// Clear any existing legend descriptions
+		for (var key in legendEntries) {
+			if (legendEntries[key]) {
+				legendEntries[key].description = '';
+			}
+		}
+		
+		// Pre-populate legend descriptions from imported data
+		for (var legendKey in jsonData.legend) {
+			// Create legend entry structure if it doesn't exist
+			if (!legendEntries[legendKey]) {
+				var parts = legendKey.split('_');
+				if (parts.length === 2) {
+					legendEntries[legendKey] = {
+						color: parts[0],
+						shape: parts[1],
+						description: jsonData.legend[legendKey],
+						count: 0,
+						inputElement: null
+					};
+				}
+			} else {
+				// Update existing entry description
+				legendEntries[legendKey].description = jsonData.legend[legendKey];
+			}
+		}
+	}
+	
 	// Update filename if provided
 	if (filename) {
 		// Remove .json extension if present
@@ -1731,6 +1770,9 @@ function processJSONData(jsonData, filename) {
 			saveFilenameToBrowserStorage(); // Save the new filename to browserStorage
 		}
 	}
+	
+	// Update legend after importing (will preserve descriptions and update counts)
+	updateLegend();
 	
 	// Redraw and save
 	draw();
@@ -1785,6 +1827,10 @@ function clearCanvas() {
         updateDocumentTitle(); // Update title when clearing filename
         saveFilenameToBrowserStorage(); // Save the reset filename to browserStorage
     }
+    
+    // Clear the legend
+    legendEntries = {};
+    updateLegendHTML();
     
     // Redraw the canvas (will show empty canvas)
     draw();
