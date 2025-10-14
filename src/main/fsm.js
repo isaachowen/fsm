@@ -208,6 +208,11 @@ var viewport = {
 	panStartY: 0       // Mouse position when pan started
 };
 
+// Legend system for tracking unique node type combinations
+var legendEntries = {}; // Key-value pairs of "color_shape" -> entry data
+var legendContainer = null; // HTML container element for legend
+var legendInputs = {}; // Map of entry keys to input elements
+
 function drawSelectionBox(c) {
 	/**
 	 * drawSelectionBox - Renders the multi-selection rectangle with dashed border
@@ -359,6 +364,367 @@ function moveSelectedNodesGroup(deltaX, deltaY) {
 	}
 }
 
+function generateLegendKey(color, shape) {
+	/**
+	 * generateLegendKey - Creates a unique string identifier for a color+shape combination
+	 * 
+	 * Called by:
+	 * - updateLegendEntries() to create consistent keys for legend tracking
+	 * - Legend management functions for data structure operations
+	 * 
+	 * Calls:
+	 * - String concatenation with underscore separator
+	 * 
+	 * Purpose: Provides consistent key generation for legend entry identification.
+	 * Format: "color_shape" (e.g., "yellow_dot", "red_triangle")
+	 */
+	return color + '_' + shape;
+}
+
+function updateLegendEntries() {
+	/**
+	 * updateLegendEntries - Scans all nodes and updates the legend data structure
+	 * 
+	 * Called by:
+	 * - Node creation/deletion/modification events
+	 * - Initial setup and any operation that changes node composition
+	 * 
+	 * Calls:
+	 * - generateLegendKey() to create consistent identifiers
+	 * - Node color and shape properties for categorization
+	 * 
+	 * Purpose: Maintains accurate legend state by scanning all existing nodes
+	 * and tracking unique color+shape combinations with their counts.
+	 * Removes entries when no nodes of that type exist.
+	 */
+	console.log('DEBUG: updateLegendEntries() called, nodes.length =', nodes.length);
+	var newEntries = {};
+	
+	// Scan all existing nodes
+	for (var i = 0; i < nodes.length; i++) {
+		var node = nodes[i];
+		var key = generateLegendKey(node.color, node.shape);
+		console.log('DEBUG: Processing node', i, '- color:', node.color, 'shape:', node.shape, 'key:', key);
+		
+		if (!newEntries[key]) {
+			newEntries[key] = {
+				color: node.color,
+				shape: node.shape,
+				description: '',
+				count: 0,
+				inputElement: null
+			};
+			console.log('DEBUG: Created new legend entry for key:', key);
+			
+			// Preserve existing description if it exists
+			if (legendEntries[key] && legendEntries[key].description) {
+				newEntries[key].description = legendEntries[key].description;
+				console.log('DEBUG: Preserved existing description for key:', key, '=', legendEntries[key].description);
+			}
+		}
+		
+		newEntries[key].count++;
+	}
+	
+	// Clean up old input elements for entries that no longer exist
+	for (var key in legendEntries) {
+		if (!newEntries[key] && legendEntries[key].inputElement) {
+			console.log('DEBUG: Removing old legend entry for key:', key);
+			legendEntries[key].inputElement.remove();
+		}
+	}
+	
+	legendEntries = newEntries;
+	console.log('DEBUG: Final legendEntries object:', Object.keys(legendEntries));
+	updateLegendHTML();
+}
+
+function updateLegendHTML() {
+	/**
+	 * updateLegendHTML - Creates/updates HTML input elements for legend entries
+	 * 
+	 * Called by:
+	 * - updateLegendEntries() after legend data structure is updated
+	 * - Legend rendering and management functions
+	 * 
+	 * Calls:
+	 * - DOM manipulation functions to create/update input elements
+	 * - createElement, appendChild for HTML element management
+	 * 
+	 * Purpose: Synchronizes the HTML input elements with the current legend
+	 * data structure, creating new inputs and removing obsolete ones.
+	 */
+	console.log('DEBUG: updateLegendHTML() called');
+	if (!legendContainer) {
+		console.log('DEBUG: Creating legend container');
+		createLegendContainer();
+	}
+	
+	// Clear existing inputs
+	legendContainer.innerHTML = '<h3 style="margin: 0 0 10px 0; font-size: 14px;">Legend</h3>';
+	console.log('DEBUG: Cleared legend container, innerHTML reset');
+	
+	// Create entries in consistent order (sort by key for predictability)
+	var sortedKeys = Object.keys(legendEntries).sort();
+	console.log('DEBUG: Processing', sortedKeys.length, 'legend entries:', sortedKeys);
+	
+	for (var i = 0; i < sortedKeys.length; i++) {
+		var key = sortedKeys[i];
+		var entry = legendEntries[key];
+		console.log('DEBUG: Creating row for entry', i, '- key:', key, 'color:', entry.color, 'shape:', entry.shape);
+		
+		// Create row container
+		var row = document.createElement('div');
+		row.style.display = 'flex';
+		row.style.alignItems = 'center';
+		row.style.marginBottom = '8px';
+		row.style.gap = '8px';
+		console.log('DEBUG: Created row with styles - display:', row.style.display, 'alignItems:', row.style.alignItems, 'gap:', row.style.gap);
+		
+		// Create mini canvas for node visualization
+		var miniCanvas = document.createElement('canvas');
+		miniCanvas.width = 30;
+		miniCanvas.height = 30;
+		miniCanvas.style.border = '1px solid #ccc';
+		miniCanvas.style.borderRadius = '4px';
+		miniCanvas.style.flexShrink = '0';
+		miniCanvas.style.position = 'relative'; // Ensure canvas stays in document flow
+		miniCanvas.style.display = 'block'; // Explicit block display
+		console.log('DEBUG: Created miniCanvas - width:', miniCanvas.width, 'height:', miniCanvas.height, 'flexShrink:', miniCanvas.style.flexShrink, 'position:', miniCanvas.style.position);
+		
+		// Draw mini node
+		console.log('DEBUG: About to draw mini node for', entry.color, entry.shape);
+		drawMiniNode(miniCanvas, entry.color, entry.shape);
+		console.log('DEBUG: Finished drawing mini node');
+		
+		// Create text input
+		var input = document.createElement('input');
+		input.type = 'text';
+		input.value = entry.description;
+		input.placeholder = 'Describe this node type...';
+		input.style.flex = '1';
+		input.style.padding = '4px 6px';
+		input.style.border = '1px solid #ccc';
+		input.style.borderRadius = '3px';
+		input.style.fontSize = '12px';
+		input.style.fontFamily = 'inherit';
+		console.log('DEBUG: Created input - flex:', input.style.flex, 'value:', input.value);
+		
+		// Store reference and setup event handler
+		entry.inputElement = input;
+		// CRITICAL: Use IIFE to capture the correct 'key' value for this specific input element
+		// Without this, the event handler closure would capture 'key' by reference, meaning ALL
+		// input handlers would reference the LAST key from the loop (usually the last legend entry).
+		// This would cause all input changes to update the same legend entry instead of their
+		// respective entries. The IIFE creates a new scope with the correct entryKey value.
+		(function(entryKey) {
+			input.addEventListener('input', function() {
+				legendEntries[entryKey].description = this.value;
+			});
+		})(key);
+		
+		console.log('DEBUG: About to append miniCanvas to row');
+		row.appendChild(miniCanvas);
+		console.log('DEBUG: MiniCanvas appended - parent:', miniCanvas.parentNode === row, 'offsetLeft:', miniCanvas.offsetLeft, 'offsetTop:', miniCanvas.offsetTop);
+		
+		console.log('DEBUG: About to append input to row');
+		row.appendChild(input);
+		console.log('DEBUG: Input appended - parent:', input.parentNode === row, 'offsetLeft:', input.offsetLeft, 'offsetTop:', input.offsetTop);
+		
+		console.log('DEBUG: About to append row to legendContainer');
+		legendContainer.appendChild(row);
+		console.log('DEBUG: Row appended for key:', key, '- children count:', row.children.length, 'row offsetLeft:', row.offsetLeft, 'row offsetTop:', row.offsetTop);
+		
+		// Log final positioning after DOM settles
+		// CRITICAL: Use IIFE (Immediately Invoked Function Expression) to capture correct variable references
+		// Without this, the setTimeout closure would capture variables by reference, meaning all timeouts
+		// would reference the LAST created miniCanvas and key from the loop, causing incorrect logging
+		// and potentially DOM manipulation bugs. The IIFE creates a new scope that captures the current
+		// values of miniCanvas and key for each iteration.
+		(function(canvas, entryKey) {
+			setTimeout(function() {
+				console.log('DEBUG: Final positioning for', entryKey, '- miniCanvas offsetLeft:', canvas.offsetLeft, 'offsetTop:', canvas.offsetTop, 'getBoundingClientRect:', canvas.getBoundingClientRect());
+			}, 0);
+		})(miniCanvas, key);
+	}
+}
+
+function createLegendContainer() {
+	/**
+	 * createLegendContainer - Creates the main HTML container for the legend
+	 * 
+	 * Called by:
+	 * - updateLegendHTML() when legend container doesn't exist
+	 * - Initial setup functions
+	 * 
+	 * Calls:
+	 * - DOM manipulation functions for element creation and styling
+	 * 
+	 * Purpose: Sets up the positioned HTML container that will hold all
+	 * legend entries and input elements in the top-right corner.
+	 */
+	console.log('DEBUG: createLegendContainer() called');
+	legendContainer = document.createElement('div');
+	legendContainer.id = 'legendbox';
+	legendContainer.style.position = 'absolute';
+	legendContainer.style.top = '20px';
+	legendContainer.style.right = '20px';
+	legendContainer.style.background = 'rgba(223, 223, 223, 0.9)';
+	legendContainer.style.borderRadius = '10px';
+	legendContainer.style.padding = '15px';
+	legendContainer.style.minWidth = '200px';
+	legendContainer.style.maxWidth = '300px';
+	legendContainer.style.fontSize = '12px';
+	legendContainer.style.fontFamily = "'Lucida Grande', 'Segoe UI', sans-serif";
+	legendContainer.style.boxShadow = '0 2px 15px rgba(0,0,0,0.15)';
+	legendContainer.style.border = '1px solid rgba(0,0,0,0.1)';
+	legendContainer.style.zIndex = '10';
+	legendContainer.style.display = 'none'; // Hidden initially
+	console.log('DEBUG: Legend container created with styles - position:', legendContainer.style.position, 'top:', legendContainer.style.top, 'right:', legendContainer.style.right);
+	
+	document.body.appendChild(legendContainer);
+	console.log('DEBUG: Legend container appended to document.body');
+}
+
+function drawMiniNode(miniCanvas, color, shape) {
+	/**
+	 * drawMiniNode - Draws a miniature representation of a node in the legend
+	 * 
+	 * Called by:
+	 * - updateLegendHTML() to create visual samples for each legend entry
+	 * 
+	 * Calls:
+	 * - Canvas 2D API functions for drawing
+	 * - Node color methods for consistent coloring
+	 * 
+	 * Purpose: Renders a small version of each unique node type for visual
+	 * reference in the legend, using the same drawing logic as full nodes.
+	 */
+	console.log('DEBUG: drawMiniNode called for color:', color, 'shape:', shape, 'canvas size:', miniCanvas.width, 'x', miniCanvas.height);
+	var c = miniCanvas.getContext('2d');
+	var centerX = 15;
+	var centerY = 15;
+	var miniRadius = 12;
+	
+	console.log('DEBUG: Canvas context acquired, centerX:', centerX, 'centerY:', centerY, 'miniRadius:', miniRadius);
+	c.clearRect(0, 0, miniCanvas.width, miniCanvas.height);
+	
+	// Create temporary node for color methods
+	var tempNode = { color: color, shape: shape };
+	tempNode.getBaseColor = Node.prototype.getBaseColor;
+	
+	c.fillStyle = tempNode.getBaseColor();
+	c.strokeStyle = '#9ac29a';
+	c.lineWidth = 1.5;
+	console.log('DEBUG: Set canvas styles - fillStyle:', c.fillStyle, 'strokeStyle:', c.strokeStyle, 'lineWidth:', c.lineWidth);
+	
+	c.beginPath();
+	console.log('DEBUG: About to draw shape:', shape);
+	
+	switch(shape) {
+		case 'dot':
+			console.log('DEBUG: Drawing dot at', centerX, centerY, 'radius', miniRadius);
+			c.arc(centerX, centerY, miniRadius, 0, 2 * Math.PI, false);
+			break;
+		case 'triangle':
+			console.log('DEBUG: Drawing triangle');
+			c.moveTo(centerX, centerY - miniRadius);
+			c.lineTo(centerX - miniRadius * Math.cos(Math.PI/6), centerY + miniRadius * Math.sin(Math.PI/6));
+			c.lineTo(centerX + miniRadius * Math.cos(Math.PI/6), centerY + miniRadius * Math.sin(Math.PI/6));
+			c.closePath();
+			break;
+		case 'square':
+			console.log('DEBUG: Drawing square');
+			var r = miniRadius * 0.85;
+			c.rect(centerX - r, centerY - r, 2 * r, 2 * r);
+			break;
+		case 'pentagon':
+			console.log('DEBUG: Drawing pentagon');
+			drawMiniPolygon(c, centerX, centerY, miniRadius, 5);
+			break;
+		case 'hexagon':
+			console.log('DEBUG: Drawing hexagon');
+			drawMiniPolygon(c, centerX, centerY, miniRadius, 6);
+			break;
+		default:
+			console.log('DEBUG: Drawing default (dot)');
+			c.arc(centerX, centerY, miniRadius, 0, 2 * Math.PI, false);
+	}
+	
+	console.log('DEBUG: About to fill and stroke');
+	c.fill();
+	c.stroke();
+	console.log('DEBUG: Finished drawing mini node for', color, shape);
+}
+
+function drawMiniPolygon(c, centerX, centerY, radius, sides) {
+	/**
+	 * drawMiniPolygon - Helper function to draw regular polygons in legend
+	 * 
+	 * Called by:
+	 * - drawMiniNode() for pentagon and hexagon shapes
+	 * 
+	 * Calls:
+	 * - Math.cos(), Math.sin() for vertex calculations
+	 * - Canvas path drawing functions
+	 * 
+	 * Purpose: Renders regular polygons with specified number of sides
+	 * for consistent mini-node representation in the legend.
+	 */
+	var angle = -Math.PI / 2; // Start from top
+	var angleStep = 2 * Math.PI / sides;
+	
+	c.moveTo(
+		centerX + radius * Math.cos(angle),
+		centerY + radius * Math.sin(angle)
+	);
+	
+	for (var i = 1; i < sides; i++) {
+		angle += angleStep;
+		c.lineTo(
+			centerX + radius * Math.cos(angle),
+			centerY + radius * Math.sin(angle)
+		);
+	}
+	
+	c.closePath();
+}
+
+function showLegendIfNeeded() {
+	/**
+	 * showLegendIfNeeded - Shows or hides the legend based on whether any entries exist
+	 * 
+	 * Called by:
+	 * - updateLegendEntries() after legend state changes
+	 * - Main rendering functions to manage legend visibility
+	 * 
+	 * Calls:
+	 * - DOM style manipulation for show/hide behavior
+	 * 
+	 * Purpose: Automatically manages legend visibility - shows when there are
+	 * legend entries to display, hides when no unique node types exist.
+	 */
+	console.log('DEBUG: showLegendIfNeeded() called, legendContainer exists:', !!legendContainer);
+	if (!legendContainer) return;
+	
+	var hasEntries = Object.keys(legendEntries).length > 0;
+	console.log('DEBUG: hasEntries:', hasEntries, 'entries count:', Object.keys(legendEntries).length);
+	legendContainer.style.display = hasEntries ? 'block' : 'none';
+	console.log('DEBUG: Legend container display set to:', legendContainer.style.display);
+	
+	// Log container positioning and contents after DOM settles
+	if (hasEntries) {
+		setTimeout(function() {
+			console.log('DEBUG: Final legend container position - getBoundingClientRect:', legendContainer.getBoundingClientRect());
+			console.log('DEBUG: Legend container children count:', legendContainer.children.length);
+			for (var i = 0; i < legendContainer.children.length; i++) {
+				var child = legendContainer.children[i];
+				console.log('DEBUG: Child', i, '- tagName:', child.tagName, 'getBoundingClientRect:', child.getBoundingClientRect());
+			}
+		}, 100);
+	}
+}
+
 function drawUsing(c) {
 	/**
 	 * drawUsing - Main rendering function that draws all FSM elements to the canvas
@@ -455,6 +821,21 @@ function draw() {
 	saveBackup();
 }
 
+function updateLegend() {
+	/**
+	 * updateLegend - Updates legend only when node composition changes
+	 * 
+	 * Called by:
+	 * - Node creation/modification/deletion events
+	 * - Initial setup after restore
+	 * 
+	 * Purpose: Targeted legend updates only when actually needed,
+	 * not on every draw call (which includes caret blinking, etc.)
+	 */
+	updateLegendEntries();
+	showLegendIfNeeded();
+}
+
 function selectObject(x, y) {
 	/**
 	 * selectObject - Finds the topmost FSM element at given coordinates
@@ -523,6 +904,7 @@ function snapNode(node) {
 window.onload = function() {
 	canvas = document.getElementById('canvas');
 	restoreBackup();
+	updateLegend(); // Update legend after restore
 	draw();
 
 	canvas.onmousedown = function(e) {
@@ -608,19 +990,27 @@ window.onload = function() {
 			}
 			
 			resetCaret();
+			updateLegend(); // Update legend when new node created
 			draw();
 		} else if(selectedObject instanceof Node) {
+			var needsLegendUpdate = false;
 			if(shapeModifier != null) {
 				// Change existing node to specific shape
 				selectedObject.shape = getShapeFromModifier(shapeModifier);
 				// Suppress typing briefly when changing shapes too
 				suppressTypingUntil = Date.now() + 300;
+				needsLegendUpdate = true;
 			}
 			if(colorModifier != null) {
 				// Change existing node to specific color
 				selectedObject.color = getColorFromModifier(colorModifier);
 				// Suppress typing briefly when changing colors too
 				suppressTypingUntil = Date.now() + 300;
+				needsLegendUpdate = true;
+			}
+			// Update legend if node appearance changed
+			if(needsLegendUpdate) {
+				updateLegend();
 			}
 			// Double-clicking an existing node without modifiers does nothing now
 			draw();
@@ -880,6 +1270,7 @@ document.onkeydown = function(e) {
 			// Clear selection
 			selectedNodes = [];
 			selectedObject = null;
+			updateLegend(); // Update legend after deleting nodes
 			draw();
 		} else if(selectedObject != null) {
 			// Original single object deletion logic
@@ -894,6 +1285,7 @@ document.onkeydown = function(e) {
 				}
 			}
 			selectedObject = null;
+			updateLegend(); // Update legend after deleting node
 			draw();
 		}
 	}
