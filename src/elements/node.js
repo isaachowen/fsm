@@ -3,7 +3,6 @@ function Node(x, y, shape, color) {
 	this.y = y;
 	this.mouseOffsetX = 0;
 	this.mouseOffsetY = 0;
-	this.isAcceptState = false;
 	this.text = '';
 	this.shape = shape || 'dot'; // Default to dot for backward compatibility
 	this.color = color || 'yellow'; // Default to yellow for backward compatibility
@@ -74,11 +73,6 @@ Node.prototype.draw = function(c) {
 
 	// Draw the text
 	drawText(c, this.text, this.x, this.y, null, selectedObject == this);
-
-	// Draw accept state indicator (double border)
-	if(this.isAcceptState) {
-		this.drawAcceptState(c);
-	}
 };
 
 Node.prototype.drawCircle = function(c) {
@@ -111,49 +105,6 @@ Node.prototype.drawRegularPolygon = function(c, sides) {
 	var r = nodeRadius;
 	var x = this.x, y = this.y;
 	var angle = -Math.PI / 2; // Start from top
-	
-	c.moveTo(x + r * Math.cos(angle), y + r * Math.sin(angle));
-	for(var i = 1; i < sides; i++) {
-		angle += 2 * Math.PI / sides;
-		c.lineTo(x + r * Math.cos(angle), y + r * Math.sin(angle));
-	}
-	c.closePath();
-};
-
-Node.prototype.drawAcceptState = function(c) {
-	c.beginPath();
-	var innerRadius = nodeRadius - 6;
-	switch(this.shape) {
-		case 'dot':
-			c.arc(this.x, this.y, innerRadius, 0, 2 * Math.PI, false);
-			break;
-		case 'triangle':
-			// Scale down triangle
-			var r = innerRadius;
-			var x = this.x, y = this.y;
-			c.moveTo(x, y - r);
-			c.lineTo(x - r * Math.cos(Math.PI/6), y + r * Math.sin(Math.PI/6));
-			c.lineTo(x + r * Math.cos(Math.PI/6), y + r * Math.sin(Math.PI/6));
-			c.closePath();
-			break;
-		case 'square':
-			var r = innerRadius * 0.85;
-			c.rect(this.x - r, this.y - r, 2 * r, 2 * r);
-			break;
-		case 'pentagon':
-			this.drawAcceptStatePolygon(c, 5, innerRadius);
-			break;
-		case 'hexagon':
-			this.drawAcceptStatePolygon(c, 6, innerRadius);
-			break;
-	}
-	c.stroke();
-};
-
-Node.prototype.drawAcceptStatePolygon = function(c, sides, radius) {
-	var r = radius;
-	var x = this.x, y = this.y;
-	var angle = -Math.PI / 2;
 	
 	c.moveTo(x + r * Math.cos(angle), y + r * Math.sin(angle));
 	for(var i = 1; i < sides; i++) {

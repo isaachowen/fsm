@@ -9,7 +9,6 @@ function restoreBackup() {
 		for(var i = 0; i < backup.nodes.length; i++) {
 			var backupNode = backup.nodes[i];
 			var node = new Node(backupNode.x, backupNode.y, backupNode.shape, backupNode.color);
-			node.isAcceptState = backupNode.isAcceptState;
 			node.text = backupNode.text;
 			// Handle backward compatibility - default to circle if no shape specified
 			if (!node.shape) {
@@ -70,7 +69,6 @@ function saveBackup() {
 			'x': node.x,
 			'y': node.y,
 			'text': node.text,
-			'isAcceptState': node.isAcceptState,
 			'shape': node.shape || 'dot', // Include shape property with fallback
 			'color': node.color || 'yellow', // Include color property with fallback
 		};

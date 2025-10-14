@@ -622,10 +622,7 @@ window.onload = function() {
 				// Suppress typing briefly when changing colors too
 				suppressTypingUntil = Date.now() + 300;
 			}
-			if(shapeModifier == null && colorModifier == null) {
-				// Cycle through accept state when no modifiers
-				cycleNodeAppearance(selectedObject);
-			}
+			// Double-clicking an existing node without modifiers does nothing now
 			draw();
 		}
 	};
@@ -909,27 +906,6 @@ function getColorFromModifier(modifier) {
 	}
 }
 
-function cycleNodeAppearance(node) {
-	/**
-	 * cycleNodeAppearance - Toggles accept state of a node for visual distinction
-	 * 
-	 * Called by:
-	 * - Keyboard event handlers when Enter/Space is pressed with selected node
-	 * - Node appearance cycling when no other modifiers are active
-	 * - Accept state toggle operations
-	 * 
-	 * Calls:
-	 * - Direct manipulation of node.isAcceptState property
-	 * - No external function calls
-	 * 
-	 * Purpose: Provides simple toggle for node accept state (final state in FSM).
-	 * Accept state affects node rendering with double circle border. Essential
-	 * for marking final/accepting states in finite state machine diagrams.
-	 */
-	// Simply toggle accept state, keep current shape
-	node.isAcceptState = !node.isAcceptState;
-}
-
 function crossBrowserKey(e) {
 	/**
 	 * crossBrowserKey - Gets key code in a cross-browser compatible way
@@ -1135,7 +1111,6 @@ function downloadAsJSON() {
 			x: node.x,
 			y: node.y, 
 			text: node.text,
-			isAcceptState: node.isAcceptState,
 			shape: node.shape || 'dot', // Include shape property
 			color: node.color || 'yellow'  // Include color property
 		});
@@ -1238,7 +1213,6 @@ function importFromJSON(fileInput) {
 				var nodeData = jsonData.nodes[i];
 				var node = new Node(nodeData.x, nodeData.y, nodeData.shape, nodeData.color);
 				node.text = nodeData.text || '';
-				node.isAcceptState = nodeData.isAcceptState || false;
 				// Handle backward compatibility - default to circle if no shape specified
 				if (!node.shape) {
 					node.shape = 'dot';
