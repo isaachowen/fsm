@@ -47,6 +47,18 @@ function restoreBackup() {
 		localStorage['fsm'] = '';
 	}
 	
+	// Restore filename if saved
+	if (backup.filename !== undefined) {
+		var input = document.getElementById('filenameInput');
+		if (input) {
+			input.value = backup.filename;
+			// Update title after restoring filename
+			if (typeof updateDocumentTitle === 'function') {
+				updateDocumentTitle();
+			}
+		}
+	}
+
 	// Clear any selection state when restoring
 	selectedObject = null;
 	selectedNodes = [];
@@ -59,9 +71,14 @@ function saveBackup() {
 		return;
 	}
 
+	// Get current filename from input
+	var input = document.getElementById('filenameInput');
+	var currentFilename = input ? input.value.trim() : '';
+
 	var backup = {
 		'nodes': [],
 		'links': [],
+		'filename': currentFilename,
 	};
 	for(var i = 0; i < nodes.length; i++) {
 		var node = nodes[i];

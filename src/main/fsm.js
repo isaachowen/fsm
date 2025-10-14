@@ -1048,20 +1048,16 @@ function getCustomFilename() {
 
 // Save the current filename to browserStorage so it persists across sessions
 function saveFilenameToBrowserStorage() {
-	var input = document.getElementById('filenameInput');
-	if (input && input.value.trim()) {
-		localStorage.setItem('fsmFilename', input.value.trim());
-	}
+	// Filename is now handled by the main saveBackup() system
+	// This function triggers a backup to include the filename
+	saveBackup();
 }
 
 // Load the saved filename from browserStorage and populate the input field
 function loadFilenameFromBrowserStorage() {
-	var savedFilename = localStorage.getItem('fsmFilename');
-	var input = document.getElementById('filenameInput');
-	if (input && savedFilename) {
-		input.value = savedFilename;
-		updateDocumentTitle(); // Update title when loading saved filename
-	}
+	// Filename is now handled by the main restoreBackup() system
+	// This function just updates the title based on current input value
+	updateDocumentTitle();
 }
 
 // Update the document title to include the current filename
@@ -1081,16 +1077,13 @@ function initializeFilenameInput() {
 	
 	var input = document.getElementById('filenameInput');
 	if (input) {
-		// Auto-save filename changes with 500ms debounce to avoid excessive browserStorage writes
-		var timeoutId;
+		// Auto-save filename changes immediately to ensure persistence
 		input.addEventListener('input', function() {
 			// Update title immediately for responsive feel
 			updateDocumentTitle();
 			
-			clearTimeout(timeoutId);
-			timeoutId = setTimeout(function() {
-				saveFilenameToBrowserStorage();
-			}, 500); // Wait 500ms after user stops typing before saving
+			// Save immediately to ensure filename persists on refresh
+			saveFilenameToBrowserStorage();
 		});
 	}
 }
