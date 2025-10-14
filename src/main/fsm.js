@@ -460,9 +460,9 @@ function updateLegendHTML() {
 		createLegendContainer();
 	}
 	
-	// Clear existing inputs
-	legendContainer.innerHTML = '<h3 style="margin: 0 0 10px 0; font-size: 14px;">Legend</h3>';
-	console.log('DEBUG: Cleared legend container, innerHTML reset');
+	// Clear existing inputs and create collapsible structure
+	legendContainer.innerHTML = '<p id="legend-header" onclick="toggleLegend()" style="margin: 0; font-weight: bold; cursor: pointer; user-select: none; display: flex; align-items: center; justify-content: space-between; font-size: 14px;"><span>Legend</span><span id="legend-toggle" style="font-size: 12px; font-weight: normal;">▼</span></p><div id="legend-content" style="transition: all 0.3s ease-in-out; margin-top: 10px;"></div>';
+	console.log('DEBUG: Cleared legend container, innerHTML reset with collapsible structure');
 	
 	// Create entries in consistent order (sort by key for predictability)
 	var sortedKeys = Object.keys(legendEntries).sort();
@@ -531,8 +531,9 @@ function updateLegendHTML() {
 		row.appendChild(input);
 		console.log('DEBUG: Input appended - parent:', input.parentNode === row, 'offsetLeft:', input.offsetLeft, 'offsetTop:', input.offsetTop);
 		
-		console.log('DEBUG: About to append row to legendContainer');
-		legendContainer.appendChild(row);
+		console.log('DEBUG: About to append row to legend-content');
+		var legendContent = legendContainer.querySelector('#legend-content');
+		legendContent.appendChild(row);
 		console.log('DEBUG: Row appended for key:', key, '- children count:', row.children.length, 'row offsetLeft:', row.offsetLeft, 'row offsetTop:', row.offsetTop);
 		
 		// Log final positioning after DOM settles
@@ -547,6 +548,9 @@ function updateLegendHTML() {
 			}, 0);
 		})(miniCanvas, key);
 	}
+	
+	// Initialize legend collapsed/expanded state
+	initializeLegendState();
 }
 
 function createLegendContainer() {
@@ -1837,4 +1841,40 @@ function clearCanvas() {
     
     // Save the cleared state to localStorage
     saveBackup();
+}
+
+function toggleLegend() {
+    var content = document.getElementById('legend-content');
+    var toggle = document.getElementById('legend-toggle');
+    
+    if (content && toggle) {
+        if (content.style.display === 'none') {
+            content.style.display = 'block';
+            toggle.textContent = '▼';
+            // Save expanded state
+            localStorage.setItem('legendExpanded', 'true');
+        } else {
+            content.style.display = 'none';
+            toggle.textContent = '►';
+            // Save collapsed state
+            localStorage.setItem('legendExpanded', 'false');
+        }
+    }
+}
+
+function initializeLegendState() {
+    var isExpanded = localStorage.getItem('legendExpanded');
+    var content = document.getElementById('legend-content');
+    var toggle = document.getElementById('legend-toggle');
+    
+    if (content && toggle) {
+        // Default to expanded if no preference saved, or if preference is 'true'
+        if (isExpanded === null || isExpanded === 'true') {
+            content.style.display = 'block';
+            toggle.textContent = '▼';
+        } else {
+            content.style.display = 'none';
+            toggle.textContent = '►';
+        }
+    }
 }
