@@ -213,7 +213,7 @@ window.InteractionManager = {
         //                   : (this._selectedObject != null && 'text' in this._selectedObject);
     },
     
-    canChangeAppearance: function() {
+    canChangeNodeAppearance: function() {
         // Current behavior: any selected Node can change appearance
         var result = this._selectedObject instanceof Node;
         return result;
@@ -257,7 +257,7 @@ window.InteractionManager = {
             mode: this._mode,
             canEditText: this.canEditText(),
             canDrag: this.canDrag(),
-            canChangeAppearance: this.canChangeAppearance()
+            canChangeNodeAppearance: this.canChangeNodeAppearance()
         };
     },
     
@@ -268,7 +268,7 @@ window.InteractionManager = {
         console.log('Mode:', this._mode);
         console.log('Can edit text:', this.canEditText());
         console.log('Can drag:', this.canDrag());
-        console.log('Can change appearance:', this.canChangeAppearance());
+        console.log('Can change appearance:', this.canChangeNodeAppearance());
         console.log('==============================');
         return 'State logged to console'; // Return a confirmation message
     },
@@ -1107,14 +1107,14 @@ window.onload = function() {
 			draw();
 		} else if(InteractionManager.getSelected() instanceof Node) {
 			var needsLegendUpdate = false;
-			if(shapeModifier != null) {
+			if(shapeModifier != null && InteractionManager.canChangeNodeAppearance()) {
 				// Change existing node to specific shape
 				InteractionManager.getSelected().shape = getShapeFromModifier(shapeModifier);
 				// Suppress typing briefly when changing shapes too
 				suppressTypingUntil = Date.now() + 300;
 				needsLegendUpdate = true;
 			}
-			if(colorModifier != null) {
+			if(colorModifier != null && InteractionManager.canChangeNodeAppearance()) {
 				// Change existing node to specific color
 				InteractionManager.getSelected().color = getColorFromModifier(colorModifier);
 				// Suppress typing briefly when changing colors too
@@ -1171,7 +1171,7 @@ window.onload = function() {
 			draw();
 		}
 
-		if(movingObject) {
+		if(movingObject && InteractionManager.canDrag()) {
 			// Check if we're moving a node that's part of a multi-selection
 			var isGroupMovement = (InteractionManager.getSelected() instanceof Node && selectedNodes.length > 0 && selectedNodes.indexOf(InteractionManager.getSelected()) !== -1);
 			
@@ -1351,8 +1351,8 @@ document.onkeydown = function(e) {
 		// don't read keystrokes when other things have focus
 		return true;
 	} else if(key == 8) { // backspace key
-		if(selectedObject != null && 'text' in selectedObject) {
-			selectedObject.text = selectedObject.text.substr(0, selectedObject.text.length - 1);
+		if(InteractionManager.canEditText()) {
+			InteractionManager.getSelected().text = InteractionManager.getSelected().text.substr(0, InteractionManager.getSelected().text.length - 1);
 			resetCaret();
 			draw();
 		}
@@ -1382,22 +1382,22 @@ document.onkeydown = function(e) {
 			
 			// Clear selection
 			selectedNodes = [];
-			selectedObject = null;
+			InteractionManager.setSelected(null);
 			updateLegend(); // Update legend after deleting nodes
 			draw();
-		} else if(selectedObject != null) {
+		} else if(InteractionManager.getSelected() != null) {
 			// Original single object deletion logic
 			for(var i = 0; i < nodes.length; i++) {
-				if(nodes[i] == selectedObject) {
+				if(nodes[i] == InteractionManager.getSelected()) {
 					nodes.splice(i--, 1);
 				}
 			}
 			for(var i = 0; i < links.length; i++) {
-				if(links[i] == selectedObject || links[i].node == selectedObject || links[i].nodeA == selectedObject || links[i].nodeB == selectedObject) {
+				if(links[i] == InteractionManager.getSelected() || links[i].node == InteractionManager.getSelected() || links[i].nodeA == InteractionManager.getSelected() || links[i].nodeB == InteractionManager.getSelected()) {
 					links.splice(i--, 1);
 				}
 			}
-			selectedObject = null;
+			InteractionManager.setSelected(null);
 			updateLegend(); // Update legend after deleting node
 			draw();
 		}
@@ -1425,8 +1425,8 @@ document.onkeypress = function(e) {
 	} else if(Date.now() < suppressTypingUntil) {
 		// temporarily suppress typing after shape modifier usage
 		return false;
-	} else if(key >= 0x20 && key <= 0x7E && !e.metaKey && !e.altKey && !e.ctrlKey && selectedObject != null && 'text' in selectedObject) {
-		selectedObject.text += String.fromCharCode(key);
+	} else if(key >= 0x20 && key <= 0x7E && !e.metaKey && !e.altKey && !e.ctrlKey && InteractionManager.canEditText()) {
+		InteractionManager.getSelected().text += String.fromCharCode(key);
 		resetCaret();
 		draw();
 
@@ -1781,7 +1781,7 @@ function processJSONData(jsonData, filename) {
 	// Clear current state
 	nodes = [];
 	links = [];
-	selectedObject = null;
+	InteractionManager.setSelected(null);
 	currentLink = null;
 	
 	// Reconstruct nodes
@@ -1930,7 +1930,7 @@ function clearCanvas() {
     links.length = 0;  // Clear links array
     
     // Clear any selected objects
-    selectedObject = null;
+    InteractionManager.setSelected(null);
     currentLink = null;
     
     // Reset filename to default

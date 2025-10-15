@@ -50,7 +50,7 @@ Node.prototype.draw = function(c) {
 	
 	switch(this.shape) {
 		case 'dot':
-			this.drawCircle(c);
+			this.drawDot(c);
 			break;
 		case 'triangle': 
 			this.drawTriangle(c);
@@ -65,7 +65,7 @@ Node.prototype.draw = function(c) {
 			this.drawHexagon(c);
 			break;
 		default:
-			this.drawCircle(c); // Fallback
+			this.drawDot(c); // Fallback
 	}
 	
 	c.fill();
@@ -75,7 +75,7 @@ Node.prototype.draw = function(c) {
 	drawText(c, this.text, this.x, this.y, null, selectedObject == this);
 };
 
-Node.prototype.drawCircle = function(c) {
+Node.prototype.drawDot = function(c) {
 	c.arc(this.x, this.y, nodeRadius, 0, 2 * Math.PI, false);
 };
 
