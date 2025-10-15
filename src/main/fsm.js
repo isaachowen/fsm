@@ -132,7 +132,15 @@ function drawText(c, originalText, x, y, angleOrNull, isSelected) {
 		x = Math.round(x);
 		y = Math.round(y);
 		c.fillText(text, x, y + 6);
-		if(isSelected && caretVisible && canvasHasFocus() && document.hasFocus()) {
+		// Only show caret when in editing_text mode (ui_flow_v2) or legacy editing mode
+		var shouldShowCaret = false;
+		if (ui_flow_v2) {
+			shouldShowCaret = (InteractionManager.getMode() === 'editing_text' && isSelected);
+		} else {
+			shouldShowCaret = (InteractionManager.canEditText() && isSelected);
+		}
+		
+		if(shouldShowCaret && caretVisible && canvasHasFocus() && document.hasFocus()) {
 			x += width;
 			c.beginPath();
 			c.moveTo(x, y - 10);
@@ -185,52 +193,69 @@ var hitTargetPadding = 6; // pixels
 // INTERACTION MANAGER - SINGLE SOURCE OF TRUTH
 // =============================================================================
 
+// Feature flag for new UI flow
+var ui_flow_v2 = true; // Set to true to enable new three-state interaction modes
+
 // Make InteractionManager globally accessible for debugging
 window.InteractionManager = {
     // Internal state
     _selectedObject: null,
-    _mode: 'canvas', // Future: 'canvas', 'selection', 'editing'
+    _mode: 'canvas', // Future: 'canvas', 'selection', 'editing_text'
     
     // Core selection API (replaces global selectedObject)
     getSelected: function() {
         return this._selectedObject;
     },
     
+    getMode: function() {
+        return this._mode;
+    },
+    
     setSelected: function(obj) {
         console.log('🎯 Selection changed:', obj);
-        this._selectedObject = obj;
-        // Future: could add mode transition logic here
+        
+        if (ui_flow_v2) {
+            // New behavior: automatic mode transitions
+            if (obj === null) {
+                this.enterCanvasMode();
+            } else {
+                this.enterSelectionMode(obj);
+            }
+        } else {
+            // Current behavior: direct assignment
+            this._selectedObject = obj;
+        }
     },
     
     // Capability checks (ready for mode logic)
     canEditText: function() {
-        // Current behavior: any selected object with text can be edited
-        var result = this._selectedObject != null && 'text' in this._selectedObject;
-        return result;
-        
-        // Future ui_flow_v2 behavior:
-        // return ui_flow_v2 ? (this._mode === 'editing' && this._selectedObject && 'text' in this._selectedObject)
-        //                   : (this._selectedObject != null && 'text' in this._selectedObject);
+        if (ui_flow_v2) {
+            // New behavior: can only edit text in 'editing_text' mode
+            return this._mode === 'editing_text' && this._selectedObject && 'text' in this._selectedObject;
+        } else {
+            // Current behavior: any selected object with text can be edited
+            return this._selectedObject != null && 'text' in this._selectedObject;
+        }
     },
     
     canChangeNodeAppearance: function() {
-        // Current behavior: any selected Node can change appearance
-        var result = this._selectedObject instanceof Node;
-        return result;
-        
-        // Future ui_flow_v2 behavior:
-        // return ui_flow_v2 ? (this._mode === 'selection' && this._selectedObject instanceof Node)
-        //                   : (this._selectedObject instanceof Node);
+        if (ui_flow_v2) {
+            // New behavior: can only change appearance in 'selection' mode
+            return this._mode === 'selection' && this._selectedObject instanceof Node;
+        } else {
+            // Current behavior: any selected Node can change appearance
+            return this._selectedObject instanceof Node;
+        }
     },
     
     canDrag: function() {
-        // Current behavior: any selected object can be dragged
-        var result = this._selectedObject != null;
-        return result;
-        
-        // Future ui_flow_v2 behavior:
-        // return ui_flow_v2 ? (this._mode === 'selection' && this._selectedObject)
-        //                   : (this._selectedObject != null);
+        if (ui_flow_v2) {
+            // New behavior: can only drag in 'selection' mode
+            return this._mode === 'selection' && this._selectedObject;
+        } else {
+            // Current behavior: any selected object can be dragged
+            return this._selectedObject != null;
+        }
     },
     
     // Utility methods
@@ -243,12 +268,45 @@ window.InteractionManager = {
     clearSelection: function() {
         console.log('InteractionManager.clearSelection() called');
         this._selectedObject = null;
+        if (ui_flow_v2) {
+            this._mode = 'canvas';
+            console.log('📊 _mode changed to:', this._mode);
+        }
     },
     
-    // Future: Mode transition methods (for ui_flow_v2)
-    // enterCanvasMode: function() { ... },
-    // enterSelectionMode: function(obj) { ... },  
-    // enterEditingMode: function(obj) { ... },
+    // Mode transition methods (for ui_flow_v2)
+    enterCanvasMode: function() {
+        if (ui_flow_v2) {
+            console.log('🎯 Entering canvas mode');
+            this._mode = 'canvas';
+            console.log('📊 _mode changed to:', this._mode);
+            this._selectedObject = null;
+            // Stop text caret when exiting editing mode
+            clearInterval(caretTimer);
+        }
+    },
+    
+    enterSelectionMode: function(obj) {
+        if (ui_flow_v2 && obj) {
+            console.log('🎯 Entering selection mode with:', obj);
+            this._mode = 'selection';
+            console.log('📊 _mode changed to:', this._mode);
+            this._selectedObject = obj;
+            // Stop text caret when entering selection mode (not editing)
+            clearInterval(caretTimer);
+        }
+    },
+    
+    enterEditingMode: function(obj) {
+        if (ui_flow_v2 && obj && 'text' in obj) {
+            console.log('🎯 Entering editing_text mode with:', obj);
+            this._mode = 'editing_text';
+            console.log('📊 _mode changed to:', this._mode);
+            this._selectedObject = obj;
+            // Start text caret when entering editing mode
+            resetCaret();
+        }
+    },
     
     // Debug helpers
     debugInfo: function() {
@@ -1053,7 +1111,13 @@ window.onload = function() {
 					InteractionManager.getSelected().setMouseStart(worldMouse.x, worldMouse.y);
 				}
 			}
-			resetCaret();
+			
+			// Only reset caret if we're in editing mode (ui_flow_v2) or legacy mode with text editing capability
+			if (!ui_flow_v2 && InteractionManager.canEditText()) {
+				resetCaret();
+			} else if (ui_flow_v2 && InteractionManager.getMode() === 'editing_text') {
+				resetCaret();
+			}
 		} else if(shift) {
 			currentLink = new TemporaryLink(worldMouse, worldMouse);
 		} else {
@@ -1125,7 +1189,18 @@ window.onload = function() {
 			if(needsLegendUpdate) {
 				updateLegend();
 			}
-			// Double-clicking an existing node without modifiers does nothing now
+			
+			// Mode transition: double-clicking a node without modifiers switches to editing mode
+			if(ui_flow_v2 && shapeModifier == null && colorModifier == null) {
+				InteractionManager.enterEditingMode(InteractionManager.getSelected());
+			}
+			
+			draw();
+		} else if(InteractionManager.getSelected() && 'text' in InteractionManager.getSelected()) {
+			// Mode transition: double-clicking any object with text (links) switches to editing mode
+			if(ui_flow_v2) {
+				InteractionManager.enterEditingMode(InteractionManager.getSelected());
+			}
 			draw();
 		}
 	};
@@ -1345,8 +1420,24 @@ document.onkeydown = function(e) {
 	} else if(key >= 49 && key <= 54) { // Keys 1, 3, 4, 5, 6 (skip 2 for future use)
 		if(key === 50) return; // Skip key 2 for now
 		shapeModifier = key - 48; // Convert keycode to number (1, 3, 4, 5, 6)
+		
+		// Immediate shape change in selection mode
+		if(ui_flow_v2 && InteractionManager.canChangeNodeAppearance()) {
+			InteractionManager.getSelected().shape = getShapeFromModifier(shapeModifier);
+			suppressTypingUntil = Date.now() + 300; // Suppress typing briefly
+			updateLegend(); // Update legend after shape change
+			draw();
+		}
 	} else if(key == 81 || key == 87 || key == 69 || key == 82 || key == 84) { // Q, W, E, R, T keys
 		colorModifier = String.fromCharCode(key); // Convert keycode to letter (Q, W, E, R, T)
+		
+		// Immediate color change in selection mode
+		if(ui_flow_v2 && InteractionManager.canChangeNodeAppearance()) {
+			InteractionManager.getSelected().color = getColorFromModifier(colorModifier);
+			suppressTypingUntil = Date.now() + 300; // Suppress typing briefly
+			updateLegend(); // Update legend after color change
+			draw();
+		}
 	} else if(!canvasHasFocus()) {
 		// don't read keystrokes when other things have focus
 		return true;
@@ -1401,6 +1492,26 @@ document.onkeydown = function(e) {
 			updateLegend(); // Update legend after deleting node
 			draw();
 		}
+	} else if(key == 27) { // escape key
+		if(ui_flow_v2) {
+			// Mode transitions: editing_text → selection → canvas
+			if(InteractionManager.getMode() === 'editing_text') {
+				InteractionManager.enterSelectionMode(InteractionManager.getSelected());
+				draw(); // Redraw to hide the cursor immediately
+			} else if(InteractionManager.getMode() === 'selection') {
+				InteractionManager.enterCanvasMode();
+				draw(); // Redraw to update visual state
+			}
+			// If already in canvas mode, escape does nothing
+		}
+	} else if(key == 13) { // enter key
+		if(ui_flow_v2) {
+			// Mode transition: selection → editing_text (if node with text is selected)
+			if(InteractionManager.getMode() === 'selection' && InteractionManager.getSelected() && 'text' in InteractionManager.getSelected()) {
+				InteractionManager.enterEditingMode(InteractionManager.getSelected());
+				draw(); // Redraw to show the cursor
+			}
+		}
 	}
 };
 
@@ -1426,6 +1537,11 @@ document.onkeypress = function(e) {
 		// temporarily suppress typing after shape modifier usage
 		return false;
 	} else if(key >= 0x20 && key <= 0x7E && !e.metaKey && !e.altKey && !e.ctrlKey && InteractionManager.canEditText()) {
+		// Mode transition: automatically enter editing_text mode when typing begins
+		if(ui_flow_v2 && InteractionManager.getMode() !== 'editing_text') {
+			InteractionManager.enterEditingMode();
+		}
+		
 		InteractionManager.getSelected().text += String.fromCharCode(key);
 		resetCaret();
 		draw();
