@@ -180,7 +180,129 @@ var links = [];
 var cursorVisible = true;
 var snapToPadding = 6; // pixels
 var hitTargetPadding = 6; // pixels
-var selectedObject = null; // either a Link or a Node
+
+// =============================================================================
+// INTERACTION MANAGER - SINGLE SOURCE OF TRUTH
+// =============================================================================
+
+// Make InteractionManager globally accessible for debugging
+window.InteractionManager = {
+    // Internal state
+    _selectedObject: null,
+    _mode: 'canvas', // Future: 'canvas', 'selection', 'editing'
+    
+    // Core selection API (replaces global selectedObject)
+    getSelected: function() {
+        return this._selectedObject;
+    },
+    
+    setSelected: function(obj) {
+        console.log('🎯 Selection changed:', obj);
+        this._selectedObject = obj;
+        // Future: could add mode transition logic here
+    },
+    
+    // Capability checks (ready for mode logic)
+    canEditText: function() {
+        // Current behavior: any selected object with text can be edited
+        var result = this._selectedObject != null && 'text' in this._selectedObject;
+        return result;
+        
+        // Future ui_flow_v2 behavior:
+        // return ui_flow_v2 ? (this._mode === 'editing' && this._selectedObject && 'text' in this._selectedObject)
+        //                   : (this._selectedObject != null && 'text' in this._selectedObject);
+    },
+    
+    canChangeAppearance: function() {
+        // Current behavior: any selected Node can change appearance
+        var result = this._selectedObject instanceof Node;
+        return result;
+        
+        // Future ui_flow_v2 behavior:
+        // return ui_flow_v2 ? (this._mode === 'selection' && this._selectedObject instanceof Node)
+        //                   : (this._selectedObject instanceof Node);
+    },
+    
+    canDrag: function() {
+        // Current behavior: any selected object can be dragged
+        var result = this._selectedObject != null;
+        return result;
+        
+        // Future ui_flow_v2 behavior:
+        // return ui_flow_v2 ? (this._mode === 'selection' && this._selectedObject)
+        //                   : (this._selectedObject != null);
+    },
+    
+    // Utility methods
+    isObjectSelected: function(obj) {
+        var result = this._selectedObject === obj;
+        console.log('InteractionManager.isObjectSelected() called with:', obj, 'result:', result);
+        return result;
+    },
+    
+    clearSelection: function() {
+        console.log('InteractionManager.clearSelection() called');
+        this._selectedObject = null;
+    },
+    
+    // Future: Mode transition methods (for ui_flow_v2)
+    // enterCanvasMode: function() { ... },
+    // enterSelectionMode: function(obj) { ... },  
+    // enterEditingMode: function(obj) { ... },
+    
+    // Debug helpers
+    debugInfo: function() {
+        return {
+            selected: this._selectedObject,
+            mode: this._mode,
+            canEditText: this.canEditText(),
+            canDrag: this.canDrag(),
+            canChangeAppearance: this.canChangeAppearance()
+        };
+    },
+    
+    // Console helper for manual testing
+    logState: function() {
+        console.log('=== InteractionManager State ===');
+        console.log('Selected object:', this._selectedObject);
+        console.log('Mode:', this._mode);
+        console.log('Can edit text:', this.canEditText());
+        console.log('Can drag:', this.canDrag());
+        console.log('Can change appearance:', this.canChangeAppearance());
+        console.log('==============================');
+        return 'State logged to console'; // Return a confirmation message
+    },
+    
+    // Simple test method to verify InteractionManager is working
+    test: function() {
+        console.log('InteractionManager.test() called - the object is working!');
+        return 'InteractionManager is functional';
+    }
+};
+
+// Transparent compatibility layer - makes existing code work unchanged
+// Define on both the global object and window to ensure all access patterns work
+Object.defineProperty(this, 'selectedObject', {
+    get: function() { 
+        return window.InteractionManager.getSelected(); 
+    },
+    set: function(value) { 
+        window.InteractionManager.setSelected(value); 
+    },
+    configurable: true // Allows redefinition if needed during development
+});
+
+// Also define on window for explicit window.selectedObject access
+Object.defineProperty(window, 'selectedObject', {
+    get: function() { 
+        return window.InteractionManager.getSelected(); 
+    },
+    set: function(value) { 
+        window.InteractionManager.setSelected(value); 
+    },
+    configurable: true // Allows redefinition if needed during development
+});
+
 var currentLink = null; // a Link
 var movingObject = false;
 var originalClick;
@@ -397,14 +519,12 @@ function updateLegendEntries() {
 	 * and tracking unique color+shape combinations with their counts.
 	 * Removes entries when no nodes of that type exist.
 	 */
-	console.log('DEBUG: updateLegendEntries() called, nodes.length =', nodes.length);
 	var newEntries = {};
 	
 	// Scan all existing nodes
 	for (var i = 0; i < nodes.length; i++) {
 		var node = nodes[i];
 		var key = generateLegendKey(node.color, node.shape);
-		console.log('DEBUG: Processing node', i, '- color:', node.color, 'shape:', node.shape, 'key:', key);
 		
 		if (!newEntries[key]) {
 			newEntries[key] = {
@@ -414,12 +534,10 @@ function updateLegendEntries() {
 				count: 0,
 				inputElement: null
 			};
-			console.log('DEBUG: Created new legend entry for key:', key);
 			
 			// Preserve existing description if it exists
 			if (legendEntries[key] && legendEntries[key].description) {
 				newEntries[key].description = legendEntries[key].description;
-				console.log('DEBUG: Preserved existing description for key:', key, '=', legendEntries[key].description);
 			}
 		}
 		
@@ -429,13 +547,11 @@ function updateLegendEntries() {
 	// Clean up old input elements for entries that no longer exist
 	for (var key in legendEntries) {
 		if (!newEntries[key] && legendEntries[key].inputElement) {
-			console.log('DEBUG: Removing old legend entry for key:', key);
 			legendEntries[key].inputElement.remove();
 		}
 	}
 	
 	legendEntries = newEntries;
-	console.log('DEBUG: Final legendEntries object:', Object.keys(legendEntries));
 	updateLegendHTML();
 }
 
@@ -454,24 +570,19 @@ function updateLegendHTML() {
 	 * Purpose: Synchronizes the HTML input elements with the current legend
 	 * data structure, creating new inputs and removing obsolete ones.
 	 */
-	console.log('DEBUG: updateLegendHTML() called');
 	if (!legendContainer) {
-		console.log('DEBUG: Creating legend container');
 		createLegendContainer();
 	}
 	
 	// Clear existing inputs and create collapsible structure
 	legendContainer.innerHTML = '<p id="legend-header" onclick="toggleLegend()" style="margin: 0; font-weight: bold; cursor: pointer; user-select: none; display: flex; align-items: center; justify-content: space-between; font-size: 14px;"><span>Legend</span><span id="legend-toggle" style="font-size: 12px; font-weight: normal;">▼</span></p><div id="legend-content" style="transition: all 0.3s ease-in-out; margin-top: 10px;"></div>';
-	console.log('DEBUG: Cleared legend container, innerHTML reset with collapsible structure');
 	
 	// Create entries in consistent order (sort by key for predictability)
 	var sortedKeys = Object.keys(legendEntries).sort();
-	console.log('DEBUG: Processing', sortedKeys.length, 'legend entries:', sortedKeys);
 	
 	for (var i = 0; i < sortedKeys.length; i++) {
 		var key = sortedKeys[i];
 		var entry = legendEntries[key];
-		console.log('DEBUG: Creating row for entry', i, '- key:', key, 'color:', entry.color, 'shape:', entry.shape);
 		
 		// Create row container
 		var row = document.createElement('div');
@@ -479,7 +590,6 @@ function updateLegendHTML() {
 		row.style.alignItems = 'center';
 		row.style.marginBottom = '8px';
 		row.style.gap = '8px';
-		console.log('DEBUG: Created row with styles - display:', row.style.display, 'alignItems:', row.style.alignItems, 'gap:', row.style.gap);
 		
 		// Create mini canvas for node visualization
 		var miniCanvas = document.createElement('canvas');
@@ -490,12 +600,9 @@ function updateLegendHTML() {
 		miniCanvas.style.flexShrink = '0';
 		miniCanvas.style.position = 'relative'; // Ensure canvas stays in document flow
 		miniCanvas.style.display = 'block'; // Explicit block display
-		console.log('DEBUG: Created miniCanvas - width:', miniCanvas.width, 'height:', miniCanvas.height, 'flexShrink:', miniCanvas.style.flexShrink, 'position:', miniCanvas.style.position);
 		
 		// Draw mini node
-		console.log('DEBUG: About to draw mini node for', entry.color, entry.shape);
 		drawMiniNode(miniCanvas, entry.color, entry.shape);
-		console.log('DEBUG: Finished drawing mini node');
 		
 		// Create text input
 		var input = document.createElement('input');
@@ -508,7 +615,6 @@ function updateLegendHTML() {
 		input.style.borderRadius = '3px';
 		input.style.fontSize = '12px';
 		input.style.fontFamily = 'inherit';
-		console.log('DEBUG: Created input - flex:', input.style.flex, 'value:', input.value);
 		
 		// Store reference and setup event handler
 		entry.inputElement = input;
@@ -523,30 +629,11 @@ function updateLegendHTML() {
 			});
 		})(key);
 		
-		console.log('DEBUG: About to append miniCanvas to row');
 		row.appendChild(miniCanvas);
-		console.log('DEBUG: MiniCanvas appended - parent:', miniCanvas.parentNode === row, 'offsetLeft:', miniCanvas.offsetLeft, 'offsetTop:', miniCanvas.offsetTop);
-		
-		console.log('DEBUG: About to append input to row');
 		row.appendChild(input);
-		console.log('DEBUG: Input appended - parent:', input.parentNode === row, 'offsetLeft:', input.offsetLeft, 'offsetTop:', input.offsetTop);
 		
-		console.log('DEBUG: About to append row to legend-content');
 		var legendContent = legendContainer.querySelector('#legend-content');
 		legendContent.appendChild(row);
-		console.log('DEBUG: Row appended for key:', key, '- children count:', row.children.length, 'row offsetLeft:', row.offsetLeft, 'row offsetTop:', row.offsetTop);
-		
-		// Log final positioning after DOM settles
-		// CRITICAL: Use IIFE (Immediately Invoked Function Expression) to capture correct variable references
-		// Without this, the setTimeout closure would capture variables by reference, meaning all timeouts
-		// would reference the LAST created miniCanvas and key from the loop, causing incorrect logging
-		// and potentially DOM manipulation bugs. The IIFE creates a new scope that captures the current
-		// values of miniCanvas and key for each iteration.
-		(function(canvas, entryKey) {
-			setTimeout(function() {
-				console.log('DEBUG: Final positioning for', entryKey, '- miniCanvas offsetLeft:', canvas.offsetLeft, 'offsetTop:', canvas.offsetTop, 'getBoundingClientRect:', canvas.getBoundingClientRect());
-			}, 0);
-		})(miniCanvas, key);
 	}
 	
 	// Initialize legend collapsed/expanded state
@@ -567,7 +654,6 @@ function createLegendContainer() {
 	 * Purpose: Sets up the positioned HTML container that will hold all
 	 * legend entries and input elements in the top-right corner.
 	 */
-	console.log('DEBUG: createLegendContainer() called');
 	legendContainer = document.createElement('div');
 	legendContainer.id = 'legendbox';
 	legendContainer.style.position = 'absolute';
@@ -584,10 +670,8 @@ function createLegendContainer() {
 	legendContainer.style.border = '1px solid rgba(0,0,0,0.1)';
 	legendContainer.style.zIndex = '10';
 	legendContainer.style.display = 'none'; // Hidden initially
-	console.log('DEBUG: Legend container created with styles - position:', legendContainer.style.position, 'top:', legendContainer.style.top, 'right:', legendContainer.style.right);
 	
 	document.body.appendChild(legendContainer);
-	console.log('DEBUG: Legend container appended to document.body');
 }
 
 function drawMiniNode(miniCanvas, color, shape) {
@@ -604,13 +688,11 @@ function drawMiniNode(miniCanvas, color, shape) {
 	 * Purpose: Renders a small version of each unique node type for visual
 	 * reference in the legend, using the same drawing logic as full nodes.
 	 */
-	console.log('DEBUG: drawMiniNode called for color:', color, 'shape:', shape, 'canvas size:', miniCanvas.width, 'x', miniCanvas.height);
 	var c = miniCanvas.getContext('2d');
 	var centerX = 15;
 	var centerY = 15;
 	var miniRadius = 12;
 	
-	console.log('DEBUG: Canvas context acquired, centerX:', centerX, 'centerY:', centerY, 'miniRadius:', miniRadius);
 	c.clearRect(0, 0, miniCanvas.width, miniCanvas.height);
 	
 	// Create temporary node for color methods
@@ -620,45 +702,35 @@ function drawMiniNode(miniCanvas, color, shape) {
 	c.fillStyle = tempNode.getBaseColor();
 	c.strokeStyle = '#9ac29a';
 	c.lineWidth = 1.5;
-	console.log('DEBUG: Set canvas styles - fillStyle:', c.fillStyle, 'strokeStyle:', c.strokeStyle, 'lineWidth:', c.lineWidth);
 	
 	c.beginPath();
-	console.log('DEBUG: About to draw shape:', shape);
 	
 	switch(shape) {
 		case 'dot':
-			console.log('DEBUG: Drawing dot at', centerX, centerY, 'radius', miniRadius);
 			c.arc(centerX, centerY, miniRadius, 0, 2 * Math.PI, false);
 			break;
 		case 'triangle':
-			console.log('DEBUG: Drawing triangle');
 			c.moveTo(centerX, centerY - miniRadius);
 			c.lineTo(centerX - miniRadius * Math.cos(Math.PI/6), centerY + miniRadius * Math.sin(Math.PI/6));
 			c.lineTo(centerX + miniRadius * Math.cos(Math.PI/6), centerY + miniRadius * Math.sin(Math.PI/6));
 			c.closePath();
 			break;
 		case 'square':
-			console.log('DEBUG: Drawing square');
 			var r = miniRadius * 0.85;
 			c.rect(centerX - r, centerY - r, 2 * r, 2 * r);
 			break;
 		case 'pentagon':
-			console.log('DEBUG: Drawing pentagon');
 			drawMiniPolygon(c, centerX, centerY, miniRadius, 5);
 			break;
 		case 'hexagon':
-			console.log('DEBUG: Drawing hexagon');
 			drawMiniPolygon(c, centerX, centerY, miniRadius, 6);
 			break;
 		default:
-			console.log('DEBUG: Drawing default (dot)');
 			c.arc(centerX, centerY, miniRadius, 0, 2 * Math.PI, false);
 	}
 	
-	console.log('DEBUG: About to fill and stroke');
 	c.fill();
 	c.stroke();
-	console.log('DEBUG: Finished drawing mini node for', color, shape);
 }
 
 function drawMiniPolygon(c, centerX, centerY, radius, sides) {
@@ -708,25 +780,10 @@ function showLegendIfNeeded() {
 	 * Purpose: Automatically manages legend visibility - shows when there are
 	 * legend entries to display, hides when no unique node types exist.
 	 */
-	console.log('DEBUG: showLegendIfNeeded() called, legendContainer exists:', !!legendContainer);
 	if (!legendContainer) return;
 	
 	var hasEntries = Object.keys(legendEntries).length > 0;
-	console.log('DEBUG: hasEntries:', hasEntries, 'entries count:', Object.keys(legendEntries).length);
 	legendContainer.style.display = hasEntries ? 'block' : 'none';
-	console.log('DEBUG: Legend container display set to:', legendContainer.style.display);
-	
-	// Log container positioning and contents after DOM settles
-	if (hasEntries) {
-		setTimeout(function() {
-			console.log('DEBUG: Final legend container position - getBoundingClientRect:', legendContainer.getBoundingClientRect());
-			console.log('DEBUG: Legend container children count:', legendContainer.children.length);
-			for (var i = 0; i < legendContainer.children.length; i++) {
-				var child = legendContainer.children[i];
-				console.log('DEBUG: Child', i, '- tagName:', child.tagName, 'getBoundingClientRect:', child.getBoundingClientRect());
-			}
-		}, 100);
-	}
 }
 
 function drawUsing(c) {
@@ -906,12 +963,64 @@ function snapNode(node) {
 }
 
 window.onload = function() {
+	console.log("window.onload is running!");
 	canvas = document.getElementById('canvas');
+	console.log("canvas element:", canvas);
 	restoreBackup();
 	updateLegend(); // Update legend after restore
 	draw();
 
+	// Canvas resize handling - moved from index.html
+	function resizeCanvas() {
+		if (canvas) {
+			canvas.width = window.innerWidth;
+			canvas.height = window.innerHeight;
+			draw(); // Safe to call since we're in window.onload
+		}
+	}
+
+	// Controls toggle functionality - moved from index.html  
+	window.toggleControls = function() {
+		var content = document.getElementById('controls-content');
+		var toggle = document.getElementById('controls-toggle');
+		
+		if (content.style.display === 'none') {
+			content.style.display = 'block';
+			toggle.textContent = '▼';
+			// Save expanded state
+			localStorage.setItem('controlsExpanded', 'true');
+		} else {
+			content.style.display = 'none';
+			toggle.textContent = '';
+			// Save collapsed state
+			localStorage.setItem('controlsExpanded', 'false');
+		}
+	};
+
+	// Initialize controls box state from localStorage - moved from index.html
+	function initializeControlsState() {
+		var isExpanded = localStorage.getItem('controlsExpanded');
+		var content = document.getElementById('controls-content');
+		var toggle = document.getElementById('controls-toggle');
+		
+		// Default to expanded if no preference saved, or if preference is 'true'
+		if (isExpanded === null || isExpanded === 'true') {
+			content.style.display = 'block';
+			toggle.textContent = '▼';
+		} else {
+			content.style.display = 'none';
+			toggle.textContent = ' ►';
+		}
+	}
+
+	// Set up event listeners and initialize UI - moved from index.html
+	window.addEventListener('resize', resizeCanvas);
+	resizeCanvas(); // Initial resize
+	initializeFilenameInput();
+	initializeControlsState();
+
 	canvas.onmousedown = function(e) {
+		console.log("canvas element in mousedown:", canvas);
 		var mouse = crossBrowserRelativeMousePos(e);
 		
 		// Check for middle-click panning
@@ -922,26 +1031,26 @@ window.onload = function() {
 		
 		// Convert to world coordinates for object interaction
 		var worldMouse = screenToWorld(mouse.x, mouse.y);
-		selectedObject = selectObject(worldMouse.x, worldMouse.y);
+		InteractionManager.setSelected(selectObject(worldMouse.x, worldMouse.y));
 		movingObject = false;
 		originalClick = worldMouse;
 
-		if(selectedObject != null) {
+		if(InteractionManager.getSelected() != null) {
 			// Check if clicked node is part of current multi-selection
-			var isPartOfMultiSelection = (selectedObject instanceof Node && selectedNodes.indexOf(selectedObject) !== -1);
+			var isPartOfMultiSelection = (InteractionManager.getSelected() instanceof Node && selectedNodes.indexOf(InteractionManager.getSelected()) !== -1);
 			
 			if(!isPartOfMultiSelection) {
 				// Clear group selection when individual object is selected (not part of group)
 				selectedNodes = [];
 			}
 			
-			if(shift && selectedObject instanceof Node) {
-				currentLink = new SelfLink(selectedObject, worldMouse);
+			if(shift && InteractionManager.getSelected() instanceof Node) {
+				currentLink = new SelfLink(InteractionManager.getSelected(), worldMouse);
 			} else {
 				movingObject = true;
 				deltaMouseX = deltaMouseY = 0;
-				if(selectedObject.setMouseStart) {
-					selectedObject.setMouseStart(worldMouse.x, worldMouse.y);
+				if(InteractionManager.getSelected().setMouseStart) {
+					InteractionManager.getSelected().setMouseStart(worldMouse.x, worldMouse.y);
 				}
 			}
 			resetCaret();
@@ -976,17 +1085,17 @@ window.onload = function() {
 		var mouse = crossBrowserRelativeMousePos(e);
 		// Convert to world coordinates for object interaction
 		var worldMouse = screenToWorld(mouse.x, mouse.y);
-		selectedObject = selectObject(worldMouse.x, worldMouse.y);
+		InteractionManager.setSelected(selectObject(worldMouse.x, worldMouse.y));
 
-		if(selectedObject == null) {
+		if(InteractionManager.getSelected() == null) {
 			// Clear group selection when creating new node
 			selectedNodes = [];
 			
 			// Create new node with specified shape and color
 			var shape = getShapeFromModifier(shapeModifier);
 			var color = getColorFromModifier(colorModifier);
-			selectedObject = new Node(worldMouse.x, worldMouse.y, shape, color);
-			nodes.push(selectedObject);
+			InteractionManager.setSelected(new Node(worldMouse.x, worldMouse.y, shape, color));
+			nodes.push(InteractionManager.getSelected());
 			
 			// If we used a modifier, suppress typing briefly to allow key release
 			if(shapeModifier != null || colorModifier != null) {
@@ -996,18 +1105,18 @@ window.onload = function() {
 			resetCaret();
 			updateLegend(); // Update legend when new node created
 			draw();
-		} else if(selectedObject instanceof Node) {
+		} else if(InteractionManager.getSelected() instanceof Node) {
 			var needsLegendUpdate = false;
 			if(shapeModifier != null) {
 				// Change existing node to specific shape
-				selectedObject.shape = getShapeFromModifier(shapeModifier);
+				InteractionManager.getSelected().shape = getShapeFromModifier(shapeModifier);
 				// Suppress typing briefly when changing shapes too
 				suppressTypingUntil = Date.now() + 300;
 				needsLegendUpdate = true;
 			}
 			if(colorModifier != null) {
 				// Change existing node to specific color
-				selectedObject.color = getColorFromModifier(colorModifier);
+				InteractionManager.getSelected().color = getColorFromModifier(colorModifier);
 				// Suppress typing briefly when changing colors too
 				suppressTypingUntil = Date.now() + 300;
 				needsLegendUpdate = true;
@@ -1044,19 +1153,19 @@ window.onload = function() {
 				targetNode = null;
 			}
 
-			if(selectedObject == null) {
+			if(InteractionManager.getSelected() == null) {
 				if(targetNode != null) {
 					currentLink = new StartLink(targetNode, originalClick);
 				} else {
 					currentLink = new TemporaryLink(originalClick, worldMouse);
 				}
 			} else {
-				if(targetNode == selectedObject) {
-					currentLink = new SelfLink(selectedObject, worldMouse);
+				if(targetNode == InteractionManager.getSelected()) {
+					currentLink = new SelfLink(InteractionManager.getSelected(), worldMouse);
 				} else if(targetNode != null) {
-					currentLink = new Link(selectedObject, targetNode);
+					currentLink = new Link(InteractionManager.getSelected(), targetNode);
 				} else {
-					currentLink = new TemporaryLink(selectedObject.closestPointOnShapeToEdgeArc(worldMouse.x, worldMouse.y), worldMouse);
+					currentLink = new TemporaryLink(InteractionManager.getSelected().closestPointOnShapeToEdgeArc(worldMouse.x, worldMouse.y), worldMouse);
 				}
 			}
 			draw();
@@ -1064,35 +1173,35 @@ window.onload = function() {
 
 		if(movingObject) {
 			// Check if we're moving a node that's part of a multi-selection
-			var isGroupMovement = (selectedObject instanceof Node && selectedNodes.length > 0 && selectedNodes.indexOf(selectedObject) !== -1);
+			var isGroupMovement = (InteractionManager.getSelected() instanceof Node && selectedNodes.length > 0 && selectedNodes.indexOf(InteractionManager.getSelected()) !== -1);
 			
 			if(isGroupMovement) {
 				// Calculate movement delta from the selected object's previous position
-				var oldX = selectedObject.x;
-				var oldY = selectedObject.y;
+				var oldX = InteractionManager.getSelected().x;
+				var oldY = InteractionManager.getSelected().y;
 				
 				// Move the primary selected object
-				selectedObject.setAnchorPoint(worldMouse.x, worldMouse.y);
-				if(selectedObject instanceof Node) {
-					snapNode(selectedObject);
+				InteractionManager.getSelected().setAnchorPoint(worldMouse.x, worldMouse.y);
+				if(InteractionManager.getSelected() instanceof Node) {
+					snapNode(InteractionManager.getSelected());
 				}
 				
 				// Calculate the actual delta after snapping
-				var deltaX = selectedObject.x - oldX;
-				var deltaY = selectedObject.y - oldY;
+				var deltaX = InteractionManager.getSelected().x - oldX;
+				var deltaY = InteractionManager.getSelected().y - oldY;
 				
 				// Move all other selected nodes by the same delta
 				for(var i = 0; i < selectedNodes.length; i++) {
-					if(selectedNodes[i] !== selectedObject) {
+					if(selectedNodes[i] !== InteractionManager.getSelected()) {
 						selectedNodes[i].x += deltaX;
 						selectedNodes[i].y += deltaY;
 					}
 				}
 			} else {
 				// Normal individual object movement
-				selectedObject.setAnchorPoint(worldMouse.x, worldMouse.y);
-				if(selectedObject instanceof Node) {
-					snapNode(selectedObject);
+				InteractionManager.getSelected().setAnchorPoint(worldMouse.x, worldMouse.y);
+				if(InteractionManager.getSelected() instanceof Node) {
+					snapNode(InteractionManager.getSelected());
 				}
 			}
 			draw();
@@ -1118,13 +1227,13 @@ window.onload = function() {
 			
 			// If nodes were selected, clear individual selectedObject
 			if(selectedNodes.length > 0) {
-				selectedObject = null;
+				InteractionManager.setSelected(null);
 			} else {
 				// If no nodes selected and this was a very small rectangle (likely a click), clear all selections
 				var rectWidth = Math.abs(selectionBox.endX - selectionBox.startX);
 				var rectHeight = Math.abs(selectionBox.endY - selectionBox.startY);
 				if(rectWidth < 5 && rectHeight < 5) {
-					selectedObject = null;
+					InteractionManager.setSelected(null);
 					selectedNodes = [];
 				}
 			}
@@ -1132,7 +1241,7 @@ window.onload = function() {
 			draw();
 		} else if(currentLink != null) {
 			if(!(currentLink instanceof TemporaryLink)) {
-				selectedObject = currentLink;
+				InteractionManager.setSelected(currentLink);
 				links.push(currentLink);
 				resetCaret();
 			}

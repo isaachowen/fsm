@@ -335,58 +335,5 @@ if (typeof btoa == 'undefined') {
 	</div>
 	<script>
 // Toggle controls box visibility
-function toggleControls() {
-    var content = document.getElementById('controls-content');
-    var toggle = document.getElementById('controls-toggle');
-    
-    if (content.style.display === 'none') {
-        content.style.display = 'block';
-        toggle.textContent = '▼';
-        // Save expanded state
-        localStorage.setItem('controlsExpanded', 'true');
-    } else {
-        content.style.display = 'none';
-        toggle.textContent = '';
-        // Save collapsed state
-        localStorage.setItem('controlsExpanded', 'false');
-    }
-}
-
-// Initialize controls box state from localStorage
-function initializeControlsState() {
-    var isExpanded = localStorage.getItem('controlsExpanded');
-    var content = document.getElementById('controls-content');
-    var toggle = document.getElementById('controls-toggle');
-    
-    // Default to expanded if no preference saved, or if preference is 'true'
-    if (isExpanded === null || isExpanded === 'true') {
-        content.style.display = 'block';
-        toggle.textContent = '▼';
-    } else {
-        content.style.display = 'none';
-        toggle.textContent = ' ►';
-    }
-}
-
-// Dynamically resize canvas to fill window
-function resizeCanvas() {
-    var canvas = document.getElementById('canvas');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    if (typeof draw === 'function') {
-        draw();
-    }
-}
-
-// Initialize canvas size and set up resize handler
-window.addEventListener('resize', resizeCanvas);
-window.addEventListener('DOMContentLoaded', function() {
-	resizeCanvas();
-	initializeFilenameInput();
-	initializeControlsState();
-});
-
-// Also resize when the page loads
-window.addEventListener('load', resizeCanvas);
 	</script>
 </body></html>
