@@ -196,6 +196,11 @@ var hitTargetPadding = 6; // pixels
 // Feature flag for new UI flow
 var ui_flow_v2 = true; // Set to true to enable new three-state interaction modes
 
+// Update guide content when ui_flow_v2 is defined
+if (typeof populateGuide === 'function') {
+	populateGuide();
+}
+
 // Make InteractionManager globally accessible for debugging
 window.InteractionManager = {
     // Internal state

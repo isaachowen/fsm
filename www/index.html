@@ -279,19 +279,10 @@ if (typeof btoa == 'undefined') {
 			<span id="controls-toggle" style="font-size: 14px; font-weight: normal;">▼</span>
 		</p>
 		<div id="controls-content" style="transition: all 0.3s ease-in-out; margin-top: 12px;">
-			<ul style="margin: 0 0 15px 0; padding-left: 20px; line-height: 16px;">
-				<li><b>Add node:</b> double-click (hold shape/color keys)</li>
-				<li><b>Move node:</b> drag</li>
-				<li><b>Select multiple:</b> drag box around nodes</li>
-				<li><b>Move group:</b> drag any selected node</li>
-				<li><b>Add arrow:</b> shift-drag</li>
-				<li><b>Delete:</b> select + delete key</li>
-				<li><b>Node shape:</b> hold 1|3|4|5|6 + double-click</li>
-				<li><b>Node color:</b> hold q|w|e|r|t + double-click</li>
-				<li><b>Subscript:</b> use underscore (S_0)</li>
-				<li><b>Greek:</b> use backslash (\beta)</li>
-				<li><b>Pan canvas:</b> middle mouse + drag</li>
-			</ul>
+			<!-- Guide content will be populated by JavaScript based on ui_flow_v2 setting -->
+			<div id="guide-content">
+				<!-- Content populated dynamically -->
+			</div>
 			
 			<!-- Color/Shape Guide -->
 			<div class="color-shape-guide" style="margin: 15px 0; text-align: center; padding: 8px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">
@@ -335,5 +326,69 @@ if (typeof btoa == 'undefined') {
 	</div>
 	<script>
 // Toggle controls box visibility
+
+// Populate guide content based on ui_flow_v2 setting
+function populateGuide() {
+	// Wait for the FSM script to load and ui_flow_v2 to be defined
+	if (typeof ui_flow_v2 === 'undefined') {
+		setTimeout(populateGuide, 100);
+		return;
+	}
+	
+	var guideContent = document.getElementById('guide-content');
+	if (!guideContent) return;
+	
+	var html = '';
+	
+	if (ui_flow_v2) {
+		// New three-state interaction system
+		html += '<ul style="margin: 0 0 15px 0; padding-left: 20px; line-height: 16px;">';
+		html += '<li><b>Add node:</b> double-click (hold shape/color keys)</li>';
+		html += '<li><b>Select object:</b> single click</li>';
+		html += '<li><b>Edit text:</b> double-click selected object OR press Enter</li>';
+		html += '<li><b>Exit editing:</b> press Escape (steps back through modes) or click away</li>';
+		html += '<li><b>Move objects:</b> drag when selected</li>';
+		html += '<li><b>Select multiple:</b> drag box around nodes</li>';
+		html += '<li><b>Move group:</b> drag any selected node</li>';
+		html += '<li><b>Add arrow:</b> shift-drag between nodes</li>';
+		html += '<li><b>Delete:</b> select + delete key</li>';
+		html += '<li><b>Change shape:</b> select node + press 1|3|4|5|6</li>';
+		html += '<li><b>Change color:</b> select node + press q|w|e|r|t</li>';
+		html += '<li><b>Subscript text:</b> use underscore (S_0)</li>';
+		html += '<li><b>Greek text:</b> use backslash (\\beta)</li>';
+		html += '<li><b>Pan canvas:</b> middle mouse + drag</li>';
+		html += '</ul>';
+		
+		html += '<div style="margin: 15px 0; padding: 8px; background: #fff3e0; border: 1px solid #ff9800; border-radius: 4px;">';
+		html += '<p style="margin: 0 0 5px 0; font-weight: bold; color: #e65100; font-size: 12px;">🎯 Interaction Modes:</p>';
+		html += '<p style="margin: 0; font-size: 11px; line-height: 14px;">Canvas → Selection (click) → Editing label (double-click/Enter) → back with Escape</p>';
+		html += '</div>';
+	} else {
+		// Legacy interaction system
+		html += '<div style="margin-bottom: 15px; padding: 8px; background: #fff3e0; border: 1px solid #ff9800; border-radius: 4px;">';
+		html += '<p style="margin: 0 0 5px 0; font-weight: bold; color: #e65100; font-size: 12px;">📝 Classic Interaction System</p>';
+		html += '</div>';
+		
+		html += '<ul style="margin: 0 0 15px 0; padding-left: 20px; line-height: 16px;">';
+		html += '<li><b>Add node:</b> double-click (hold shape/color keys)</li>';
+		html += '<li><b>Edit text:</b> click object and start typing</li>';
+		html += '<li><b>Move node:</b> drag</li>';
+		html += '<li><b>Select multiple:</b> drag box around nodes</li>';
+		html += '<li><b>Move group:</b> drag any selected node</li>';
+		html += '<li><b>Add arrow:</b> shift-drag</li>';
+		html += '<li><b>Delete:</b> select + delete key</li>';
+		html += '<li><b>Node shape:</b> hold 1|3|4|5|6 + double-click</li>';
+		html += '<li><b>Node color:</b> hold q|w|e|r|t + double-click</li>';
+		html += '<li><b>Subscript text:</b> use underscore (S_0)</li>';
+		html += '<li><b>Greek text:</b> use backslash (\\beta)</li>';
+		html += '<li><b>Pan canvas:</b> middle mouse + drag</li>';
+		html += '</ul>';
+	}
+	
+	guideContent.innerHTML = html;
+}
+
+// Call populateGuide when the page loads
+document.addEventListener('DOMContentLoaded', populateGuide);
 	</script>
 </body></html>
