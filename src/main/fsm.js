@@ -205,7 +205,7 @@ if (typeof populateGuide === 'function') {
 window.InteractionManager = {
     // Internal state
     _selectedObject: null,
-    _mode: 'canvas', // Future: 'canvas', 'selection', 'editing_text'
+    _mode: 'canvas', // Modes: 'canvas', 'selection', 'editing_text', 'multiselect'
     
     // Core selection API (replaces global selectedObject)
     getSelected: function() {
@@ -245,8 +245,9 @@ window.InteractionManager = {
     
     canChangeNodeAppearance: function() {
         if (ui_flow_v2) {
-            // New behavior: can only change appearance in 'selection' mode
-            return this._mode === 'selection' && this._selectedObject instanceof Node;
+            // New behavior: can change appearance in 'selection' mode (single node) or 'multiselect' mode (multiple nodes)
+            return (this._mode === 'selection' && this._selectedObject instanceof Node) ||
+                   (this._mode === 'multiselect' && selectedNodes.length > 0);
         } else {
             // Current behavior: any selected Node can change appearance
             return this._selectedObject instanceof Node;
@@ -255,8 +256,9 @@ window.InteractionManager = {
     
     canDrag: function() {
         if (ui_flow_v2) {
-            // New behavior: can only drag in 'selection' mode
-            return this._mode === 'selection' && this._selectedObject;
+            // New behavior: can drag in 'selection' mode (single object) or 'multiselect' mode (multiple nodes)
+            return (this._mode === 'selection' && this._selectedObject) ||
+                   (this._mode === 'multiselect' && selectedNodes.length > 0);
         } else {
             // Current behavior: any selected object can be dragged
             return this._selectedObject != null;
@@ -313,11 +315,23 @@ window.InteractionManager = {
         }
     },
     
+    enterMultiselectMode: function() {
+        if (ui_flow_v2 && selectedNodes.length > 0) {
+            console.log('🎯 Entering multiselect mode with', selectedNodes.length, 'nodes');
+            this._mode = 'multiselect';
+            console.log('📊 _mode changed to:', this._mode);
+            this._selectedObject = null; // Clear individual selection in multiselect mode
+            // Stop text caret when entering multiselect mode
+            clearInterval(caretTimer);
+        }
+    },
+    
     // Debug helpers
     debugInfo: function() {
         return {
             selected: this._selectedObject,
             mode: this._mode,
+            multiSelectCount: selectedNodes.length,
             canEditText: this.canEditText(),
             canDrag: this.canDrag(),
             canChangeNodeAppearance: this.canChangeNodeAppearance()
@@ -329,6 +343,7 @@ window.InteractionManager = {
         console.log('=== InteractionManager State ===');
         console.log('Selected object:', this._selectedObject);
         console.log('Mode:', this._mode);
+        console.log('Multi-selected nodes:', selectedNodes.length);
         console.log('Can edit text:', this.canEditText());
         console.log('Can drag:', this.canDrag());
         console.log('Can change appearance:', this.canChangeNodeAppearance());
@@ -1305,9 +1320,10 @@ window.onload = function() {
 			isSelecting = false;
 			selectionBox.active = false;
 			
-			// If nodes were selected, clear individual selectedObject
+			// If nodes were selected, clear individual selectedObject and enter multiselect mode
 			if(selectedNodes.length > 0) {
 				InteractionManager.setSelected(null);
+				InteractionManager.enterMultiselectMode();
 			} else {
 				// If no nodes selected and this was a very small rectangle (likely a click), clear all selections
 				var rectWidth = Math.abs(selectionBox.endX - selectionBox.startX);
@@ -1426,9 +1442,17 @@ document.onkeydown = function(e) {
 		if(key === 50) return; // Skip key 2 for now
 		shapeModifier = key - 48; // Convert keycode to number (1, 3, 4, 5, 6)
 		
-		// Immediate shape change in selection mode
+		// Immediate shape change in selection or multiselect mode
 		if(ui_flow_v2 && InteractionManager.canChangeNodeAppearance()) {
-			InteractionManager.getSelected().shape = getShapeFromModifier(shapeModifier);
+			if(InteractionManager.getMode() === 'selection') {
+				// Single node selection
+				InteractionManager.getSelected().shape = getShapeFromModifier(shapeModifier);
+			} else if(InteractionManager.getMode() === 'multiselect') {
+				// Multiple node selection - apply to all selected nodes
+				for(var i = 0; i < selectedNodes.length; i++) {
+					selectedNodes[i].shape = getShapeFromModifier(shapeModifier);
+				}
+			}
 			suppressTypingUntil = Date.now() + 300; // Suppress typing briefly
 			updateLegend(); // Update legend after shape change
 			draw();
@@ -1436,9 +1460,17 @@ document.onkeydown = function(e) {
 	} else if(key == 81 || key == 87 || key == 69 || key == 82 || key == 84) { // Q, W, E, R, T keys
 		colorModifier = String.fromCharCode(key); // Convert keycode to letter (Q, W, E, R, T)
 		
-		// Immediate color change in selection mode
+		// Immediate color change in selection or multiselect mode
 		if(ui_flow_v2 && InteractionManager.canChangeNodeAppearance()) {
-			InteractionManager.getSelected().color = getColorFromModifier(colorModifier);
+			if(InteractionManager.getMode() === 'selection') {
+				// Single node selection
+				InteractionManager.getSelected().color = getColorFromModifier(colorModifier);
+			} else if(InteractionManager.getMode() === 'multiselect') {
+				// Multiple node selection - apply to all selected nodes
+				for(var i = 0; i < selectedNodes.length; i++) {
+					selectedNodes[i].color = getColorFromModifier(colorModifier);
+				}
+			}
 			suppressTypingUntil = Date.now() + 300; // Suppress typing briefly
 			updateLegend(); // Update legend after color change
 			draw();
@@ -1499,11 +1531,16 @@ document.onkeydown = function(e) {
 		}
 	} else if(key == 27) { // escape key
 		if(ui_flow_v2) {
-			// Mode transitions: editing_text → selection → canvas
+			// Mode transitions: editing_text → selection → canvas, multiselect → canvas
 			if(InteractionManager.getMode() === 'editing_text') {
 				InteractionManager.enterSelectionMode(InteractionManager.getSelected());
 				draw(); // Redraw to hide the cursor immediately
 			} else if(InteractionManager.getMode() === 'selection') {
+				InteractionManager.enterCanvasMode();
+				draw(); // Redraw to update visual state
+			} else if(InteractionManager.getMode() === 'multiselect') {
+				// Exit multiselect mode and clear selections
+				selectedNodes = [];
 				InteractionManager.enterCanvasMode();
 				draw(); // Redraw to update visual state
 			}
