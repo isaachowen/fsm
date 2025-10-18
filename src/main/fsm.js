@@ -171,7 +171,7 @@ function resetCaret() {
 	 * - draw() function indirectly through timer callback
 	 * - caretVisible global variable manipulation
 	 * 
-	 * Purpose: Manages the blinking cursor animation during text editing mode.
+	 * Purpose: Manages the blinking caret animation during text editing mode.
 	 * Creates a 500ms interval that toggles caret visibility and triggers redraws.
 	 * Essential for providing visual feedback during node/link label editing.
 	 */
@@ -185,7 +185,6 @@ var nodeRadius = 30;
 var nodes = [];
 var links = [];
 
-var cursorVisible = true;
 var snapToPadding = 6; // pixels
 var hitTargetPadding = 6; // pixels
 
@@ -1534,7 +1533,7 @@ document.onkeydown = function(e) {
 			// Mode transitions: editing_text → selection → canvas, multiselect → canvas
 			if(InteractionManager.getMode() === 'editing_text') {
 				InteractionManager.enterSelectionMode(InteractionManager.getSelected());
-				draw(); // Redraw to hide the cursor immediately
+				draw(); // Redraw to hide the caret immediately
 			} else if(InteractionManager.getMode() === 'selection') {
 				InteractionManager.enterCanvasMode();
 				draw(); // Redraw to update visual state
@@ -1551,7 +1550,7 @@ document.onkeydown = function(e) {
 			// Mode transition: selection → editing_text (if node with text is selected)
 			if(InteractionManager.getMode() === 'selection' && InteractionManager.getSelected() && 'text' in InteractionManager.getSelected()) {
 				InteractionManager.enterEditingMode(InteractionManager.getSelected());
-				draw(); // Redraw to show the cursor
+				draw(); // Redraw to show the caret
 			}
 		}
 	}
