@@ -1384,7 +1384,7 @@ window.onload = function() {
 		}
 	}
 
-	// Controls toggle functionality - moved from index.html  
+	// Guide toggle functionality - moved from index.html  
 	window.toggleControls = function() {
 		var content = document.getElementById('controls-content');
 		var toggle = document.getElementById('controls-toggle');
@@ -1393,28 +1393,28 @@ window.onload = function() {
 			content.style.display = 'block';
 			toggle.textContent = '▼';
 			// Save expanded state
-			localStorage.setItem('controlsExpanded', 'true');
+			localStorage.setItem('guideExpanded', 'true');
 		} else {
 			content.style.display = 'none';
-			toggle.textContent = '';
+			toggle.textContent = '►';
 			// Save collapsed state
-			localStorage.setItem('controlsExpanded', 'false');
+			localStorage.setItem('guideExpanded', 'false');
 		}
 	};
 
-	// Initialize controls box state from localStorage - moved from index.html
-	function initializeControlsState() {
-		var isExpanded = localStorage.getItem('controlsExpanded');
+	// Initialize guide box state from localStorage - moved from index.html
+	function initializeGuideBoxState() {
+		var isExpanded = localStorage.getItem('guideExpanded');
 		var content = document.getElementById('controls-content');
 		var toggle = document.getElementById('controls-toggle');
 		
-		// Default to expanded if no preference saved, or if preference is 'true'
-		if (isExpanded === null || isExpanded === 'true') {
+		// Default to collapsed if no preference saved, or if preference is explicitly 'true'
+		if (isExpanded === 'true') {
 			content.style.display = 'block';
 			toggle.textContent = '▼';
 		} else {
 			content.style.display = 'none';
-			toggle.textContent = ' ►';
+			toggle.textContent = '►';
 		}
 	}
 
@@ -1422,7 +1422,7 @@ window.onload = function() {
 	window.addEventListener('resize', resizeCanvas);
 	resizeCanvas(); // Initial resize
 	initializeFilenameInput();
-	initializeControlsState();
+	initializeGuideBoxState();
 
 	canvas.onmousedown = function(e) {
 		console.log("canvas element in mousedown:", canvas);

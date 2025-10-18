@@ -77,7 +77,7 @@ a {
 	gap: 8px;
 }
 
-/* Controls box - bottom left (modify existing div styles) */
+/* Guide box - bottom left (modify existing div styles) */
 #guibox {
 	position: absolute;
 	bottom: 20px;
@@ -272,13 +272,13 @@ if (typeof btoa == 'undefined') {
 		<button onclick="clearCanvas()" class="danger-button">Clear Sketch</button>
 	</div>
 
-	<!-- Controls/help box - bottom left -->
+	<!-- Guide/help box - bottom left -->
 	<div id="guibox">
 		<p id="controls-header" onclick="toggleControls()" style="margin: 0; font-weight: bold; cursor: pointer; user-select: none; display: flex; align-items: center; justify-content: space-between;">
 			<span>Guide</span>
-			<span id="controls-toggle" style="font-size: 14px; font-weight: normal;">▼</span>
+			<span id="controls-toggle" style="font-size: 14px; font-weight: normal;">►</span>
 		</p>
-		<div id="controls-content" style="transition: all 0.3s ease-in-out; margin-top: 12px;">
+		<div id="controls-content" style="transition: all 0.3s ease-in-out; margin-top: 12px; display: none">
 			<!-- Guide content will be populated by JavaScript based on ui_flow_v2 setting -->
 			<div id="guide-content">
 				<!-- Content populated dynamically -->
@@ -325,7 +325,7 @@ if (typeof btoa == 'undefined') {
 		</div>
 	</div>
 	<script>
-// Toggle controls box visibility
+// Toggle guide box visibility
 
 // Populate guide content based on ui_flow_v2 setting
 function populateGuide() {
