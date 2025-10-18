@@ -102,6 +102,9 @@ function drawText(c, originalText, x, y, angleOrNull, isSelected) {
 	 * and displays blinking caret for selected elements during text editing.
 	 * Essential for all text display in the FSM editor.
 	 */
+	
+	// Show text normally - we want to see real-time updates while editing
+	
 	text = convertLatexShortcuts(originalText);
 	c.font = '20px "Times New Roman", serif';
 	
@@ -141,11 +144,32 @@ function drawText(c, originalText, x, y, angleOrNull, isSelected) {
 		}
 		
 		if(shouldShowCaret && caretVisible && canvasHasFocus() && document.hasFocus()) {
-			x += width;
+			var cursorX = x; // Start at beginning of text
+			
+			// Calculate cursor position based on cursorPosition property
+			if (isSelected && InteractionManager.getSelected() && 
+			    InteractionManager.getSelected().cursorPosition !== undefined) {
+				// Direct cursor implementation: position cursor at specific character index
+				var selected = InteractionManager.getSelected();
+				var cursorPos = Math.max(0, Math.min(selected.cursorPosition, selected.text.length));
+				var textBeforeCursor = convertLatexShortcuts(selected.text.substring(0, cursorPos));
+				cursorX += c.measureText(textBeforeCursor).width;
+			} else {
+				// Legacy behavior: cursor at end of text
+				cursorX += width;
+			}
+			
+			// Set cursor color to black
+			var originalStrokeStyle = c.strokeStyle;
+			c.strokeStyle = '#000000';
+			
 			c.beginPath();
-			c.moveTo(x, y - 10);
-			c.lineTo(x, y + 10);
+			c.moveTo(cursorX, y - 10);
+			c.lineTo(cursorX, y + 10);
 			c.stroke();
+			
+			// Restore original stroke style
+			c.strokeStyle = originalStrokeStyle;
 		}
 	}
 	
@@ -178,6 +202,302 @@ function resetCaret() {
 	clearInterval(caretTimer);
 	caretTimer = setInterval('caretVisible = !caretVisible; draw()', 500);
 	caretVisible = true;
+}
+
+function createTextEditingOverlay(editingObject) {
+	/**
+	 * createTextEditingOverlay - Creates a DOM input element positioned over canvas text
+	 * 
+	 * Called by:
+	 * - InteractionManager.enterEditingMode() when starting text editing
+	 * - Text editing initialization in double-click handlers
+	 * 
+	 * Calls:
+	 * - getTextScreenPosition() to get screen coordinates for overlay
+	 * - document.createElement() to create input element
+	 * - Various DOM styling and event handler functions
+	 * - worldToScreen() for coordinate conversion
+	 * 
+	 * Purpose: Creates an invisible HTML input element positioned exactly over the 
+	 * canvas text being edited. This leverages native browser text editing capabilities
+	 * including cursor navigation, text selection, copy/paste, and mobile support.
+	 */
+	
+	// Calculate screen position for the text being edited
+	var screenPos = getTextScreenPosition(editingObject);
+	
+	// Create input element
+	var input = document.createElement('input');
+	input.type = 'text';
+	input.value = editingObject.text || '';
+	input.id = 'fsm-text-overlay';
+	
+	// Make input extremely wide to eliminate any caret boundary issues
+	var inputWidth = 10000; // Extremely wide - 10,000 pixels
+	
+	// Style the input to be completely invisible but capture input
+	input.style.position = 'absolute';
+	input.style.left = (screenPos.x - inputWidth / 2) + 'px'; // Center the massive input over the text
+	input.style.top = screenPos.y + 'px';
+	input.style.width = inputWidth + 'px'; // Massive width - caret will never hit boundary
+	input.style.height = '30px';
+	input.style.fontSize = '20px';
+	input.style.fontFamily = '"Times New Roman", serif';
+	input.style.textAlign = 'center';
+	input.style.background = 'transparent'; // Completely transparent
+	input.style.border = 'none'; // No border
+	input.style.outline = 'none';
+	input.style.color = 'transparent'; // Hide the input text itself
+	input.style.caretColor = 'black'; // Show black caret for visibility
+	input.style.zIndex = '1000';
+	
+	// Add to document and focus
+	document.body.appendChild(input);
+	input.focus();
+	input.select(); // Select all text for easy replacement
+	
+	// Store reference globally for cleanup
+	window.activeTextOverlay = {
+		element: input,
+		editingObject: editingObject,
+		originalText: editingObject.text || ''
+	};
+	
+	// Set up event handlers
+	setupTextOverlayEvents(input, editingObject);
+	
+	return input;
+}
+
+function getTextAnchor(textObject) {
+	/**
+	 * getTextAnchor - Calculates the world coordinates of the text anchor point
+	 * 
+	 * The text anchor is the center point around which text is rendered.
+	 * This matches exactly where drawText() will center the text.
+	 */
+	
+	// Create a temporary canvas context to simulate drawText positioning
+	var tempCanvas = document.createElement('canvas');
+	var c = tempCanvas.getContext('2d');
+	c.font = '20px "Times New Roman", serif';
+	
+	var text = convertLatexShortcuts(textObject.text || '');
+	var width = c.measureText(text).width;
+	
+	var x, y, angleOrNull = null;
+	
+	if (textObject.constructor.name === 'Node' || textObject instanceof Node) {
+		// For nodes: drawText(c, this.text, this.x, this.y, null, selected)
+		x = textObject.x;
+		y = textObject.y;
+		angleOrNull = null;
+	} else if (textObject.constructor.name === 'StartLink' || 
+	           (textObject.getEndPoints && !textObject.getEndPointsAndArcParams)) {
+		// For StartLink: drawText(c, this.text, stuff.startX, stuff.startY, textAngle, selected)
+		var stuff = textObject.getEndPoints();
+		x = stuff.startX;
+		y = stuff.startY;
+		angleOrNull = Math.atan2(stuff.startY - stuff.endY, stuff.startX - stuff.endX);
+	} else if (textObject.constructor.name === 'SelfLink' || textObject.anchorAngle !== undefined) {
+		// For SelfLink: drawText(c, this.text, textX, textY, this.anchorAngle, selected)
+		var stuff = textObject.getEndPointsAndArcParams();
+		x = stuff.circleX + stuff.circleRadius * Math.cos(textObject.anchorAngle);
+		y = stuff.circleY + stuff.circleRadius * Math.sin(textObject.anchorAngle);
+		angleOrNull = textObject.anchorAngle;
+	} else if (textObject.getEndPointsAndArcParams) {
+		// For regular Link: drawText(c, this.text, textX, textY, textAngle, selected)
+		var stuff = textObject.getEndPointsAndArcParams();
+		if (stuff.hasCircle) {
+			var startAngle = stuff.startAngle;
+			var endAngle = stuff.endAngle;
+			if(endAngle < startAngle) {
+				endAngle += Math.PI * 2;
+			}
+			var textAngle = (startAngle + endAngle) / 2 + stuff.isReversed * Math.PI;
+			x = stuff.circleX + stuff.circleRadius * Math.cos(textAngle);
+			y = stuff.circleY + stuff.circleRadius * Math.sin(textAngle);
+			angleOrNull = textAngle;
+		} else {
+			x = (stuff.startX + stuff.endX) / 2;
+			y = (stuff.startY + stuff.endY) / 2;
+			angleOrNull = Math.atan2(stuff.endX - stuff.startX, stuff.startY - stuff.endY) + (textObject.lineAngleAdjust || 0);
+		}
+	} else {
+		// Fallback
+		x = textObject.x || 0;
+		y = textObject.y || 0;
+		angleOrNull = null;
+	}
+	
+	// Now apply the exact same positioning logic as drawText()
+	// center the text
+	x -= width / 2;
+	
+	// position the text intelligently if given an angle
+	if(angleOrNull != null) {
+		var cos = Math.cos(angleOrNull);
+		var sin = Math.sin(angleOrNull);
+		var cornerPointX = (width / 2 + 5) * (cos > 0 ? 1 : -1);
+		var cornerPointY = (10 + 5) * (sin > 0 ? 1 : -1);
+		var slide = sin * Math.pow(Math.abs(sin), 40) * cornerPointX - cos * Math.pow(Math.abs(cos), 10) * cornerPointY;
+		x += cornerPointX - sin * slide;
+		y += cornerPointY + cos * slide;
+	}
+	
+	// Add baseline offset
+	y += 6;
+	
+	// Return the center of where the text will actually be drawn
+	return { x: x + width / 2, y: y };
+}
+
+function getTextScreenPosition(textObject) {
+	/**
+	 * getTextScreenPosition - Calculates screen coordinates for text overlay positioning
+	 * 
+	 * Uses the text anchor approach: find the center point of where text will be rendered,
+	 * convert to screen coordinates, and center the input around that anchor.
+	 */
+	
+	// Get the text anchor in world coordinates
+	var anchor = getTextAnchor(textObject);
+	
+	// Convert anchor to screen coordinates
+	var screenAnchor = worldToScreen(anchor.x, anchor.y);
+	
+	// Calculate text width for sizing
+	var canvas2d = canvas.getContext('2d');
+	canvas2d.font = '20px "Times New Roman", serif';
+	var textWidth = canvas2d.measureText(convertLatexShortcuts(textObject.text || '')).width;
+	
+	return {
+		x: screenAnchor.x, // This is the center point for input positioning
+		y: screenAnchor.y - 15, // Center vertically (30px height / 2)
+		width: textWidth
+	};
+}
+
+function cleanupTextOverlay() {
+	/**
+	 * cleanupTextOverlay - Removes active text overlay and cleans up state
+	 * 
+	 * Called by:
+	 * - Mode transition functions when leaving editing mode
+	 * - Text editing completion/cancellation handlers
+	 * - Error handling and cleanup code
+	 * 
+	 * Calls:
+	 * - document.body.removeChild() to remove DOM element
+	 * - Event listener cleanup functions
+	 * 
+	 * Purpose: Ensures proper cleanup of DOM overlay elements and prevents
+	 * memory leaks. Removes event listeners and DOM elements created during
+	 * text editing sessions.
+	 */
+	
+	if (window.activeTextOverlay) {
+		var overlay = window.activeTextOverlay;
+		
+		// Remove DOM element
+		if (overlay.element && overlay.element.parentNode) {
+			overlay.element.parentNode.removeChild(overlay.element);
+		}
+		
+		// Clear editing flag on object
+		if (overlay.editingObject) {
+			overlay.editingObject._isBeingEdited = false;
+		}
+		
+		// Clear global reference
+		window.activeTextOverlay = null;
+	}
+}
+
+function setupTextOverlayEvents(input, editingObject) {
+	/**
+	 * setupTextOverlayEvents - Configures event handlers for text overlay input
+	 * 
+	 * Called by:
+	 * - createTextEditingOverlay() during overlay initialization
+	 * 
+	 * Calls:
+	 * - Event listener setup functions
+	 * - cleanupTextOverlay() on completion
+	 * - InteractionManager mode transitions
+	 * 
+	 * Purpose: Handles text editing completion, cancellation, and cleanup.
+	 * Manages the flow from overlay editing back to canvas display.
+	 */
+	
+	// Handle text completion (Enter key or blur)
+	function completeEditing() {
+		if (window.activeTextOverlay && window.activeTextOverlay.element === input) {
+			// Update the object's text
+			editingObject.text = input.value;
+			editingObject._isBeingEdited = false;
+			
+			// Clean up overlay
+			cleanupTextOverlay();
+			
+			// Return to selection mode
+			InteractionManager.enterSelectionMode(editingObject);
+		}
+	}
+	
+	// Handle cancellation (Escape key)
+	function cancelEditing() {
+		if (window.activeTextOverlay && window.activeTextOverlay.element === input) {
+			// Restore original text
+			editingObject.text = window.activeTextOverlay.originalText;
+			editingObject._isBeingEdited = false;
+			
+			// Clean up overlay
+			cleanupTextOverlay();
+			
+			// Return to selection mode
+			InteractionManager.enterSelectionMode(editingObject);
+		}
+	}
+	
+	// Set up event listeners
+	input.addEventListener('blur', completeEditing);
+	input.addEventListener('keydown', function(e) {
+		var key = e.keyCode || e.which;
+		
+		if (key === 13) { // Enter key
+			e.preventDefault();
+			completeEditing();
+		} else if (key === 27) { // Escape key
+			e.preventDefault();
+			cancelEditing();
+		}
+		
+		// Stop event propagation to prevent canvas keyboard handlers
+		e.stopPropagation();
+	});
+	
+	// Real-time text updates as user types
+	input.addEventListener('input', function() {
+		if (window.activeTextOverlay && window.activeTextOverlay.element === input) {
+			// Update the object's text in real-time
+			editingObject.text = input.value;
+			draw(); // Redraw canvas to show updated text
+		}
+	});
+	
+	// Handle clicks outside the input
+	function handleClickOutside(e) {
+		if (e.target !== input && window.activeTextOverlay) {
+			completeEditing();
+			document.removeEventListener('click', handleClickOutside);
+		}
+	}
+	
+	// Delay adding click listener to avoid immediate triggering
+	setTimeout(function() {
+		document.addEventListener('click', handleClickOutside);
+	}, 100);
 }
 
 var canvas;
@@ -284,33 +604,41 @@ window.InteractionManager = {
     enterCanvasMode: function() {
         if (ui_flow_v2) {
             console.log('🎯 Entering canvas mode');
-            this._mode = 'canvas';
-            console.log('📊 _mode changed to:', this._mode);
+            
+            // Clean up any active text overlay
+            cleanupTextOverlay();
+            
             this._selectedObject = null;
-            // Stop text caret when exiting editing mode
-            clearInterval(caretTimer);
+            this._mode = 'canvas';
+            draw();
         }
     },
     
     enterSelectionMode: function(obj) {
         if (ui_flow_v2 && obj) {
-            console.log('🎯 Entering selection mode with:', obj);
-            this._mode = 'selection';
-            console.log('📊 _mode changed to:', this._mode);
+            console.log('🎯 Entering selection mode for:', obj);
+            
+            // Clean up cursor state
+            if (obj.cursorPosition !== undefined) {
+                delete obj.cursorPosition;
+            }
+            
             this._selectedObject = obj;
-            // Stop text caret when entering selection mode (not editing)
-            clearInterval(caretTimer);
+            this._mode = 'selection';
+            draw();
         }
     },
     
     enterEditingMode: function(obj) {
         if (ui_flow_v2 && obj && 'text' in obj) {
-            console.log('🎯 Entering editing_text mode with:', obj);
-            this._mode = 'editing_text';
-            console.log('📊 _mode changed to:', this._mode);
+            console.log('🖊️  Entering editing_text mode for:', obj);
             this._selectedObject = obj;
-            // Start text caret when entering editing mode
-            resetCaret();
+            this._mode = 'editing_text';
+            
+            // Initialize cursor position at end of text for direct cursor implementation
+            obj.cursorPosition = obj.text ? obj.text.length : 0;
+            
+            draw(); // Redraw to show cursor
         }
     },
     
@@ -1479,15 +1807,75 @@ document.onkeydown = function(e) {
 		return true;
 	} else if(key == 8) { // backspace key
 		if(InteractionManager.canEditText()) {
-			InteractionManager.getSelected().text = InteractionManager.getSelected().text.substr(0, InteractionManager.getSelected().text.length - 1);
+			var selected = InteractionManager.getSelected();
+			if (selected.cursorPosition !== undefined && selected.cursorPosition > 0) {
+				// Direct cursor implementation: delete character before cursor
+				var before = selected.text.substring(0, selected.cursorPosition - 1);
+				var after = selected.text.substring(selected.cursorPosition);
+				selected.text = before + after;
+				selected.cursorPosition--;
+			} else if (selected.cursorPosition === undefined) {
+				// Legacy behavior: delete from end
+				selected.text = selected.text.substr(0, selected.text.length - 1);
+			}
 			resetCaret();
 			draw();
 		}
 
 		// backspace is a shortcut for the back button, but do NOT want to change pages
 		return false;
+	} else if(key == 37) { // left arrow key
+		if(InteractionManager.canEditText() && InteractionManager.getSelected().cursorPosition !== undefined) {
+			var selected = InteractionManager.getSelected();
+			if (selected.cursorPosition > 0) {
+				selected.cursorPosition--;
+				resetCaret(); // Make cursor visible immediately when moving
+				draw();
+			}
+		}
+		return false;
+	} else if(key == 39) { // right arrow key
+		if(InteractionManager.canEditText() && InteractionManager.getSelected().cursorPosition !== undefined) {
+			var selected = InteractionManager.getSelected();
+			if (selected.cursorPosition < selected.text.length) {
+				selected.cursorPosition++;
+				resetCaret(); // Make cursor visible immediately when moving
+				draw();
+			}
+		}
+		return false;
+	} else if(key == 36) { // home key
+		if(InteractionManager.canEditText() && InteractionManager.getSelected().cursorPosition !== undefined) {
+			InteractionManager.getSelected().cursorPosition = 0;
+			resetCaret(); // Make cursor visible immediately when moving
+			draw();
+		}
+		return false;
+	} else if(key == 35) { // end key
+		if(InteractionManager.canEditText() && InteractionManager.getSelected().cursorPosition !== undefined) {
+			var selected = InteractionManager.getSelected();
+			selected.cursorPosition = selected.text.length;
+			resetCaret(); // Make cursor visible immediately when moving
+			draw();
+		}
+		return false;
 	} else if(key == 46) { // delete key
-		if(selectedNodes.length > 0) {
+		// Only delete nodes/links when NOT in text editing mode
+		if(ui_flow_v2 && InteractionManager.getMode() === 'editing_text') {
+			// In text editing mode, delete key should delete character at cursor (forward delete)
+			if(InteractionManager.canEditText()) {
+				var selected = InteractionManager.getSelected();
+				if (selected.cursorPosition !== undefined && selected.cursorPosition < selected.text.length) {
+					// Delete character at cursor position (forward delete)
+					var before = selected.text.substring(0, selected.cursorPosition);
+					var after = selected.text.substring(selected.cursorPosition + 1);
+					selected.text = before + after;
+					// Cursor position stays the same (character after was deleted)
+					resetCaret(); // Make cursor visible after deletion
+					draw();
+				}
+			}
+		} else if(selectedNodes.length > 0) {
 			// Delete all selected nodes and their associated links
 			for(var j = 0; j < selectedNodes.length; j++) {
 				var nodeToDelete = selectedNodes[j];
@@ -1580,10 +1968,21 @@ document.onkeypress = function(e) {
 	} else if(key >= 0x20 && key <= 0x7E && !e.metaKey && !e.altKey && !e.ctrlKey && InteractionManager.canEditText()) {
 		// Mode transition: automatically enter editing_text mode when typing begins
 		if(ui_flow_v2 && InteractionManager.getMode() !== 'editing_text') {
-			InteractionManager.enterEditingMode();
+			InteractionManager.enterEditingMode(InteractionManager.getSelected());
 		}
 		
-		InteractionManager.getSelected().text += String.fromCharCode(key);
+		var selected = InteractionManager.getSelected();
+		if (selected.cursorPosition !== undefined) {
+			// Direct cursor implementation: insert character at cursor position
+			var before = selected.text.substring(0, selected.cursorPosition);
+			var after = selected.text.substring(selected.cursorPosition);
+			selected.text = before + String.fromCharCode(key) + after;
+			selected.cursorPosition++;
+		} else {
+			// Legacy behavior: append to end
+			selected.text += String.fromCharCode(key);
+		}
+		
 		resetCaret();
 		draw();
 

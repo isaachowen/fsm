@@ -144,3 +144,24 @@ StartLink.prototype.containsPoint = function(x, y) {
 	var distance = (dx * (y - stuff.startY) - dy * (x - stuff.startX)) / length;
 	return (percent > 0 && percent < 1 && Math.abs(distance) < hitTargetPadding);
 };
+
+StartLink.prototype.getTextPosition = function() {
+	/**
+	 * getTextPosition - Returns world coordinates for start-link text positioning
+	 * 
+	 * Called by:
+	 * - getTextScreenPosition() for overlay positioning
+	 * - Text editing functions that need start-link text coordinates
+	 * 
+	 * Calls:
+	 * - this.getEndPoints() for line segment geometry
+	 * - Math calculations for positioning
+	 * 
+	 * Purpose: Provides consistent text positioning coordinates for start-links,
+	 * matching the same logic used in StartLink.prototype.draw() for text rendering.
+	 */
+	var stuff = this.getEndPoints();
+	
+	// Use the same logic as StartLink.prototype.draw() - text at start point
+	return { x: stuff.startX, y: stuff.startY };
+};

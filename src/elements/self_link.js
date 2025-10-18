@@ -176,3 +176,27 @@ SelfLink.prototype.containsPoint = function(x, y) {
 	var distance = Math.sqrt(dx*dx + dy*dy) - stuff.circleRadius;
 	return (Math.abs(distance) < hitTargetPadding);
 };
+
+SelfLink.prototype.getTextPosition = function() {
+	/**
+	 * getTextPosition - Returns world coordinates for self-link text positioning
+	 * 
+	 * Called by:
+	 * - getTextScreenPosition() for overlay positioning
+	 * - Text editing functions that need self-link text coordinates
+	 * 
+	 * Calls:
+	 * - this.getEndPointsAndArcParams() for arc geometry
+	 * - Math.cos(), Math.sin() for text positioning calculations
+	 * 
+	 * Purpose: Provides consistent text positioning coordinates for self-links,
+	 * matching the same logic used in SelfLink.prototype.draw() for text rendering.
+	 */
+	var stuff = this.getEndPointsAndArcParams();
+	
+	// Use the same logic as SelfLink.prototype.draw() for text positioning
+	var textX = stuff.circleX + stuff.circleRadius * Math.cos(this.anchorAngle);
+	var textY = stuff.circleY + stuff.circleRadius * Math.sin(this.anchorAngle);
+	
+	return { x: textX, y: textY };
+};

@@ -296,3 +296,40 @@ Link.prototype.findArcNodeIntersection = function(circle, targetNode, otherNode,
 	
 	return intersection;
 };
+
+Link.prototype.getTextPosition = function() {
+	/**
+	 * getTextPosition - Returns world coordinates for link text positioning
+	 * 
+	 * Called by:
+	 * - getTextScreenPosition() for overlay positioning
+	 * - Text editing functions that need link text coordinates
+	 * 
+	 * Calls:
+	 * - this.getEndPointsAndArcParams() for arc geometry
+	 * - Math.cos(), Math.sin() for text positioning calculations
+	 * 
+	 * Purpose: Provides consistent text positioning coordinates for links,
+	 * matching the same logic used in Link.prototype.draw() for text rendering.
+	 */
+	var stuff = this.getEndPointsAndArcParams();
+	
+	// Use the same logic as Link.prototype.draw() for text positioning
+	if(stuff.hasCircle) {
+		// For curved links, position text on the arc at the midpoint angle
+		var startAngle = stuff.startAngle;
+		var endAngle = stuff.endAngle;
+		if(endAngle < startAngle) {
+			endAngle += Math.PI * 2;
+		}
+		var textAngle = (startAngle + endAngle) / 2 + stuff.isReversed * Math.PI;
+		var textX = stuff.circleX + stuff.circleRadius * Math.cos(textAngle);
+		var textY = stuff.circleY + stuff.circleRadius * Math.sin(textAngle);
+		return { x: textX, y: textY };
+	} else {
+		// For straight links, use simple midpoint
+		var textX = (stuff.startX + stuff.endX) / 2;
+		var textY = (stuff.startY + stuff.endY) / 2;
+		return { x: textX, y: textY };
+	}
+};
