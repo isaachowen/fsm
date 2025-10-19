@@ -712,6 +712,49 @@ var currentLink = null; // a Link
 var movingObject = false;
 var originalClick;
 
+// Drag state management for history
+var dragState = {
+	isDragging: false,
+	startSnapshot: null,
+	
+	startDrag: function() {
+		this.isDragging = true;
+		this.startSnapshot = canvasHistory ? canvasHistory.current() : null;
+		console.log('🖱️ Started drag operation');
+	},
+	
+	endDrag: function() {
+		if (!this.isDragging) return;
+		this.isDragging = false;
+		
+		// Push final state - entire drag becomes 1 undo operation
+		if (canvasHistory) {
+			pushHistoryState({skipIfEqual: true});
+			console.log('🖱️ Ended drag operation, pushed final state');
+		}
+		
+		this.startSnapshot = null;
+	}
+};
+
+// Text editing state management for history
+var typingTimer;
+function onTextChange() {
+	if (!canvasHistory) return;
+	
+	// Clear any existing timer
+	clearTimeout(typingTimer);
+	
+	// Set new timer to push coalesced state
+	typingTimer = setTimeout(function() {
+		pushHistoryState({
+			coalesceKey: "typing",
+			skipIfEqual: true
+		});
+		console.log('⌨️ Pushed coalesced typing state');
+	}, 300); // 300ms debounce window
+}
+
 // Multi-select and selection box state
 var selectionBox = {
 	active: false,
@@ -865,12 +908,6 @@ CanvasRecentHistoryManager.prototype.serializeCurrentState = function() {
 		timestamp: Date.now(),
 		nodes: [],
 		links: [],
-		selections: {
-			selectedObjectId: null,
-			selectedObjectType: null,
-			selectedNodesIds: [],
-			interactionMode: InteractionManager.getMode()
-		},
 		viewport: {
 			x: viewport.x,
 			y: viewport.y,
@@ -879,7 +916,7 @@ CanvasRecentHistoryManager.prototype.serializeCurrentState = function() {
 		legend: {}
 	};
 	
-	// Serialize nodes
+	// Serialize nodes (content only, no selection state)
 	for (var i = 0; i < nodes.length; i++) {
 		var node = nodes[i];
 		state.nodes.push({
@@ -891,7 +928,7 @@ CanvasRecentHistoryManager.prototype.serializeCurrentState = function() {
 		});
 	}
 	
-	// Serialize links
+	// Serialize links (content only, no selection state)
 	for (var i = 0; i < links.length; i++) {
 		var link = links[i];
 		var linkData = { text: link.text };
@@ -917,24 +954,6 @@ CanvasRecentHistoryManager.prototype.serializeCurrentState = function() {
 		state.links.push(linkData);
 	}
 	
-	// Serialize selections
-	var selected = InteractionManager.getSelected();
-	if (selected) {
-		if (selected instanceof Node) {
-			state.selections.selectedObjectId = nodes.indexOf(selected);
-			state.selections.selectedObjectType = 'node';
-		} else {
-			// For links, find index in links array
-			state.selections.selectedObjectId = links.indexOf(selected);
-			state.selections.selectedObjectType = 'link';
-		}
-	}
-	
-	// Serialize selected nodes (multi-select)
-	state.selections.selectedNodesIds = selectedNodes.map(function(node) {
-		return nodes.indexOf(node);
-	});
-	
 	// Serialize legend descriptions
 	for (var key in legendEntries) {
 		if (legendEntries[key] && legendEntries[key].description) {
@@ -948,11 +967,14 @@ CanvasRecentHistoryManager.prototype.serializeCurrentState = function() {
 CanvasRecentHistoryManager.prototype.restoreState = function(state) {
 	if (!state) return;
 	
+	// Preserve current selection state (don't restore selections from history)
+	var currentSelected = InteractionManager.getSelected();
+	var currentSelectedNodes = selectedNodes.slice(); // Make a copy
+	var currentMode = InteractionManager.getMode();
+	
 	// Clear current state
 	nodes = [];
 	links = [];
-	InteractionManager.setSelected(null);
-	selectedNodes = [];
 	currentLink = null;
 	
 	// Restore nodes
@@ -1000,45 +1022,6 @@ CanvasRecentHistoryManager.prototype.restoreState = function(state) {
 		}
 	}
 	
-	// Restore selections
-	if (state.selections) {
-		// Restore individual selection
-		if (state.selections.selectedObjectId !== null) {
-			if (state.selections.selectedObjectType === 'node') {
-				var nodeIndex = state.selections.selectedObjectId;
-				if (nodeIndex >= 0 && nodeIndex < nodes.length) {
-					InteractionManager.setSelected(nodes[nodeIndex]);
-				}
-			} else if (state.selections.selectedObjectType === 'link') {
-				var linkIndex = state.selections.selectedObjectId;
-				if (linkIndex >= 0 && linkIndex < links.length) {
-					InteractionManager.setSelected(links[linkIndex]);
-				}
-			}
-		}
-		
-		// Restore multi-selection
-		if (state.selections.selectedNodesIds && state.selections.selectedNodesIds.length > 0) {
-			selectedNodes = [];
-			for (var i = 0; i < state.selections.selectedNodesIds.length; i++) {
-				var nodeIndex = state.selections.selectedNodesIds[i];
-				if (nodeIndex >= 0 && nodeIndex < nodes.length) {
-					selectedNodes.push(nodes[nodeIndex]);
-				}
-			}
-			
-			// Set appropriate mode for multi-selection
-			if (selectedNodes.length > 0 && ui_flow_v2) {
-				InteractionManager.enterMultiselectMode();
-			}
-		}
-		
-		// Restore interaction mode
-		if (ui_flow_v2 && state.selections.interactionMode) {
-			InteractionManager._mode = state.selections.interactionMode;
-		}
-	}
-	
 	// Restore viewport
 	if (state.viewport) {
 		viewport.x = state.viewport.x || 0;
@@ -1060,6 +1043,11 @@ CanvasRecentHistoryManager.prototype.restoreState = function(state) {
 			legendEntries[key].description = state.legend[key];
 		}
 	}
+	
+	// Clear selections after restoration (no preserved selection state)
+	// User selections are cleared on undo/redo, which is standard behavior
+	InteractionManager.setSelected(null);
+	selectedNodes = [];
 	
 	// Update legend and redraw
 	updateLegend();
@@ -1811,6 +1799,9 @@ window.onload = function() {
 				if(InteractionManager.getSelected().setMouseStart) {
 					InteractionManager.getSelected().setMouseStart(worldMouse.x, worldMouse.y);
 				}
+				
+				// HISTORY: Start drag state tracking (no push yet)
+				dragState.startDrag();
 			}
 			
 			// Only reset caret if we're in editing mode (ui_flow_v2) or legacy mode with text editing capability
@@ -1868,6 +1859,10 @@ window.onload = function() {
 			
 			resetCaret();
 			updateLegend(); // Update legend when new node created
+			
+			// HISTORY: Push state after node creation (immediate operation)
+			pushHistoryState({skipIfEqual: true});
+			
 			draw();
 		} else if(InteractionManager.getSelected() instanceof Node) {
 			var needsLegendUpdate = false;
@@ -1983,6 +1978,11 @@ window.onload = function() {
 			return false;
 		}
 		
+		// HISTORY: End drag operation if we were dragging
+		if (movingObject) {
+			dragState.endDrag();
+		}
+		
 		movingObject = false;
 
 		if(isSelecting && selectionBox.active) {
@@ -1997,6 +1997,9 @@ window.onload = function() {
 			if(selectedNodes.length > 0) {
 				InteractionManager.setSelected(null);
 				InteractionManager.enterMultiselectMode();
+				
+				// HISTORY: Push state after multi-selection completes
+				pushHistoryState({skipIfEqual: true});
 			} else {
 				// If no nodes selected and this was a very small rectangle (likely a click), clear all selections
 				var rectWidth = Math.abs(selectionBox.endX - selectionBox.startX);
@@ -2013,6 +2016,9 @@ window.onload = function() {
 				InteractionManager.setSelected(currentLink);
 				links.push(currentLink);
 				resetCaret();
+				
+				// HISTORY: Push state after link creation (immediate operation)
+				pushHistoryState({skipIfEqual: true});
 			}
 			currentLink = null;
 			draw();
@@ -2147,6 +2153,10 @@ document.onkeydown = function(e) {
 			}
 			suppressTypingUntil = Date.now() + 300; // Suppress typing briefly
 			updateLegend(); // Update legend after color change
+			
+			// HISTORY: Push state after color change (immediate operation)
+			pushHistoryState({skipIfEqual: true});
+			
 			draw();
 		}
 	} else if(!canvasHasFocus()) {
@@ -2167,6 +2177,9 @@ document.onkeydown = function(e) {
 			}
 			resetCaret();
 			draw();
+			
+			// HISTORY: Trigger debounced text coalescing
+			onTextChange();
 		}
 
 		// backspace is a shortcut for the back button, but do NOT want to change pages
@@ -2220,6 +2233,9 @@ document.onkeydown = function(e) {
 					// Cursor position stays the same (character after was deleted)
 					resetCaret(); // Make cursor visible after deletion
 					draw();
+					
+					// HISTORY: Trigger debounced text coalescing
+					onTextChange();
 				}
 			}
 		} else if(selectedNodes.length > 0) {
@@ -2246,6 +2262,10 @@ document.onkeydown = function(e) {
 			selectedNodes = [];
 			InteractionManager.setSelected(null);
 			updateLegend(); // Update legend after deleting nodes
+			
+			// HISTORY: Push state after deletion (immediate operation)
+			pushHistoryState({skipIfEqual: true});
+			
 			draw();
 		} else if(InteractionManager.getSelected() != null) {
 			// Original single object deletion logic
@@ -2261,9 +2281,18 @@ document.onkeydown = function(e) {
 			}
 			InteractionManager.setSelected(null);
 			updateLegend(); // Update legend after deleting node
+			
+			// HISTORY: Push state after deletion (immediate operation)
+			pushHistoryState({skipIfEqual: true});
+			
 			draw();
 		}
 	} else if(key == 27) { // escape key
+		// HISTORY: Break coalescing on mode changes
+		if (canvasHistory) {
+			canvasHistory.pending = null;
+		}
+		
 		if(ui_flow_v2) {
 			// Mode transitions: editing_text → selection → canvas, multiselect → canvas
 			if(InteractionManager.getMode() === 'editing_text') {
@@ -2330,6 +2359,9 @@ document.onkeypress = function(e) {
 		
 		resetCaret();
 		draw();
+		
+		// HISTORY: Trigger debounced text coalescing
+		onTextChange();
 
 		// don't let keys do their actions (like space scrolls down the page)
 		return false;
