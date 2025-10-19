@@ -144,86 +144,113 @@ Link.prototype.getEndPointsAndArcParams = function() {
 
 Link.prototype.draw = function(c) {
 	/**
-	 * draw - Renders the link as either a straight line or curved arc with arrow and text
+	 * draw - Draws link as straight line or curved arc between node centers
 	 * 
 	 * Called by:
 	 * - drawUsing() in fsm.js during main canvas rendering loop
-	 * - All contexts: main canvas, JSON export, and any custom drawing contexts
 	 * 
 	 * Calls:
-	 * - this.getEndPointsAndArcParams() to get all geometric data for rendering
-	 * - c.beginPath(), c.arc(), c.moveTo(), c.lineTo(), c.stroke() for drawing the path
+	 * - c.beginPath(), c.moveTo(), c.lineTo(), c.arc(), c.stroke() for drawing
 	 * - drawArrow() from fsm.js to render the directional arrow head
 	 * - drawText() from fsm.js to render the transition label
-	 * - selectedObject global variable to determine if this link should be highlighted
+	 * - circleFromThreePoints() for arc calculations when curved
 	 * 
-	 * Purpose: Main rendering function that draws the complete link visualization:
-	 * curved or straight line, directional arrow, and properly positioned/rotated text label.
-	 * Handles both curved arc geometry and straight line special cases.
+	 * Purpose: Draws links directly between node centers. If perpendicularPart is 0,
+	 * draws straight line. If perpendicularPart is non-zero, draws curved arc.
 	 */
-	var stuff = this.getEndPointsAndArcParams();
-	// draw arc
-	c.beginPath();
-	if(stuff.hasCircle) {
-		c.arc(stuff.circleX, stuff.circleY, stuff.circleRadius, stuff.startAngle, stuff.endAngle, stuff.isReversed);
-	} else {
-		c.moveTo(stuff.startX, stuff.startY);
-		c.lineTo(stuff.endX, stuff.endY);
-	}
-	c.stroke();
-	// draw the head of the arrow
-	if(stuff.hasCircle) {
-		drawArrow(c, stuff.endX, stuff.endY, stuff.endAngle - stuff.reverseScale * (Math.PI / 2));
-	} else {
-		drawArrow(c, stuff.endX, stuff.endY, Math.atan2(stuff.endY - stuff.startY, stuff.endX - stuff.startX));
-	}
-	// draw the text
-	if(stuff.hasCircle) {
-		var startAngle = stuff.startAngle;
-		var endAngle = stuff.endAngle;
-		if(endAngle < startAngle) {
-			endAngle += Math.PI * 2;
-		}
-		var textAngle = (startAngle + endAngle) / 2 + stuff.isReversed * Math.PI;
-		var textX = stuff.circleX + stuff.circleRadius * Math.cos(textAngle);
-		var textY = stuff.circleY + stuff.circleRadius * Math.sin(textAngle);
-		drawText(c, this.text, textX, textY, textAngle, selectedObject == this);
-	} else {
-		var textX = (stuff.startX + stuff.endX) / 2;
-		var textY = (stuff.startY + stuff.endY) / 2;
-		var textAngle = Math.atan2(stuff.endX - stuff.startX, stuff.startY - stuff.endY);
+	
+	if(this.perpendicularPart == 0) {
+		// Draw straight line from nodeA center to nodeB center
+		c.beginPath();
+		c.moveTo(this.nodeA.x, this.nodeA.y);
+		c.lineTo(this.nodeB.x, this.nodeB.y);
+		c.stroke();
+		
+		// Draw arrow at nodeB end
+		var angle = Math.atan2(this.nodeB.y - this.nodeA.y, this.nodeB.x - this.nodeA.x);
+		drawArrow(c, this.nodeB.x, this.nodeB.y, angle);
+		
+		// Draw text at midpoint
+		var textX = (this.nodeA.x + this.nodeB.x) / 2;
+		var textY = (this.nodeA.y + this.nodeB.y) / 2;
+		var textAngle = Math.atan2(this.nodeB.x - this.nodeA.x, this.nodeA.y - this.nodeB.y);
 		drawText(c, this.text, textX, textY, textAngle + this.lineAngleAdjust, selectedObject == this);
+	} else {
+		// Draw curved arc
+		var anchorPoint = this.getAnchorPoint();
+		var circle = circleFromThreePoints(this.nodeA.x, this.nodeA.y, anchorPoint.x, anchorPoint.y, this.nodeB.x, this.nodeB.y);
+		
+		var isReversed = (this.perpendicularPart > 0);
+		var reverseScale = isReversed ? 1 : -1;
+		
+		var startAngle = Math.atan2(this.nodeA.y - circle.y, this.nodeA.x - circle.x);
+		var endAngle = Math.atan2(this.nodeB.y - circle.y, this.nodeB.x - circle.x);
+		
+		// Draw the arc
+		c.beginPath();
+		c.arc(circle.x, circle.y, circle.radius, startAngle, endAngle, isReversed);
+		c.stroke();
+		
+		// Draw arrow at end
+		drawArrow(c, this.nodeB.x, this.nodeB.y, endAngle - reverseScale * (Math.PI / 2));
+		
+		// Draw text on arc
+		var startAngleCopy = startAngle;
+		var endAngleCopy = endAngle;
+		if(endAngleCopy < startAngleCopy) {
+			endAngleCopy += Math.PI * 2;
+		}
+		var textAngle = (startAngleCopy + endAngleCopy) / 2 + isReversed * Math.PI;
+		var textX = circle.x + circle.radius * Math.cos(textAngle);
+		var textY = circle.y + circle.radius * Math.sin(textAngle);
+		drawText(c, this.text, textX, textY, textAngle, selectedObject == this);
 	}
 };
 
 Link.prototype.containsPoint = function(x, y) {
 	/**
-	 * containsPoint - Hit detection for mouse interactions with the link
+	 * containsPoint - Hit detection for both straight line and curved arc links
 	 * 
 	 * Called by:
 	 * - selectObject() in fsm.js during mouse click/hover detection
-	 * - Canvas event handlers to determine if mouse is over this link
 	 * 
 	 * Calls:
-	 * - this.getEndPointsAndArcParams() to get current geometry for hit testing
-	 * - Math.sqrt(), Math.atan2(), Math.abs() for distance and angle calculations
+	 * - Math.sqrt(), Math.atan2() for distance and angle calculations
 	 * - hitTargetPadding global variable to define clickable area around the link
+	 * - circleFromThreePoints() for arc calculations when curved
 	 * 
 	 * Purpose: Determines if a given mouse coordinate (x, y) is close enough to the
-	 * link to be considered a "hit" for selection/interaction. Handles both curved
-	 * arc hit detection (checking distance from arc and angle bounds) and straight
-	 * line hit detection (perpendicular distance from line segment).
+	 * link (straight or curved) to be considered a "hit" for selection.
 	 */
-	var stuff = this.getEndPointsAndArcParams();
-	if(stuff.hasCircle) {
-		var dx = x - stuff.circleX;
-		var dy = y - stuff.circleY;
-		var distance = Math.sqrt(dx*dx + dy*dy) - stuff.circleRadius;
+	
+	if(this.perpendicularPart == 0) {
+		// Straight line hit detection between node centers
+		var dx = this.nodeB.x - this.nodeA.x;
+		var dy = this.nodeB.y - this.nodeA.y;
+		var length = Math.sqrt(dx*dx + dy*dy);
+		
+		if (length == 0) return false; // Nodes are at same position
+		
+		var percent = (dx * (x - this.nodeA.x) + dy * (y - this.nodeA.y)) / (length * length);
+		var distance = Math.abs(dx * (y - this.nodeA.y) - dy * (x - this.nodeA.x)) / length;
+		
+		return (percent > 0 && percent < 1 && distance < hitTargetPadding);
+	} else {
+		// Curved arc hit detection
+		var anchorPoint = this.getAnchorPoint();
+		var circle = circleFromThreePoints(this.nodeA.x, this.nodeA.y, anchorPoint.x, anchorPoint.y, this.nodeB.x, this.nodeB.y);
+		
+		var dx = x - circle.x;
+		var dy = y - circle.y;
+		var distance = Math.sqrt(dx*dx + dy*dy) - circle.radius;
+		
 		if(Math.abs(distance) < hitTargetPadding) {
 			var angle = Math.atan2(dy, dx);
-			var startAngle = stuff.startAngle;
-			var endAngle = stuff.endAngle;
-			if(stuff.isReversed) {
+			var startAngle = Math.atan2(this.nodeA.y - circle.y, this.nodeA.x - circle.x);
+			var endAngle = Math.atan2(this.nodeB.y - circle.y, this.nodeB.x - circle.x);
+			var isReversed = (this.perpendicularPart > 0);
+			
+			if(isReversed) {
 				var temp = startAngle;
 				startAngle = endAngle;
 				endAngle = temp;
@@ -238,13 +265,6 @@ Link.prototype.containsPoint = function(x, y) {
 			}
 			return (angle > startAngle && angle < endAngle);
 		}
-	} else {
-		var dx = stuff.endX - stuff.startX;
-		var dy = stuff.endY - stuff.startY;
-		var length = Math.sqrt(dx*dx + dy*dy);
-		var percent = (dx * (x - stuff.startX) + dy * (y - stuff.startY)) / (length * length);
-		var distance = (dx * (y - stuff.startY) - dy * (x - stuff.startX)) / length;
-		return (percent > 0 && percent < 1 && Math.abs(distance) < hitTargetPadding);
 	}
 	return false;
 };

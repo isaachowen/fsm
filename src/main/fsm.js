@@ -1221,6 +1221,7 @@ function drawUsing(c) {
 	c.scale(viewport.scale, viewport.scale);
 	c.translate(0.5, 0.5);
 
+	// Draw nodes first
 	for(var i = 0; i < nodes.length; i++) {
 		c.lineWidth = 2;
 		var node = nodes[i];
@@ -1240,6 +1241,8 @@ function drawUsing(c) {
 		}
 		node.draw(c);
 	}
+
+	// Draw links on top of nodes
 	for(var i = 0; i < links.length; i++) {
 		c.lineWidth = 2;
 		if(links[i] == selectedObject) {
