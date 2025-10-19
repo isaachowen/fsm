@@ -10,7 +10,7 @@ function restoreBackup() {
 			var backupNode = backup.nodes[i];
 			var node = new Node(backupNode.x, backupNode.y, backupNode.color);
 			node.text = backupNode.text;
-			// Handle backward compatibility - default to circle if no shape specified
+			// Handle backward compatibility - default to dot if no shape specified
 			if (!node.shape) {
 				node.shape = 'dot';
 			}
