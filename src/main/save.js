@@ -8,11 +8,15 @@ function restoreBackup() {
 
 		for(var i = 0; i < backup.nodes.length; i++) {
 			var backupNode = backup.nodes[i];
-			var node = new Node(backupNode.x, backupNode.y, backupNode.shape, backupNode.color);
+			var node = new Node(backupNode.x, backupNode.y, backupNode.color);
 			node.text = backupNode.text;
 			// Handle backward compatibility - default to circle if no shape specified
 			if (!node.shape) {
 				node.shape = 'dot';
+			}
+			// Set the shape property if it exists in backup
+			if (backupNode.shape) {
+				node.shape = backupNode.shape;
 			}
 			// Handle backward compatibility - default to yellow if no color specified
 			if (!node.color) {
