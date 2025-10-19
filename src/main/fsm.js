@@ -508,6 +508,28 @@ var links = [];
 var snapToPadding = 6; // pixels
 var hitTargetPadding = 6; // pixels
 
+// Phase 2: Text editing debounced coalescing
+var typingTimer = null;
+
+function scheduleTypingHistoryCapture() {
+	// Clear existing timer
+	if(typingTimer) {
+		clearTimeout(typingTimer);
+	}
+	
+	// Schedule coalesced history capture after 300ms of no typing
+	typingTimer = setTimeout(function() {
+		if(canvasHistory) {
+			var newState = canvasHistory.serializeCurrentState();
+			canvasHistory.push(newState, {
+				coalesceKey: "typing",
+				skipIfEqual: true
+			});
+		}
+		typingTimer = null;
+	}, 300); // 300ms debounce window
+}
+
 // =============================================================================
 // INTERACTION MANAGER - SINGLE SOURCE OF TRUTH
 // =============================================================================
@@ -519,6 +541,291 @@ var ui_flow_v2 = true; // Set to true to enable new three-state interaction mode
 if (typeof populateGuide === 'function') {
 	populateGuide();
 }
+
+// Canvas Recent History Manager - Phase 1: Core Timeline Infrastructure
+class CanvasRecentHistoryManager {
+    constructor(initialState) {
+        this.timeline = [];
+        this.cursor = -1;
+        this.pending = null; // {key: string, idx: number}
+        this.push(initialState); // Always start with initial state
+        console.log('🎬 CanvasRecentHistoryManager initialized with', this.timeline.length, 'entries');
+    }
+    
+    current() { 
+        return this.timeline[this.cursor]; 
+    }
+    
+    push(nextState, options = {}) {
+        const {coalesceKey, replaceTop, skipIfEqual} = options;
+        
+        // Skip identical states (prevent phantom undos)
+        if (skipIfEqual && this.stateEqual(this.current(), nextState)) {
+            console.log('⏭️ Skipping identical state');
+            return;
+        }
+        
+        // Clear future history if not at end (standard undo behavior)
+        if (this.cursor < this.timeline.length - 1) {
+            const clearedCount = this.timeline.length - this.cursor - 1;
+            this.timeline = this.timeline.slice(0, this.cursor + 1);
+            this.pending = null;
+            console.log('🗑️ Cleared', clearedCount, 'future entries');
+        }
+        
+        // Coalesce with previous entry if keys match
+        if (coalesceKey && this.pending?.key === coalesceKey && 
+            this.pending.idx === this.cursor) {
+            this.timeline[this.cursor] = nextState;
+            console.log('🔄 Coalesced with key:', coalesceKey);
+            return;
+        }
+        
+        // Replace current entry instead of adding new
+        if (replaceTop && this.cursor >= 0) {
+            this.timeline[this.cursor] = nextState;
+            console.log('🔄 Replaced top entry');
+            return;
+        }
+        
+        // Add new entry to timeline
+        this.timeline.push(nextState);
+        this.cursor++;
+        
+        // Track coalescing state
+        if (coalesceKey) {
+            this.pending = {key: coalesceKey, idx: this.cursor};
+            console.log('📝 Added entry with coalesce key:', coalesceKey, '- timeline length:', this.timeline.length);
+        } else {
+            this.pending = null;
+            console.log('📝 Added entry - timeline length:', this.timeline.length);
+        }
+        
+        // Maintain history limit (10 entries)
+        if (this.timeline.length > 10) {
+            this.timeline.shift();
+            this.cursor--;
+            if (this.pending) this.pending.idx--;
+            console.log('🧹 Trimmed timeline to maintain 10 entry limit');
+        }
+    }
+    
+    undo() {
+        if (this.cursor > 0) {
+            this.cursor--;
+            this.pending = null;
+            console.log('⏪ Undo - moved to cursor position:', this.cursor);
+            return this.current();
+        }
+        console.log('⏪ Undo - already at start of history');
+        return this.current();
+    }
+    
+    redo() {
+        if (this.cursor < this.timeline.length - 1) {
+            this.cursor++;
+            this.pending = null;
+            console.log('⏩ Redo - moved to cursor position:', this.cursor);
+            return this.current();
+        }
+        console.log('⏩ Redo - already at end of history');
+        return this.current();
+    }
+    
+    // Utility methods
+    stateEqual(state1, state2) {
+        try {
+            return JSON.stringify(state1) === JSON.stringify(state2);
+        } catch(e) {
+            console.warn('⚠️ State comparison failed:', e);
+            return false;
+        }
+    }
+    
+    serializeCurrentState() {
+        // Reuse existing JSON export logic from save.js
+        var state = {
+            nodes: [],
+            links: [],
+            selections: {
+                selectedObjectId: null,
+                selectedNodesIds: [...selectedNodes.map(n => nodes.indexOf(n))],
+                interactionMode: InteractionManager.getMode()
+            },
+            timestamp: Date.now()
+        };
+        
+        // Serialize nodes
+        for(var i = 0; i < nodes.length; i++) {
+            var node = nodes[i];
+            state.nodes.push({
+                x: node.x,
+                y: node.y,
+                text: node.text,
+                shape: node.shape || 'dot',
+                color: node.color || 'yellow'
+            });
+        }
+        
+        // Serialize links
+        for(var i = 0; i < links.length; i++) {
+            var link = links[i];
+            var linkData = null;
+            if(link instanceof SelfLink) {
+                linkData = {
+                    type: 'SelfLink',
+                    node: nodes.indexOf(link.node),
+                    text: link.text,
+                    anchorAngle: link.anchorAngle
+                };
+            } else if(link instanceof StartLink) {
+                linkData = {
+                    type: 'StartLink',
+                    node: nodes.indexOf(link.node),
+                    text: link.text,
+                    deltaX: link.deltaX,
+                    deltaY: link.deltaY
+                };
+            } else if(link instanceof Link) {
+                linkData = {
+                    type: 'Link',
+                    nodeA: nodes.indexOf(link.nodeA),
+                    nodeB: nodes.indexOf(link.nodeB),
+                    text: link.text,
+                    parallelPart: link.parallelPart,
+                    perpendicularPart: link.perpendicularPart
+                };
+            }
+            if(linkData) {
+                state.links.push(linkData);
+            }
+        }
+        
+        // Serialize current selection
+        if(InteractionManager.getSelected()) {
+            if(InteractionManager.getSelected() instanceof Node) {
+                state.selections.selectedObjectId = {
+                    type: 'node',
+                    id: nodes.indexOf(InteractionManager.getSelected())
+                };
+            } else {
+                state.selections.selectedObjectId = {
+                    type: 'link',
+                    id: links.indexOf(InteractionManager.getSelected())
+                };
+            }
+        }
+        
+        return state;
+    }
+    
+    restoreState(state) {
+        if(!state) return;
+        
+        console.log('🔄 Restoring state with', state.nodes.length, 'nodes and', state.links.length, 'links');
+        
+        // Clear current state
+        nodes.length = 0;
+        links.length = 0;
+        selectedNodes.length = 0;
+        InteractionManager.setSelected(null);
+        
+        // Restore nodes
+        for(var i = 0; i < state.nodes.length; i++) {
+            var nodeData = state.nodes[i];
+            var node = new Node(nodeData.x, nodeData.y, nodeData.shape, nodeData.color);
+            node.text = nodeData.text || '';
+            nodes.push(node);
+        }
+        
+        // Restore links
+        for(var i = 0; i < state.links.length; i++) {
+            var linkData = state.links[i];
+            var link = null;
+            if(linkData.type === 'SelfLink') {
+                link = new SelfLink(nodes[linkData.node]);
+                link.anchorAngle = linkData.anchorAngle;
+                link.text = linkData.text || '';
+            } else if(linkData.type === 'StartLink') {
+                link = new StartLink(nodes[linkData.node]);
+                link.deltaX = linkData.deltaX;
+                link.deltaY = linkData.deltaY;
+                link.text = linkData.text || '';
+            } else if(linkData.type === 'Link') {
+                link = new Link(nodes[linkData.nodeA], nodes[linkData.nodeB]);
+                link.parallelPart = linkData.parallelPart;
+                link.perpendicularPart = linkData.perpendicularPart;
+                link.text = linkData.text || '';
+            }
+            if(link) {
+                links.push(link);
+            }
+        }
+        
+        // Restore selection state
+        if(state.selections) {
+            // Restore multi-selection
+            if(state.selections.selectedNodesIds && state.selections.selectedNodesIds.length > 0) {
+                for(var i = 0; i < state.selections.selectedNodesIds.length; i++) {
+                    var nodeIdx = state.selections.selectedNodesIds[i];
+                    if(nodeIdx >= 0 && nodeIdx < nodes.length) {
+                        selectedNodes.push(nodes[nodeIdx]);
+                    }
+                }
+            }
+            
+            // Restore single selection
+            if(state.selections.selectedObjectId) {
+                var sel = state.selections.selectedObjectId;
+                if(sel.type === 'node' && sel.id >= 0 && sel.id < nodes.length) {
+                    InteractionManager.setSelected(nodes[sel.id]);
+                } else if(sel.type === 'link' && sel.id >= 0 && sel.id < links.length) {
+                    InteractionManager.setSelected(links[sel.id]);
+                }
+            }
+            
+            // Restore interaction mode
+            if(state.selections.interactionMode && ui_flow_v2) {
+                InteractionManager._mode = state.selections.interactionMode;
+            }
+        }
+        
+        // Update UI
+        updateLegend();
+        draw();
+    }
+    
+    // Debug utility
+    debug() {
+        console.log('🐛 History Debug:', {
+            timelineLength: this.timeline.length,
+            cursor: this.cursor,
+            pending: this.pending,
+            canUndo: this.cursor > 0,
+            canRedo: this.cursor < this.timeline.length - 1
+        });
+    }
+    
+    // Memory usage reporting
+    getMemoryUsage() {
+        try {
+            var totalSize = 0;
+            for(var i = 0; i < this.timeline.length; i++) {
+                totalSize += JSON.stringify(this.timeline[i]).length;
+            }
+            return {
+                entries: this.timeline.length,
+                bytesApprox: totalSize,
+                kbApprox: Math.round(totalSize / 1024)
+            };
+        } catch(e) {
+            return { error: e.message };
+        }
+    }
+}
+
+// Initialize the history manager with current state
+var canvasHistory = null;
 
 // Make InteractionManager globally accessible for debugging
 window.InteractionManager = {
@@ -1373,6 +1680,14 @@ window.onload = function() {
 	console.log("canvas element:", canvas);
 	restoreBackup();
 	updateLegend(); // Update legend after restore
+	
+	// Initialize history manager with current state (Phase 1)
+	canvasHistory = new CanvasRecentHistoryManager(null); // Will capture initial state in first push
+	// Capture the initial state after restore
+	var initialState = canvasHistory.serializeCurrentState();
+	canvasHistory.timeline[0] = initialState; // Replace the null with actual initial state
+	console.log("📚 Canvas history initialized");
+	
 	draw();
 
 	// Canvas resize handling - moved from index.html
@@ -1415,6 +1730,7 @@ window.onload = function() {
 		} else {
 			content.style.display = 'none';
 			toggle.textContent = '►';
+            
 		}
 	}
 
@@ -1515,6 +1831,13 @@ window.onload = function() {
 			
 			resetCaret();
 			updateLegend(); // Update legend when new node created
+			
+			// Phase 2: Capture state after node creation (immediate operation)
+			if(canvasHistory) {
+				var newState = canvasHistory.serializeCurrentState();
+				canvasHistory.push(newState, {skipIfEqual: true});
+			}
+			
 			draw();
 		} else if(InteractionManager.getSelected() instanceof Node) {
 			var needsLegendUpdate = false;
@@ -1535,6 +1858,11 @@ window.onload = function() {
 			// Update legend if node appearance changed
 			if(needsLegendUpdate) {
 				updateLegend();
+				// Phase 2: Capture state after appearance change (immediate operation)
+				if(canvasHistory) {
+					var newState = canvasHistory.serializeCurrentState();
+					canvasHistory.push(newState, {skipIfEqual: true});
+				}
 			}
 			
 			// Mode transition: double-clicking a node without modifiers switches to editing mode
@@ -1637,7 +1965,14 @@ window.onload = function() {
 			return false;
 		}
 		
+		// Phase 2: Capture state after drag operation ends (if object was moved)
+		var wasDragging = movingObject;
 		movingObject = false;
+		
+		if(wasDragging && canvasHistory) {
+			var newState = canvasHistory.serializeCurrentState();
+			canvasHistory.push(newState, {skipIfEqual: true});
+		}
 
 		if(isSelecting && selectionBox.active) {
 			// Find nodes within selection rectangle
@@ -1667,6 +2002,12 @@ window.onload = function() {
 				InteractionManager.setSelected(currentLink);
 				links.push(currentLink);
 				resetCaret();
+				
+				// Phase 2: Capture state after link creation (immediate operation)
+				if(canvasHistory) {
+					var newState = canvasHistory.serializeCurrentState();
+					canvasHistory.push(newState, {skipIfEqual: true});
+				}
 			}
 			currentLink = null;
 			draw();
@@ -1762,6 +2103,43 @@ var suppressTypingUntil = 0; // Timestamp to suppress typing after node creation
 
 document.onkeydown = function(e) {
 	var key = crossBrowserKey(e);
+	
+	// Handle undo/redo shortcuts (Cmd+Z/Ctrl+Z, Cmd+Y/Ctrl+Y, Cmd+Shift+Z)
+	if((e.metaKey || e.ctrlKey) && !e.altKey) {
+		if(key == 90) { // Z key
+			if(e.shiftKey) {
+				// Cmd+Shift+Z or Ctrl+Shift+Z = Redo (alternative)
+				if(canvasHistory) {
+					var state = canvasHistory.redo();
+					if(state) {
+						canvasHistory.restoreState(state);
+					}
+				}
+				e.preventDefault();
+				return false;
+			} else {
+				// Cmd+Z or Ctrl+Z = Undo
+				if(canvasHistory) {
+					var state = canvasHistory.undo();
+					if(state) {
+						canvasHistory.restoreState(state);
+					}
+				}
+				e.preventDefault();
+				return false;
+			}
+		} else if(key == 89 && !e.shiftKey) { // Y key (without shift)
+			// Cmd+Y or Ctrl+Y = Redo
+			if(canvasHistory) {
+				var state = canvasHistory.redo();
+				if(state) {
+					canvasHistory.restoreState(state);
+				}
+			}
+			e.preventDefault();
+			return false;
+		}
+	}
 
 	if(key == 16) {
 		shift = true;
@@ -1782,6 +2160,13 @@ document.onkeydown = function(e) {
 			}
 			suppressTypingUntil = Date.now() + 300; // Suppress typing briefly
 			updateLegend(); // Update legend after shape change
+			
+			// Phase 2: Capture state after shape change (immediate operation)
+			if(canvasHistory) {
+				var newState = canvasHistory.serializeCurrentState();
+				canvasHistory.push(newState, {skipIfEqual: true});
+			}
+			
 			draw();
 		}
 	} else if(key == 81 || key == 87 || key == 69 || key == 82 || key == 84) { // Q, W, E, R, T keys
@@ -1800,6 +2185,13 @@ document.onkeydown = function(e) {
 			}
 			suppressTypingUntil = Date.now() + 300; // Suppress typing briefly
 			updateLegend(); // Update legend after color change
+			
+			// Phase 2: Capture state after color change (immediate operation)
+			if(canvasHistory) {
+				var newState = canvasHistory.serializeCurrentState();
+				canvasHistory.push(newState, {skipIfEqual: true});
+			}
+			
 			draw();
 		}
 	} else if(!canvasHasFocus()) {
@@ -1818,6 +2210,10 @@ document.onkeydown = function(e) {
 				// Legacy behavior: delete from end
 				selected.text = selected.text.substr(0, selected.text.length - 1);
 			}
+			
+			// Phase 2: Schedule debounced history capture for backspace
+			scheduleTypingHistoryCapture();
+			
 			resetCaret();
 			draw();
 		}
@@ -1871,6 +2267,10 @@ document.onkeydown = function(e) {
 					var after = selected.text.substring(selected.cursorPosition + 1);
 					selected.text = before + after;
 					// Cursor position stays the same (character after was deleted)
+					
+					// Phase 2: Schedule debounced history capture for forward delete
+					scheduleTypingHistoryCapture();
+					
 					resetCaret(); // Make cursor visible after deletion
 					draw();
 				}
@@ -1899,6 +2299,13 @@ document.onkeydown = function(e) {
 			selectedNodes = [];
 			InteractionManager.setSelected(null);
 			updateLegend(); // Update legend after deleting nodes
+			
+			// Phase 2: Capture state after multi-node deletion (immediate operation)
+			if(canvasHistory) {
+				var newState = canvasHistory.serializeCurrentState();
+				canvasHistory.push(newState, {skipIfEqual: true});
+			}
+			
 			draw();
 		} else if(InteractionManager.getSelected() != null) {
 			// Original single object deletion logic
@@ -1914,6 +2321,13 @@ document.onkeydown = function(e) {
 			}
 			InteractionManager.setSelected(null);
 			updateLegend(); // Update legend after deleting node
+			
+			// Phase 2: Capture state after single object deletion (immediate operation)
+			if(canvasHistory) {
+				var newState = canvasHistory.serializeCurrentState();
+				canvasHistory.push(newState, {skipIfEqual: true});
+			}
+			
 			draw();
 		}
 	} else if(key == 27) { // escape key
@@ -1982,6 +2396,9 @@ document.onkeypress = function(e) {
 			// Legacy behavior: append to end
 			selected.text += String.fromCharCode(key);
 		}
+		
+		// Phase 2: Schedule debounced history capture for typing
+		scheduleTypingHistoryCapture();
 		
 		resetCaret();
 		draw();
