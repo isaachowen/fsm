@@ -284,41 +284,35 @@ if (typeof btoa == 'undefined') {
 				<!-- Content populated dynamically -->
 			</div>
 			
-			<!-- Color/Shape Guide -->
-			<div class="color-shape-guide" style="margin: 15px 0; text-align: center; padding: 8px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">
-				<p style="margin: 0 0 5px 0; font-size: 12px; font-weight: bold;">Color/Shape Examples:</p>
+			<!-- Color Guide -->
+			<div class="color-guide" style="margin: 15px 0; text-align: center; padding: 8px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">
+				<p style="margin: 0 0 5px 0; font-size: 12px; font-weight: bold;">Color Examples:</p>
 				<svg width="250" height="60" viewBox="0 0 250 60" style="display: block; margin: 0 auto; max-width: 100%; height: auto;">
 					<!-- Background -->
 					<rect width="250" height="60" fill="#fdfdfd" stroke="#eee" stroke-width="0.5"/>
 					
-					<!-- Shape 1: Dot (1q) -->
-					<g transform="translate(25, 20)">
+					<!-- Color 1: Yellow (q) -->
+					<g transform="translate(50, 20)">
 						<circle cx="0" cy="0" r="12" fill="#fff2a8" stroke="#9ac29a" stroke-width="1.5"/>
-						<text x="0" y="25" text-anchor="middle" font-size="12" font-family="Arial, sans-serif" fill="#333">1q</text>
+						<text x="0" y="25" text-anchor="middle" font-size="12" font-family="Arial, sans-serif" fill="#333">q</text>
 					</g>
 					
-					<!-- Shape 2: Triangle (3w) -->
-					<g transform="translate(75, 20)">
-						<polygon points="0,-12 -10.39,6 10.39,6" fill="#c8e6c9" stroke="#9ac29a" stroke-width="1.5"/>
-						<text x="0" y="25" text-anchor="middle" font-size="12" font-family="Arial, sans-serif" fill="#333">3w</text>
+					<!-- Color 2: Green (w) -->
+					<g transform="translate(100, 20)">
+						<circle cx="0" cy="0" r="12" fill="#c8e6c9" stroke="#9ac29a" stroke-width="1.5"/>
+						<text x="0" y="25" text-anchor="middle" font-size="12" font-family="Arial, sans-serif" fill="#333">w</text>
 					</g>
 					
-					<!-- Shape 3: Square (4e) -->
-					<g transform="translate(125, 20)">
-						<rect x="-10.2" y="-10.2" width="20.4" height="20.4" fill="#bbdefb" stroke="#9ac29a" stroke-width="1.5"/>
-						<text x="0" y="25" text-anchor="middle" font-size="12" font-family="Arial, sans-serif" fill="#333">4e</text>
+					<!-- Color 3: Blue (e) -->
+					<g transform="translate(150, 20)">
+						<circle cx="0" cy="0" r="12" fill="#bbdefb" stroke="#9ac29a" stroke-width="1.5"/>
+						<text x="0" y="25" text-anchor="middle" font-size="12" font-family="Arial, sans-serif" fill="#333">e</text>
 					</g>
 					
-					<!-- Shape 4: Pentagon (5r) -->
-					<g transform="translate(175, 20)">
-						<polygon points="0,-12 11.4,-3.7 7.1,9.7 -7.1,9.7 -11.4,-3.7" fill="#f8bbd9" stroke="#9ac29a" stroke-width="1.5"/>
-						<text x="0" y="25" text-anchor="middle" font-size="12" font-family="Arial, sans-serif" fill="#333">5r</text>
-					</g>
-					
-					<!-- Shape 5: Hexagon (6t) -->
-					<g transform="translate(225, 20)">
-						<polygon points="0,-12 10.4,-6 10.4,6 0,12 -10.4,6 -10.4,-6" fill="#ffffff" stroke="#9ac29a" stroke-width="1.5"/>
-						<text x="0" y="25" text-anchor="middle" font-size="12" font-family="Arial, sans-serif" fill="#333">6t</text>
+					<!-- Color 4: Pink (r) -->
+					<g transform="translate(200, 20)">
+						<circle cx="0" cy="0" r="12" fill="#f8bbd9" stroke="#9ac29a" stroke-width="1.5"/>
+						<text x="0" y="25" text-anchor="middle" font-size="12" font-family="Arial, sans-serif" fill="#333">r</text>
 					</g>
 				</svg>
 			</div>
@@ -343,7 +337,7 @@ function populateGuide() {
 	if (ui_flow_v2) {
 		// New three-state interaction system
 		html += '<ul style="margin: 0 0 15px 0; padding-left: 20px; line-height: 16px;">';
-		html += '<li><b>Add node:</b> double-click (hold shape/color keys)</li>';
+		html += '<li><b>Add node:</b> double-click (hold color keys)</li>';
 		html += '<li><b>Select object:</b> single click</li>';
 		html += '<li><b>Edit text:</b> double-click selected object OR press Enter</li>';
 		html += '<li><b>Exit editing:</b> press Escape (steps back through modes) or click away</li>';
@@ -352,7 +346,6 @@ function populateGuide() {
 		html += '<li><b>Move group:</b> drag any selected node</li>';
 		html += '<li><b>Add arrow:</b> shift-drag between nodes</li>';
 		html += '<li><b>Delete:</b> select + delete key</li>';
-		html += '<li><b>Change shape:</b> select node + press 1|3|4|5|6</li>';
 		html += '<li><b>Change color:</b> select node + press q|w|e|r|t</li>';
 		html += '<li><b>Subscript text:</b> use underscore (S_0)</li>';
 		html += '<li><b>Greek text:</b> use backslash (\\beta)</li>';
@@ -370,14 +363,13 @@ function populateGuide() {
 		html += '</div>';
 		
 		html += '<ul style="margin: 0 0 15px 0; padding-left: 20px; line-height: 16px;">';
-		html += '<li><b>Add node:</b> double-click (hold shape/color keys)</li>';
+		html += '<li><b>Add node:</b> double-click (hold color keys)</li>';
 		html += '<li><b>Edit text:</b> click object and start typing</li>';
 		html += '<li><b>Move node:</b> drag</li>';
 		html += '<li><b>Select multiple:</b> drag box around nodes</li>';
 		html += '<li><b>Move group:</b> drag any selected node</li>';
 		html += '<li><b>Add arrow:</b> shift-drag</li>';
 		html += '<li><b>Delete:</b> select + delete key</li>';
-		html += '<li><b>Node shape:</b> hold 1|3|4|5|6 + double-click</li>';
 		html += '<li><b>Node color:</b> hold q|w|e|r|t + double-click</li>';
 		html += '<li><b>Subscript text:</b> use underscore (S_0)</li>';
 		html += '<li><b>Greek text:</b> use backslash (\\beta)</li>';

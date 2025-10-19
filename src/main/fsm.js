@@ -891,21 +891,21 @@ function moveSelectedNodesGroup(deltaX, deltaY) {
 	}
 }
 
-function generateLegendKey(color, shape) {
+function generateLegendKey(color) {
 	/**
-	 * generateLegendKey - Creates a unique string identifier for a color+shape combination
+	 * generateLegendKey - Creates a unique string identifier for a color
 	 * 
 	 * Called by:
 	 * - updateLegendEntries() to create consistent keys for legend tracking
 	 * - Legend management functions for data structure operations
 	 * 
 	 * Calls:
-	 * - String concatenation with underscore separator
+	 * - String return for color identifier
 	 * 
 	 * Purpose: Provides consistent key generation for legend entry identification.
-	 * Format: "color_shape" (e.g., "yellow_dot", "red_triangle")
+	 * Format: "color" (e.g., "yellow", "red")
 	 */
-	return color + '_' + shape;
+	return color;
 }
 
 function updateLegendEntries() {
@@ -918,23 +918,22 @@ function updateLegendEntries() {
 	 * 
 	 * Calls:
 	 * - generateLegendKey() to create consistent identifiers
-	 * - Node color and shape properties for categorization
+	 * - Node color properties for categorization
 	 * 
 	 * Purpose: Maintains accurate legend state by scanning all existing nodes
-	 * and tracking unique color+shape combinations with their counts.
-	 * Removes entries when no nodes of that type exist.
+	 * and tracking unique colors with their counts.
+	 * Removes entries when no nodes of that color exist.
 	 */
 	var newEntries = {};
 	
 	// Scan all existing nodes
 	for (var i = 0; i < nodes.length; i++) {
 		var node = nodes[i];
-		var key = generateLegendKey(node.color, node.shape);
+		var key = generateLegendKey(node.color);
 		
 		if (!newEntries[key]) {
 			newEntries[key] = {
 				color: node.color,
-				shape: node.shape,
 				description: '',
 				count: 0,
 				inputElement: null
@@ -1007,7 +1006,7 @@ function updateLegendHTML() {
 		miniCanvas.style.display = 'block'; // Explicit block display
 		
 		// Draw mini node
-		drawMiniNode(miniCanvas, entry.color, entry.shape);
+		drawMiniNode(miniCanvas, entry.color);
 		
 		// Create text input
 		var input = document.createElement('input');
@@ -1079,7 +1078,7 @@ function createLegendContainer() {
 	document.body.appendChild(legendContainer);
 }
 
-function drawMiniNode(miniCanvas, color, shape) {
+function drawMiniNode(miniCanvas, color) {
 	/**
 	 * drawMiniNode - Draws a miniature representation of a node in the legend
 	 * 
@@ -1090,7 +1089,7 @@ function drawMiniNode(miniCanvas, color, shape) {
 	 * - Canvas 2D API functions for drawing
 	 * - Node color methods for consistent coloring
 	 * 
-	 * Purpose: Renders a small version of each unique node type for visual
+	 * Purpose: Renders a small version of each unique node color for visual
 	 * reference in the legend, using the same drawing logic as full nodes.
 	 */
 	var c = miniCanvas.getContext('2d');
@@ -1101,7 +1100,7 @@ function drawMiniNode(miniCanvas, color, shape) {
 	c.clearRect(0, 0, miniCanvas.width, miniCanvas.height);
 	
 	// Create temporary node for color methods
-	var tempNode = { color: color, shape: shape };
+	var tempNode = { color: color };
 	tempNode.getBaseColor = Node.prototype.getBaseColor;
 	
 	c.fillStyle = tempNode.getBaseColor();
@@ -1109,67 +1108,12 @@ function drawMiniNode(miniCanvas, color, shape) {
 	c.lineWidth = 1.5;
 	
 	c.beginPath();
-	
-	switch(shape) {
-		case 'dot':
-			c.arc(centerX, centerY, miniRadius, 0, 2 * Math.PI, false);
-			break;
-		case 'triangle':
-			c.moveTo(centerX, centerY - miniRadius);
-			c.lineTo(centerX - miniRadius * Math.cos(Math.PI/6), centerY + miniRadius * Math.sin(Math.PI/6));
-			c.lineTo(centerX + miniRadius * Math.cos(Math.PI/6), centerY + miniRadius * Math.sin(Math.PI/6));
-			c.closePath();
-			break;
-		case 'square':
-			var r = miniRadius * 0.85;
-			c.rect(centerX - r, centerY - r, 2 * r, 2 * r);
-			break;
-		case 'pentagon':
-			drawMiniPolygon(c, centerX, centerY, miniRadius, 5);
-			break;
-		case 'hexagon':
-			drawMiniPolygon(c, centerX, centerY, miniRadius, 6);
-			break;
-		default:
-			c.arc(centerX, centerY, miniRadius, 0, 2 * Math.PI, false);
-	}
-	
+	c.arc(centerX, centerY, miniRadius, 0, 2 * Math.PI, false);
 	c.fill();
 	c.stroke();
 }
 
-function drawMiniPolygon(c, centerX, centerY, radius, sides) {
-	/**
-	 * drawMiniPolygon - Helper function to draw regular polygons in legend
-	 * 
-	 * Called by:
-	 * - drawMiniNode() for pentagon and hexagon shapes
-	 * 
-	 * Calls:
-	 * - Math.cos(), Math.sin() for vertex calculations
-	 * - Canvas path drawing functions
-	 * 
-	 * Purpose: Renders regular polygons with specified number of sides
-	 * for consistent mini-node representation in the legend.
-	 */
-	var angle = -Math.PI / 2; // Start from top
-	var angleStep = 2 * Math.PI / sides;
-	
-	c.moveTo(
-		centerX + radius * Math.cos(angle),
-		centerY + radius * Math.sin(angle)
-	);
-	
-	for (var i = 1; i < sides; i++) {
-		angle += angleStep;
-		c.lineTo(
-			centerX + radius * Math.cos(angle),
-			centerY + radius * Math.sin(angle)
-		);
-	}
-	
-	c.closePath();
-}
+
 
 function showLegendIfNeeded() {
 	/**
@@ -1502,14 +1446,13 @@ window.onload = function() {
 			// Clear group selection when creating new node
 			selectedNodes = [];
 			
-			// Create new node with specified shape and color
-			var shape = getShapeFromModifier(shapeModifier);
+			// Create new node with specified color
 			var color = getColorFromModifier(colorModifier);
-			InteractionManager.setSelected(new Node(worldMouse.x, worldMouse.y, shape, color));
+			InteractionManager.setSelected(new Node(worldMouse.x, worldMouse.y, color));
 			nodes.push(InteractionManager.getSelected());
 			
 			// If we used a modifier, suppress typing briefly to allow key release
-			if(shapeModifier != null || colorModifier != null) {
+			if(colorModifier != null) {
 				suppressTypingUntil = Date.now() + 300; // 300ms suppression
 			}
 			
@@ -1518,13 +1461,6 @@ window.onload = function() {
 			draw();
 		} else if(InteractionManager.getSelected() instanceof Node) {
 			var needsLegendUpdate = false;
-			if(shapeModifier != null && InteractionManager.canChangeNodeAppearance()) {
-				// Change existing node to specific shape
-				InteractionManager.getSelected().shape = getShapeFromModifier(shapeModifier);
-				// Suppress typing briefly when changing shapes too
-				suppressTypingUntil = Date.now() + 300;
-				needsLegendUpdate = true;
-			}
 			if(colorModifier != null && InteractionManager.canChangeNodeAppearance()) {
 				// Change existing node to specific color
 				InteractionManager.getSelected().color = getColorFromModifier(colorModifier);
@@ -1538,7 +1474,7 @@ window.onload = function() {
 			}
 			
 			// Mode transition: double-clicking a node without modifiers switches to editing mode
-			if(ui_flow_v2 && shapeModifier == null && colorModifier == null) {
+			if(ui_flow_v2 && colorModifier == null) {
 				InteractionManager.enterEditingMode(InteractionManager.getSelected());
 			}
 			
@@ -1756,7 +1692,6 @@ window.onload = function() {
 }
 
 var shift = false;
-var shapeModifier = null; // Will store the number key pressed (1, 3, 4, 5, 6)
 var colorModifier = null; // Will store the letter key pressed (Q, W, E, R, T)
 var suppressTypingUntil = 0; // Timestamp to suppress typing after node creation
 
@@ -1765,25 +1700,6 @@ document.onkeydown = function(e) {
 
 	if(key == 16) {
 		shift = true;
-	} else if(key >= 49 && key <= 54) { // Keys 1, 3, 4, 5, 6 (skip 2 for future use)
-		if(key === 50) return; // Skip key 2 for now
-		shapeModifier = key - 48; // Convert keycode to number (1, 3, 4, 5, 6)
-		
-		// Immediate shape change in selection or multiselect mode
-		if(ui_flow_v2 && InteractionManager.canChangeNodeAppearance()) {
-			if(InteractionManager.getMode() === 'selection') {
-				// Single node selection
-				InteractionManager.getSelected().shape = getShapeFromModifier(shapeModifier);
-			} else if(InteractionManager.getMode() === 'multiselect') {
-				// Multiple node selection - apply to all selected nodes
-				for(var i = 0; i < selectedNodes.length; i++) {
-					selectedNodes[i].shape = getShapeFromModifier(shapeModifier);
-				}
-			}
-			suppressTypingUntil = Date.now() + 300; // Suppress typing briefly
-			updateLegend(); // Update legend after shape change
-			draw();
-		}
 	} else if(key == 81 || key == 87 || key == 69 || key == 82 || key == 84) { // Q, W, E, R, T keys
 		colorModifier = String.fromCharCode(key); // Convert keycode to letter (Q, W, E, R, T)
 		
@@ -1949,8 +1865,6 @@ document.onkeyup = function(e) {
 
 	if(key == 16) {
 		shift = false;
-	} else if(key >= 49 && key <= 54 && key !== 50) { // Keys 1, 3, 4, 5, 6 (skip 2)
-		shapeModifier = null;
 	} else if(key == 81 || key == 87 || key == 69 || key == 82 || key == 84) { // Q, W, E, R, T keys
 		colorModifier = null;
 	}
@@ -1994,32 +1908,7 @@ document.onkeypress = function(e) {
 	}
 };
 
-function getShapeFromModifier(modifier) {
-	/**
-	 * getShapeFromModifier - Maps numeric modifier keys to node shape names
-	 * 
-	 * Called by:
-	 * - Keyboard event handlers when number keys are pressed with selected node
-	 * - Node creation code to set initial shapes
-	 * - Node appearance cycling systems
-	 * 
-	 * Calls:
-	 * - switch statement for modifier-to-shape mapping
-	 * - No external function calls
-	 * 
-	 * Purpose: Translates keyboard input (number keys 1,3,4,5,6) into corresponding
-	 * node shape strings. Enables quick shape changes via keyboard shortcuts.
-	 * Returns shape names that correspond to Node rendering methods.
-	 */
-	switch(modifier) {
-		case 1: return 'dot';
-		case 3: return 'triangle';
-		case 4: return 'square';
-		case 5: return 'pentagon';
-		case 6: return 'hexagon';
-		default: return 'dot'; // Default fallback
-	}
-}
+
 
 function getColorFromModifier(modifier) {
 	/**
@@ -2246,7 +2135,6 @@ function downloadAsJSON() {
 			x: node.x,
 			y: node.y, 
 			text: node.text,
-			shape: node.shape || 'dot', // Include shape property
 			color: node.color || 'yellow'  // Include color property
 		});
 	}
@@ -2344,12 +2232,8 @@ function processJSONData(jsonData, filename) {
 	var nodeMap = new Map(); // Maps JSON ID to Node object
 	for (var i = 0; i < jsonData.nodes.length; i++) {
 		var nodeData = jsonData.nodes[i];
-		var node = new Node(nodeData.x, nodeData.y, nodeData.shape, nodeData.color);
+		var node = new Node(nodeData.x, nodeData.y, nodeData.color);
 		node.text = nodeData.text || '';
-		// Handle backward compatibility - default to circle if no shape specified
-		if (!node.shape) {
-			node.shape = 'dot';
-		}
 		// Handle backward compatibility - default to yellow if no color specified
 		if (!node.color) {
 			node.color = 'yellow';
