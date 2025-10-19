@@ -816,9 +816,9 @@ CanvasRecentHistoryManager.prototype.current = function() {
 
 CanvasRecentHistoryManager.prototype.push = function(nextState, options) {
 	options = options || {};
-	var coalesceKey = options.coalesceKey;
-	var replaceTop = options.replaceTop;
-	var skipIfEqual = options.skipIfEqual;
+	var coalesceKey = options.coalesceKey || null;
+	var replaceTop = options.replaceTop || false;
+	var skipIfEqual = options.skipIfEqual !== undefined ? options.skipIfEqual : true; // Default to true (skip duplicates by default)
 	
 	// Skip identical states (prevent phantom undos)
 	if (skipIfEqual && this.stateEqual(this.current(), nextState)) {
@@ -905,7 +905,7 @@ CanvasRecentHistoryManager.prototype.stateEqual = function(state1, state2) {
 CanvasRecentHistoryManager.prototype.serializeCurrentState = function() {
 	// Reuse existing backup serialization logic from save.js
 	var state = {
-		timestamp: Date.now(),
+		// timestamp: Date.now(), // REMOVED: Timestamp prevents deduplication
 		nodes: [],
 		links: [],
 		viewport: {
