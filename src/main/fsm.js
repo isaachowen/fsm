@@ -1260,6 +1260,15 @@ function drawUsing(c) {
 	// Draw selection rectangle on top of everything else
 	drawSelectionBox(c);
 
+	// Draw black dots at node centers to show x,y coordinates
+	c.fillStyle = '#000000';  // Black color
+	for(var i = 0; i < nodes.length; i++) {
+		var node = nodes[i];
+		c.beginPath();
+		c.arc(node.x, node.y, 3, 0, 2 * Math.PI, false);  // 3 pixel radius dot
+		c.fill();
+	}
+
 	c.restore();
 }
 
