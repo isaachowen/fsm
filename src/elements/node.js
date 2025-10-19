@@ -60,7 +60,7 @@ Node.prototype.drawDot = function(c) {
 
 
 
-Node.prototype.closestPointOnShapeToEdgeArc = function(x, y) {
+Node.prototype.closestPointOnNodeToEdgeArc = function(x, y) {
 	var dx = x - this.x;
 	var dy = y - this.y;
 	var scale = Math.sqrt(dx * dx + dy * dy);

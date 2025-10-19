@@ -736,7 +736,7 @@ var viewport = {
 };
 
 // Legend system for tracking unique node type combinations
-var legendEntries = {}; // Key-value pairs of "color_shape" -> entry data
+var legendEntries = {}; // Key-value pairs of "color" -> entry data
 var legendContainer = null; // HTML container element for legend
 var legendInputs = {}; // Map of entry keys to input elements
 
@@ -1523,7 +1523,7 @@ window.onload = function() {
 				} else if(targetNode != null) {
 					currentLink = new Link(InteractionManager.getSelected(), targetNode);
 				} else {
-					currentLink = new TemporaryLink(InteractionManager.getSelected().closestPointOnShapeToEdgeArc(worldMouse.x, worldMouse.y), worldMouse);
+					currentLink = new TemporaryLink(InteractionManager.getSelected().closestPointOnNodeToEdgeArc(worldMouse.x, worldMouse.y), worldMouse);
 				}
 			}
 			draw();
@@ -2297,7 +2297,6 @@ function processJSONData(jsonData, filename) {
 				if (parts.length === 2) {
 					legendEntries[legendKey] = {
 						color: parts[0],
-						shape: parts[1],
 						description: jsonData.legend[legendKey],
 						count: 0,
 						inputElement: null
