@@ -735,6 +735,410 @@ var viewport = {
 	panStartY: 0       // Mouse position when pan started
 };
 
+// =============================================================================
+// UNDO/REDO HISTORY SYSTEM - TIMELINE-BASED WITH COALESCING
+// =============================================================================
+
+/**
+ * CanvasRecentHistoryManager - Timeline-based undo/redo system with smart coalescing
+ * 
+ * Core Features:
+ * - Timeline storage with cursor navigation (10-item sliding window)
+ * - Smart coalescing for continuous operations (typing, dragging)
+ * - Automatic deduplication to prevent phantom undos
+ * - Memory-efficient in-memory storage (~10-50KB total)
+ * - Integration with existing serialization system
+ * 
+ * Usage Pattern:
+ * 1. Push states at operation boundaries (not micro-events)
+ * 2. Use coalescing for continuous operations (typing, dragging)
+ * 3. Call undo/redo from keyboard shortcuts
+ * 4. Automatic cleanup maintains memory limits
+ */
+function CanvasRecentHistoryManager(initialState) {
+	this.timeline = [];        // Array of state snapshots (max 10)
+	this.cursor = -1;          // Current position in timeline (-1 to timeline.length-1)
+	this.pending = null;       // Coalescing tracker {key: string, idx: number}
+	this.maxHistory = 10;      // History depth limit
+	
+	// Always start with initial state
+	if (initialState) {
+		this.push(initialState);
+	}
+}
+
+CanvasRecentHistoryManager.prototype.current = function() {
+	return this.cursor >= 0 ? this.timeline[this.cursor] : null;
+};
+
+CanvasRecentHistoryManager.prototype.push = function(nextState, options) {
+	options = options || {};
+	var coalesceKey = options.coalesceKey;
+	var replaceTop = options.replaceTop;
+	var skipIfEqual = options.skipIfEqual;
+	
+	// Skip identical states (prevent phantom undos)
+	if (skipIfEqual && this.stateEqual(this.current(), nextState)) {
+		return;
+	}
+	
+	// Clear future history if not at end (standard undo behavior)
+	if (this.cursor < this.timeline.length - 1) {
+		this.timeline = this.timeline.slice(0, this.cursor + 1);
+		this.pending = null;
+	}
+	
+	// Coalesce with previous entry if keys match
+	if (coalesceKey && this.pending && this.pending.key === coalesceKey && 
+	    this.pending.idx === this.cursor) {
+		this.timeline[this.cursor] = nextState;
+		return;
+	}
+	
+	// Replace current entry instead of adding new
+	if (replaceTop && this.cursor >= 0) {
+		this.timeline[this.cursor] = nextState;
+		return;
+	}
+	
+	// Add new entry to timeline
+	this.timeline.push(nextState);
+	this.cursor++;
+	
+	// Track coalescing state
+	if (coalesceKey) {
+		this.pending = {key: coalesceKey, idx: this.cursor};
+	} else {
+		this.pending = null;
+	}
+	
+	// Maintain history limit (sliding window)
+	if (this.timeline.length > this.maxHistory) {
+		this.timeline.shift();
+		this.cursor--;
+		if (this.pending) {
+			this.pending.idx--;
+		}
+	}
+};
+
+CanvasRecentHistoryManager.prototype.undo = function() {
+	if (this.cursor > 0) {
+		this.cursor--;
+		this.pending = null;
+		return this.current();
+	}
+	return null;
+};
+
+CanvasRecentHistoryManager.prototype.redo = function() {
+	if (this.cursor < this.timeline.length - 1) {
+		this.cursor++;
+		this.pending = null;
+		return this.current();
+	}
+	return null;
+};
+
+CanvasRecentHistoryManager.prototype.canUndo = function() {
+	return this.cursor > 0;
+};
+
+CanvasRecentHistoryManager.prototype.canRedo = function() {
+	return this.cursor < this.timeline.length - 1;
+};
+
+CanvasRecentHistoryManager.prototype.stateEqual = function(state1, state2) {
+	if (!state1 || !state2) return state1 === state2;
+	
+	// Deep comparison using JSON serialization (sufficient for our use case)
+	try {
+		return JSON.stringify(state1) === JSON.stringify(state2);
+	} catch (e) {
+		return false;
+	}
+};
+
+CanvasRecentHistoryManager.prototype.serializeCurrentState = function() {
+	// Reuse existing backup serialization logic from save.js
+	var state = {
+		timestamp: Date.now(),
+		nodes: [],
+		links: [],
+		selections: {
+			selectedObjectId: null,
+			selectedObjectType: null,
+			selectedNodesIds: [],
+			interactionMode: InteractionManager.getMode()
+		},
+		viewport: {
+			x: viewport.x,
+			y: viewport.y,
+			scale: viewport.scale
+		},
+		legend: {}
+	};
+	
+	// Serialize nodes
+	for (var i = 0; i < nodes.length; i++) {
+		var node = nodes[i];
+		state.nodes.push({
+			id: i,
+			x: node.x,
+			y: node.y,
+			text: node.text,
+			color: node.color || 'yellow'
+		});
+	}
+	
+	// Serialize links
+	for (var i = 0; i < links.length; i++) {
+		var link = links[i];
+		var linkData = { text: link.text };
+		
+		if (link instanceof SelfLink) {
+			linkData.type = 'SelfLink';
+			linkData.node = nodes.indexOf(link.node);
+			linkData.anchorAngle = link.anchorAngle;
+		} else if (link instanceof StartLink) {
+			linkData.type = 'StartLink';
+			linkData.node = nodes.indexOf(link.node);
+			linkData.deltaX = link.deltaX;
+			linkData.deltaY = link.deltaY;
+		} else if (link instanceof Link) {
+			linkData.type = 'Link';
+			linkData.nodeA = nodes.indexOf(link.nodeA);
+			linkData.nodeB = nodes.indexOf(link.nodeB);
+			linkData.parallelPart = link.parallelPart;
+			linkData.perpendicularPart = link.perpendicularPart;
+			linkData.lineAngleAdjust = link.lineAngleAdjust || 0;
+		}
+		
+		state.links.push(linkData);
+	}
+	
+	// Serialize selections
+	var selected = InteractionManager.getSelected();
+	if (selected) {
+		if (selected instanceof Node) {
+			state.selections.selectedObjectId = nodes.indexOf(selected);
+			state.selections.selectedObjectType = 'node';
+		} else {
+			// For links, find index in links array
+			state.selections.selectedObjectId = links.indexOf(selected);
+			state.selections.selectedObjectType = 'link';
+		}
+	}
+	
+	// Serialize selected nodes (multi-select)
+	state.selections.selectedNodesIds = selectedNodes.map(function(node) {
+		return nodes.indexOf(node);
+	});
+	
+	// Serialize legend descriptions
+	for (var key in legendEntries) {
+		if (legendEntries[key] && legendEntries[key].description) {
+			state.legend[key] = legendEntries[key].description;
+		}
+	}
+	
+	return state;
+};
+
+CanvasRecentHistoryManager.prototype.restoreState = function(state) {
+	if (!state) return;
+	
+	// Clear current state
+	nodes = [];
+	links = [];
+	InteractionManager.setSelected(null);
+	selectedNodes = [];
+	currentLink = null;
+	
+	// Restore nodes
+	var nodeMap = new Map(); // Maps state ID to Node object
+	for (var i = 0; i < state.nodes.length; i++) {
+		var nodeData = state.nodes[i];
+		var node = new Node(nodeData.x, nodeData.y, nodeData.color || 'yellow');
+		node.text = nodeData.text || '';
+		nodes.push(node);
+		nodeMap.set(nodeData.id, node);
+	}
+	
+	// Restore links
+	for (var i = 0; i < state.links.length; i++) {
+		var linkData = state.links[i];
+		var link;
+		
+		if (linkData.type === 'SelfLink') {
+			var targetNode = nodeMap.get(linkData.node);
+			if (targetNode) {
+				link = new SelfLink(targetNode);
+				link.anchorAngle = linkData.anchorAngle || 0;
+			}
+		} else if (linkData.type === 'StartLink') {
+			var targetNode = nodeMap.get(linkData.node);
+			if (targetNode) {
+				link = new StartLink(targetNode);
+				link.deltaX = linkData.deltaX || -50;
+				link.deltaY = linkData.deltaY || 0;
+			}
+		} else if (linkData.type === 'Link') {
+			var nodeA = nodeMap.get(linkData.nodeA);
+			var nodeB = nodeMap.get(linkData.nodeB);
+			if (nodeA && nodeB) {
+				link = new Link(nodeA, nodeB);
+				link.parallelPart = linkData.parallelPart || 0.5;
+				link.perpendicularPart = linkData.perpendicularPart || 0;
+				link.lineAngleAdjust = linkData.lineAngleAdjust || 0;
+			}
+		}
+		
+		if (link) {
+			link.text = linkData.text || '';
+			links.push(link);
+		}
+	}
+	
+	// Restore selections
+	if (state.selections) {
+		// Restore individual selection
+		if (state.selections.selectedObjectId !== null) {
+			if (state.selections.selectedObjectType === 'node') {
+				var nodeIndex = state.selections.selectedObjectId;
+				if (nodeIndex >= 0 && nodeIndex < nodes.length) {
+					InteractionManager.setSelected(nodes[nodeIndex]);
+				}
+			} else if (state.selections.selectedObjectType === 'link') {
+				var linkIndex = state.selections.selectedObjectId;
+				if (linkIndex >= 0 && linkIndex < links.length) {
+					InteractionManager.setSelected(links[linkIndex]);
+				}
+			}
+		}
+		
+		// Restore multi-selection
+		if (state.selections.selectedNodesIds && state.selections.selectedNodesIds.length > 0) {
+			selectedNodes = [];
+			for (var i = 0; i < state.selections.selectedNodesIds.length; i++) {
+				var nodeIndex = state.selections.selectedNodesIds[i];
+				if (nodeIndex >= 0 && nodeIndex < nodes.length) {
+					selectedNodes.push(nodes[nodeIndex]);
+				}
+			}
+			
+			// Set appropriate mode for multi-selection
+			if (selectedNodes.length > 0 && ui_flow_v2) {
+				InteractionManager.enterMultiselectMode();
+			}
+		}
+		
+		// Restore interaction mode
+		if (ui_flow_v2 && state.selections.interactionMode) {
+			InteractionManager._mode = state.selections.interactionMode;
+		}
+	}
+	
+	// Restore viewport
+	if (state.viewport) {
+		viewport.x = state.viewport.x || 0;
+		viewport.y = state.viewport.y || 0;
+		viewport.scale = state.viewport.scale || 1;
+	}
+	
+	// Restore legend descriptions
+	if (state.legend) {
+		for (var key in state.legend) {
+			if (!legendEntries[key]) {
+				legendEntries[key] = {
+					color: key,
+					description: '',
+					count: 0,
+					inputElement: null
+				};
+			}
+			legendEntries[key].description = state.legend[key];
+		}
+	}
+	
+	// Update legend and redraw
+	updateLegend();
+	draw();
+};
+
+// Debug utility
+CanvasRecentHistoryManager.prototype.debug = function() {
+	return {
+		timelineLength: this.timeline.length,
+		cursor: this.cursor,
+		pending: this.pending,
+		canUndo: this.canUndo(),
+		canRedo: this.canRedo(),
+		memoryUsage: this.getMemoryUsage()
+	};
+};
+
+CanvasRecentHistoryManager.prototype.getMemoryUsage = function() {
+	var totalSize = 0;
+	for (var i = 0; i < this.timeline.length; i++) {
+		try {
+			totalSize += JSON.stringify(this.timeline[i]).length;
+		} catch (e) {
+			// Skip malformed entries
+		}
+	}
+	return {
+		entries: this.timeline.length,
+		bytesApprox: totalSize,
+		kbApprox: Math.round(totalSize / 1024)
+	};
+};
+
+// Global history manager instance
+var canvasHistory = null;
+
+// Undo/Redo operation functions
+function performUndo() {
+	if (!canvasHistory || !canvasHistory.canUndo()) {
+		console.log('⏪ Cannot undo - at beginning of history');
+		return;
+	}
+	
+	var previousState = canvasHistory.undo();
+	if (previousState) {
+		console.log('⏪ Performing undo, moving to cursor:', canvasHistory.cursor);
+		canvasHistory.restoreState(previousState);
+		
+		// Clear pending coalescing when manual undo occurs
+		canvasHistory.pending = null;
+	}
+}
+
+function performRedo() {
+	if (!canvasHistory || !canvasHistory.canRedo()) {
+		console.log('⏩ Cannot redo - at end of history');
+		return;
+	}
+	
+	var nextState = canvasHistory.redo();
+	if (nextState) {
+		console.log('⏩ Performing redo, moving to cursor:', canvasHistory.cursor);
+		canvasHistory.restoreState(nextState);
+		
+		// Clear pending coalescing when manual redo occurs
+		canvasHistory.pending = null;
+	}
+}
+
+// Helper function to push state to history (for use throughout the application)
+function pushHistoryState(options) {
+	if (!canvasHistory) return;
+	
+	var currentState = canvasHistory.serializeCurrentState();
+	canvasHistory.push(currentState, options);
+	console.log('📝 Pushed state to history, cursor:', canvasHistory.cursor, 'options:', options);
+}
+
 // Legend system for tracking unique node type combinations
 var legendEntries = {}; // Key-value pairs of "color" -> entry data
 var legendContainer = null; // HTML container element for legend
@@ -1317,6 +1721,12 @@ window.onload = function() {
 	console.log("canvas element:", canvas);
 	restoreBackup();
 	updateLegend(); // Update legend after restore
+	
+	// Initialize history system with current state
+	canvasHistory = new CanvasRecentHistoryManager();
+	canvasHistory.push(canvasHistory.serializeCurrentState());
+	console.log('📚 History system initialized');
+	
 	draw();
 
 	// Canvas resize handling - moved from index.html
@@ -1697,6 +2107,27 @@ var suppressTypingUntil = 0; // Timestamp to suppress typing after node creation
 
 document.onkeydown = function(e) {
 	var key = crossBrowserKey(e);
+
+	// Handle undo/redo keyboard shortcuts first
+	if (canvasHistory && (e.metaKey || e.ctrlKey)) {
+		if (key == 90) { // Cmd+Z or Ctrl+Z
+			if (e.shiftKey) {
+				// Cmd+Shift+Z = Redo (alternative)
+				e.preventDefault();
+				performRedo();
+				return false;
+			} else {
+				// Cmd+Z = Undo
+				e.preventDefault();
+				performUndo();
+				return false;
+			}
+		} else if (key == 89) { // Cmd+Y or Ctrl+Y = Redo
+			e.preventDefault();
+			performRedo();
+			return false;
+		}
+	}
 
 	if(key == 16) {
 		shift = true;
