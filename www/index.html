@@ -339,10 +339,9 @@ if (typeof btoa == 'undefined') {
 		</div>
 	</div>
 	
-	<!-- Action buttons box - top left -->
-	<div id="actionbuttonbox">
-		<!-- Legacy file input and save-to-download removed; handled by File Explorer -->
-		<button onclick="clearCanvas()" class="danger-button">Clear Sketch</button>
+	<!-- Action buttons box - top left (now empty, could be removed or used for other features) -->
+	<div id="actionbuttonbox" style="display: none;">
+		<!-- All functionality moved to File Explorer -->
 	</div>
 
 	<!-- File Explorer box - top right -->
@@ -448,19 +447,30 @@ if (typeof btoa == 'undefined') {
 			
 			<!-- Save buttons area -->
 			<div id="save-buttons-container" style="display: none; margin-top: 12px;">
-				<!-- Filename input -->
-				<div style="margin-bottom: 10px;">
-					<label for="filenameInput" style="display: block; margin-bottom: 4px; font-size: 11px; color: #333; font-weight: bold;">Filename on save:</label>
-					<div style="display: flex; align-items: center; gap: 2px;">
-						<input type="text" id="filenameInput" placeholder="sketch_name" value=""
-							   style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 3px; font-size: 11px; box-sizing: border-box; font-family: inherit;">
-						<span style="font-size: 11px; color: #666; font-family: inherit;">.json</span>
+				<!-- Opened filename display -->
+				<div style="
+					margin-bottom: 8px;
+					padding: 6px 8px;
+					background: #f0f8ff;
+					border: 1px solid #b3d9ff;
+					border-radius: 4px;
+					font-size: 10px;
+				">
+					<div style="font-weight: bold; color: #0066cc; margin-bottom: 2px;">Currently Loaded:</div>
+					<div id="opened-filename" style="
+						color: #333;
+						font-family: monospace;
+						word-break: break-all;
+						font-style: italic;
+					">
+						No file loaded
 					</div>
 				</div>
 				
-				<div style="display: flex; gap: 6px;">
+				<!-- Save button directly below currently loaded -->
+				<div style="margin-bottom: 12px;">
 					<button id="save-btn" onclick="saveCurrentSketch()" style="
-						flex: 1;
+						width: 100%;
 						background: #9aad6b;
 						color: white;
 						border: none;
@@ -473,7 +483,22 @@ if (typeof btoa == 'undefined') {
 					" disabled>
 						Save
 					</button>
+				</div>
+				
+				<!-- Filename input -->
+				<div style="margin-bottom: 8px;">
+					<label for="filenameInput" style="display: block; margin-bottom: 4px; font-size: 11px; color: #333; font-weight: bold;">Filename on save:</label>
+					<div style="display: flex; align-items: center; gap: 2px;">
+						<input type="text" id="filenameInput" placeholder="sketch_name" value=""
+							   style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 3px; font-size: 11px; box-sizing: border-box; font-family: inherit;">
+						<span style="font-size: 11px; color: #666; font-family: inherit;">.json</span>
+					</div>
+				</div>
+				
+				<!-- Save As button below filename input -->
+				<div style="margin-bottom: 12px;">
 					<button id="save-as-btn" onclick="saveAsSketch()" style="
+						width: 100%;
 						background: #6b8e23;
 						color: white;
 						border: none;
@@ -486,6 +511,25 @@ if (typeof btoa == 'undefined') {
 						Save As...
 					</button>
 				</div>
+				
+				<!-- Clear Sketch button -->
+				<div style="margin-bottom: 10px;">
+					<button onclick="clearCanvas()" style="
+						width: 100%;
+						background: #a67c52;
+						color: white;
+						border: none;
+						padding: 8px 12px;
+						border-radius: 4px;
+						cursor: pointer;
+						font-size: 11px;
+						font-family: inherit;
+						transition: background-color 0.2s;
+					" onmouseover="this.style.background='#8b6640'" onmouseout="this.style.background='#a67c52'">
+						Clear Sketch
+					</button>
+				</div>
+				
 				<div id="current-file-indicator" style="
 					margin-top: 6px;
 					font-size: 10px;
@@ -835,6 +879,7 @@ function loadSketchFile(filename) {
 				updateFileListDisplay();
 				updateSaveButtonStates();
 				updateCurrentFileIndicator(filename);
+				updateOpenedFilename(filename);
 				
 				hideExplorerMessage();
 				console.log('✅ Successfully loaded:', filename);
@@ -901,6 +946,7 @@ function saveSketchToFile(filename) {
 			updateFileListDisplay();
 			updateSaveButtonStates();
 			updateCurrentFileIndicator(filename);
+			updateOpenedFilename(filename);
 			
 			hideExplorerMessage();
 			console.log('✅ Successfully saved:', filename);
@@ -944,6 +990,24 @@ function updateCurrentFileIndicator(filename) {
 		} else {
 			indicator.textContent = 'No file open';
 			indicator.style.color = '#666';
+		}
+	}
+}
+
+/**
+ * Update opened filename display
+ */
+function updateOpenedFilename(filename) {
+	var openedEl = document.getElementById('opened-filename');
+	if (openedEl) {
+		if (filename) {
+			openedEl.textContent = filename;
+			openedEl.style.fontStyle = 'normal';
+			openedEl.style.color = '#333';
+		} else {
+			openedEl.textContent = 'No file loaded';
+			openedEl.style.fontStyle = 'italic';
+			openedEl.style.color = '#666';
 		}
 	}
 }

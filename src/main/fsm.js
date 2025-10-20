@@ -3441,6 +3441,11 @@ function processJSONData(jsonData, filename) {
 	// Update legend after importing (will preserve descriptions and update counts)
 	updateLegend();
 	
+	// Update opened filename display if function exists
+	if (typeof updateOpenedFilename === 'function' && filename) {
+		updateOpenedFilename(filename.toLowerCase().endsWith('.json') ? filename : filename + '.json');
+	}
+	
 	// Redraw and save
 	draw();
 	saveBackup();
@@ -3498,6 +3503,11 @@ function clearCanvas() {
     // Clear the legend
     legendEntries = {};
     updateLegendHTML();
+    
+    // Clear opened filename display if function exists
+    if (typeof updateOpenedFilename === 'function') {
+        updateOpenedFilename(null);
+    }
     
     // Redraw the canvas (will show empty canvas)
     draw();
