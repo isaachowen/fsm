@@ -366,7 +366,16 @@ if (typeof btoa == 'undefined') {
 			justify-content: space-between; 
 			font-size: 14px;
 		">
-			<span>Local Explorer</span>
+			<span>
+				Explorer
+				<span id="header-filename" style="
+					font-weight: normal;
+					font-size: 11px;
+					color: #666;
+					font-style: italic;
+					margin-left: 8px;
+				"></span>
+			</span>
 			<span id="explorer-toggle" style="font-size: 12px; font-weight: normal;">▼</span>
 		</p>
 		
@@ -1009,6 +1018,16 @@ function updateOpenedFilename(filename) {
 			openedEl.textContent = 'No file loaded';
 			openedEl.style.fontStyle = 'italic';
 			openedEl.style.color = '#666';
+		}
+	}
+	
+	// Also update the header filename display (shown when collapsed)
+	var headerFilenameEl = document.getElementById('header-filename');
+	if (headerFilenameEl) {
+		if (filename) {
+			headerFilenameEl.textContent = '[working on ' + filename + ']';
+		} else {
+			headerFilenameEl.textContent = '';
 		}
 	}
 }
