@@ -148,6 +148,89 @@ a {
 	margin: 15px 0 0 0;
 }
 
+/* File Explorer Styles */
+#choose-directory-btn:hover {
+	background: #7a8854;
+}
+
+#refresh-files-btn:hover {
+	background: #f5f5f5;
+}
+
+#save-btn:hover:not(:disabled) {
+	background: #7a8854;
+}
+
+#save-as-btn:hover:not(:disabled) {
+	background: #556b2f;
+}
+
+#save-btn:disabled, #save-as-btn:disabled {
+	background: #cccccc;
+	cursor: not-allowed;
+}
+
+.file-item {
+	padding: 6px 10px;
+	border-bottom: 1px solid #f0f0f0;
+	cursor: pointer;
+	font-size: 11px;
+	transition: background-color 0.2s;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.file-item:hover {
+	background: #f5f5f5;
+}
+
+.file-item.selected {
+	background: #e3f2fd;
+	border-left: 3px solid #2196f3;
+}
+
+.file-item:last-child {
+	border-bottom: none;
+}
+
+.file-name {
+	flex: 1;
+	font-family: monospace;
+	color: #333;
+}
+
+.file-actions {
+	display: flex;
+	gap: 4px;
+}
+
+.file-action-btn {
+	background: none;
+	border: 1px solid #ddd;
+	padding: 2px 6px;
+	border-radius: 3px;
+	cursor: pointer;
+	font-size: 9px;
+	color: #666;
+}
+
+.file-action-btn:hover {
+	background: #f0f0f0;
+}
+
+/* File explorer header toggle styling */
+#explorer-header:hover {
+	background-color: rgba(0, 0, 0, 0.05);
+	border-radius: 4px;
+	padding: 2px 4px;
+	margin: -2px -4px 6px -4px;
+}
+
+#explorer-toggle {
+	transition: transform 0.2s ease-in-out;
+}
+
 /* Controls toggle styling */
 #controls-header:hover {
 	background-color: rgba(0, 0, 0, 0.05);
@@ -272,6 +355,159 @@ if (typeof btoa == 'undefined') {
 		<button onclick="clearCanvas()" class="danger-button">Clear Sketch</button>
 	</div>
 
+	<!-- File Explorer box - top right -->
+	<div id="fileexplorerbox" style="
+		position: absolute;
+		top: 20px;
+		right: 20px;
+		background: rgba(223, 223, 223, 0.9);
+		border-radius: 10px;
+		padding: 15px;
+		min-width: 250px;
+		max-width: 350px;
+		font-size: 12px;
+		font-family: 'Lucida Grande', 'Segoe UI', sans-serif;
+		box-shadow: 0 2px 15px rgba(0,0,0,0.15);
+		border: 1px solid rgba(0,0,0,0.1);
+		z-index: 9;
+		display: none;
+	">
+		<!-- Header with toggle -->
+		<p id="explorer-header" onclick="toggleFileExplorer()" style="
+			margin: 0; 
+			font-weight: bold; 
+			cursor: pointer; 
+			user-select: none; 
+			display: flex; 
+			align-items: center; 
+			justify-content: space-between; 
+			font-size: 14px;
+		">
+			<span>📁 File Explorer</span>
+			<span id="explorer-toggle" style="font-size: 12px; font-weight: normal;">▼</span>
+		</p>
+		
+		<!-- Content area -->
+		<div id="explorer-content" style="transition: all 0.3s ease-in-out; margin-top: 10px;">
+			<!-- Directory status -->
+			<div id="directory-status" style="
+				margin-bottom: 12px;
+				padding: 8px;
+				background: #f9f9f9;
+				border: 1px solid #ddd;
+				border-radius: 4px;
+				font-size: 11px;
+			">
+				<div id="directory-name" style="font-weight: bold; color: #333; margin-bottom: 4px;">
+					No directory selected
+				</div>
+				<div id="directory-path" style="color: #666; font-family: monospace; font-size: 10px; word-break: break-all;">
+					Select a directory to browse and save sketches
+				</div>
+			</div>
+			
+			<!-- Directory selection button -->
+			<button id="choose-directory-btn" onclick="chooseSketchDirectory()" style="
+				width: 100%;
+				background: #9aad6b;
+				color: white;
+				border: none;
+				padding: 10px 16px;
+				border-radius: 5px;
+				cursor: pointer;
+				font-size: 12px;
+				font-family: inherit;
+				transition: background-color 0.2s;
+				margin-bottom: 12px;
+			">
+				Choose Directory
+			</button>
+			
+			<!-- File list area -->
+			<div id="file-list-container" style="display: none;">
+				<div style="
+					display: flex;
+					justify-content: space-between;
+					align-items: center;
+					margin-bottom: 8px;
+					padding-bottom: 6px;
+					border-bottom: 1px solid #ddd;
+				">
+					<span style="font-weight: bold; font-size: 11px; color: #333;">Files</span>
+					<button id="refresh-files-btn" onclick="refreshFileList()" style="
+						background: none;
+						border: 1px solid #ccc;
+						padding: 4px 8px;
+						border-radius: 3px;
+						cursor: pointer;
+						font-size: 10px;
+						font-family: inherit;
+					">🔄</button>
+				</div>
+				
+				<div id="file-list" style="
+					max-height: 200px;
+					overflow-y: auto;
+					border: 1px solid #ddd;
+					border-radius: 4px;
+					background: white;
+				">
+					<!-- File entries will be populated by JavaScript -->
+				</div>
+			</div>
+			
+			<!-- Save buttons area -->
+			<div id="save-buttons-container" style="display: none; margin-top: 12px;">
+				<div style="display: flex; gap: 6px;">
+					<button id="save-btn" onclick="saveCurrentSketch()" style="
+						flex: 1;
+						background: #9aad6b;
+						color: white;
+						border: none;
+						padding: 8px 12px;
+						border-radius: 4px;
+						cursor: pointer;
+						font-size: 11px;
+						font-family: inherit;
+						font-weight: bold;
+					" disabled>
+						Save
+					</button>
+					<button id="save-as-btn" onclick="saveAsSketch()" style="
+						background: #6b8e23;
+						color: white;
+						border: none;
+						padding: 8px 12px;
+						border-radius: 4px;
+						cursor: pointer;
+						font-size: 11px;
+						font-family: inherit;
+					" disabled>
+						Save As...
+					</button>
+				</div>
+				<div id="current-file-indicator" style="
+					margin-top: 6px;
+					font-size: 10px;
+					color: #666;
+					text-align: center;
+					font-style: italic;
+				">
+					No file open
+				</div>
+			</div>
+			
+			<!-- Error/status messages -->
+			<div id="explorer-messages" style="
+				margin-top: 8px;
+				font-size: 10px;
+				color: #d32f2f;
+				text-align: center;
+				display: none;
+			"></div>
+		</div>
+	</div>
+
 	<!-- Guide/help box - bottom left -->
 	<div id="guibox">
 		<p id="controls-header" onclick="toggleControls()" style="margin: 0; font-weight: bold; cursor: pointer; user-select: none; display: flex; align-items: center; justify-content: space-between;">
@@ -382,5 +618,445 @@ function populateGuide() {
 
 // Call populateGuide when the page loads
 document.addEventListener('DOMContentLoaded', populateGuide);
+
+// =============================================================================
+// FILE EXPLORER UI FUNCTIONS
+// =============================================================================
+
+/**
+ * Toggle file explorer visibility
+ */
+function toggleFileExplorer() {
+	var content = document.getElementById('explorer-content');
+	var toggle = document.getElementById('explorer-toggle');
+	
+	if (content && toggle) {
+		if (content.style.display === 'none') {
+			content.style.display = 'block';
+			toggle.textContent = '▼';
+			localStorage.setItem('fileExplorerExpanded', 'true');
+		} else {
+			content.style.display = 'none';
+			toggle.textContent = '►';
+			localStorage.setItem('fileExplorerExpanded', 'false');
+		}
+	}
+}
+
+/**
+ * Initialize file explorer state from localStorage
+ */
+function initializeFileExplorerState() {
+	var isExpanded = localStorage.getItem('fileExplorerExpanded');
+	var content = document.getElementById('explorer-content');
+	var toggle = document.getElementById('explorer-toggle');
+	
+	if (content && toggle) {
+		// Default to expanded if no preference saved, or if preference is explicitly 'true'
+		if (isExpanded === 'false') {
+			content.style.display = 'none';
+			toggle.textContent = '►';
+		} else {
+			content.style.display = 'block';
+			toggle.textContent = '▼';
+		}
+	}
+}
+
+/**
+ * Show file explorer box
+ */
+function showFileExplorer() {
+	var explorerBox = document.getElementById('fileexplorerbox');
+	if (explorerBox) {
+		explorerBox.style.display = 'block';
+		initializeFileExplorerState();
+	}
+}
+
+/**
+ * Hide file explorer box
+ */
+function hideFileExplorer() {
+	var explorerBox = document.getElementById('fileexplorerbox');
+	if (explorerBox) {
+		explorerBox.style.display = 'none';
+	}
+}
+
+/**
+ * Update directory status display
+ */
+function updateDirectoryDisplay(directoryName, path) {
+	var nameEl = document.getElementById('directory-name');
+	var pathEl = document.getElementById('directory-path');
+	
+	if (nameEl && pathEl) {
+		if (directoryName) {
+			nameEl.textContent = '📁 ' + directoryName;
+			pathEl.textContent = path || 'Connected directory';
+		} else {
+			nameEl.textContent = 'No directory selected';
+			pathEl.textContent = 'Select a directory to browse and save sketches';
+		}
+	}
+	
+	// Show/hide appropriate UI sections
+	var fileListContainer = document.getElementById('file-list-container');
+	var saveButtonsContainer = document.getElementById('save-buttons-container');
+	
+	if (fileListContainer && saveButtonsContainer) {
+		if (directoryName) {
+			fileListContainer.style.display = 'block';
+			saveButtonsContainer.style.display = 'block';
+		} else {
+			fileListContainer.style.display = 'none';
+			saveButtonsContainer.style.display = 'none';
+		}
+	}
+}
+
+/**
+ * Choose directory using File System Access API
+ */
+function chooseSketchDirectory() {
+	if (typeof FileExplorerManager !== 'undefined') {
+		showExplorerMessage('Selecting directory...', 'info');
+		
+		FileExplorerManager.chooseDirectory().then(function() {
+			var directoryName = FileExplorerManager.getCurrentDirectoryName();
+			updateDirectoryDisplay(directoryName, 'Selected directory');
+			updateFileListDisplay();
+			updateSaveButtonStates();
+			hideExplorerMessage();
+			console.log('✅ Directory selected successfully');
+		}).catch(function(error) {
+			console.error('Failed to choose directory:', error);
+			showExplorerMessage('Failed to select directory: ' + error.message, 'error');
+		});
+	} else {
+		showExplorerMessage('File System Access not available', 'error');
+	}
+}
+
+/**
+ * Refresh file list
+ */
+function refreshFileList() {
+	if (typeof FileExplorerManager !== 'undefined' && FileExplorerManager.directoryHandle) {
+		showExplorerMessage('Refreshing files...', 'info');
+		
+		FileExplorerManager.refreshFileList().then(function() {
+			updateFileListDisplay();
+			hideExplorerMessage();
+			console.log('✅ File list refreshed');
+		}).catch(function(error) {
+			console.error('Failed to refresh file list:', error);
+			showExplorerMessage('Failed to refresh files: ' + error.message, 'error');
+		});
+	}
+}
+
+/**
+ * Update the file list display
+ */
+function updateFileListDisplay() {
+	var fileList = document.getElementById('file-list');
+	if (!fileList) return;
+	
+	if (typeof FileExplorerManager === 'undefined' || !FileExplorerManager.files) {
+		fileList.innerHTML = '<div style="padding: 20px; text-align: center; color: #666; font-size: 11px;">No files to display</div>';
+		return;
+	}
+	
+	var files = FileExplorerManager.files;
+	
+	if (files.length === 0) {
+		fileList.innerHTML = '<div style="padding: 20px; text-align: center; color: #666; font-size: 11px;">No .json files found</div>';
+		return;
+	}
+	
+	var html = '';
+	files.forEach(function(file, index) {
+		var isSelected = FileExplorerManager.currentFilename === file.name;
+		html += '<div class="file-item' + (isSelected ? ' selected' : '') + '" onclick="selectFile(\'' + file.name + '\')">';
+		html += '  <span class="file-name">' + file.name + '</span>';
+		html += '  <div class="file-actions">';
+		html += '    <button class="file-action-btn" onclick="event.stopPropagation(); loadSketchFile(\'' + file.name + '\')" title="Load this file">📂</button>';
+		html += '  </div>';
+		html += '</div>';
+	});
+	
+	fileList.innerHTML = html;
+}
+
+/**
+ * Select a file (visual selection, not loading)
+ */
+function selectFile(filename) {
+	// Update visual selection
+	var fileItems = document.querySelectorAll('.file-item');
+	fileItems.forEach(function(item) {
+		item.classList.remove('selected');
+	});
+	
+	// Find and select the clicked item
+	fileItems.forEach(function(item) {
+		var nameSpan = item.querySelector('.file-name');
+		if (nameSpan && nameSpan.textContent === filename) {
+			item.classList.add('selected');
+		}
+	});
+	
+	console.log('📄 Selected file:', filename);
+}
+
+/**
+ * Load a sketch file
+ */
+function loadSketchFile(filename) {
+	if (typeof FileExplorerManager === 'undefined') {
+		showExplorerMessage('File System Access not available', 'error');
+		return;
+	}
+	
+	showExplorerMessage('Loading ' + filename + '...', 'info');
+	
+	FileExplorerManager.readFile(filename).then(function(content) {
+		try {
+			var jsonData = JSON.parse(content);
+			
+			// Use existing processJSONData function
+			if (typeof processJSONData === 'function') {
+				processJSONData(jsonData, filename);
+				
+				// Update current file tracking
+				FileExplorerManager.currentFilename = filename;
+				updateFileListDisplay();
+				updateSaveButtonStates();
+				updateCurrentFileIndicator(filename);
+				
+				hideExplorerMessage();
+				console.log('✅ Successfully loaded:', filename);
+			} else {
+				throw new Error('processJSONData function not available');
+			}
+		} catch (error) {
+			console.error('Failed to process file content:', error);
+			showExplorerMessage('Failed to load file: ' + error.message, 'error');
+		}
+	}).catch(function(error) {
+		console.error('Failed to read file:', error);
+		showExplorerMessage('Failed to read file: ' + error.message, 'error');
+	});
+}
+
+/**
+ * Save current sketch (uses current filename or prompts for new name)
+ */
+function saveCurrentSketch() {
+	if (typeof FileExplorerManager === 'undefined' || !FileExplorerManager.directoryHandle) {
+		showExplorerMessage('No directory selected', 'error');
+		return;
+	}
+	
+	// Determine filename to use
+	var filename = FileExplorerManager.currentFilename;
+	if (!filename) {
+		// No current file, use custom filename like Save As
+		filename = getCustomFilename();
+	}
+	
+	saveSketchToFile(filename);
+}
+
+/**
+ * Save As - always prompts for filename using existing input
+ */
+function saveAsSketch() {
+	if (typeof FileExplorerManager === 'undefined' || !FileExplorerManager.directoryHandle) {
+		showExplorerMessage('No directory selected', 'error');
+		return;
+	}
+	
+	// Use the custom filename from the input field
+	var filename = getCustomFilename();
+	saveSketchToFile(filename);
+}
+
+/**
+ * Save sketch to specified file
+ */
+function saveSketchToFile(filename) {
+	showExplorerMessage('Saving ' + filename + '...', 'info');
+	
+	try {
+		// Create JSON data using existing serialization
+		var jsonData = createJSONData(); // We'll need to create this function
+		var jsonString = JSON.stringify(jsonData, null, 2);
+		
+		FileExplorerManager.writeFile(filename, jsonString).then(function() {
+			// Update current file tracking
+			FileExplorerManager.currentFilename = filename;
+			updateFileListDisplay();
+			updateSaveButtonStates();
+			updateCurrentFileIndicator(filename);
+			
+			hideExplorerMessage();
+			console.log('✅ Successfully saved:', filename);
+		}).catch(function(error) {
+			console.error('Failed to save file:', error);
+			showExplorerMessage('Failed to save file: ' + error.message, 'error');
+		});
+	} catch (error) {
+		console.error('Failed to create file content:', error);
+		showExplorerMessage('Failed to create file content: ' + error.message, 'error');
+	}
+}
+
+/**
+ * Update save button states
+ */
+function updateSaveButtonStates() {
+	var saveBtn = document.getElementById('save-btn');
+	var saveAsBtn = document.getElementById('save-as-btn');
+	
+	var hasDirectory = (typeof FileExplorerManager !== 'undefined' && FileExplorerManager.directoryHandle);
+	
+	if (saveBtn) {
+		saveBtn.disabled = !hasDirectory;
+	}
+	
+	if (saveAsBtn) {
+		saveAsBtn.disabled = !hasDirectory;
+	}
+}
+
+/**
+ * Update current file indicator
+ */
+function updateCurrentFileIndicator(filename) {
+	var indicator = document.getElementById('current-file-indicator');
+	if (indicator) {
+		if (filename) {
+			indicator.textContent = 'Current: ' + filename;
+			indicator.style.color = '#333';
+		} else {
+			indicator.textContent = 'No file open';
+			indicator.style.color = '#666';
+		}
+	}
+}
+
+/**
+ * Show explorer message
+ */
+function showExplorerMessage(message, type) {
+	var messagesEl = document.getElementById('explorer-messages');
+	if (messagesEl) {
+		messagesEl.textContent = message;
+		messagesEl.style.display = 'block';
+		messagesEl.style.color = type === 'error' ? '#d32f2f' : '#666';
+	}
+}
+
+/**
+ * Hide explorer message
+ */
+function hideExplorerMessage() {
+	var messagesEl = document.getElementById('explorer-messages');
+	if (messagesEl) {
+		messagesEl.style.display = 'none';
+	}
+}
+
+/**
+ * Create JSON data for saving (extract from existing downloadAsJSON function)
+ */
+function createJSONData() {
+	// This duplicates logic from downloadAsJSON - we'll extract it into a shared function
+	var nodeIdMap = new Map();
+	var jsonNodes = [];
+	
+	// Serialize nodes with unique IDs
+	for (var i = 0; i < nodes.length; i++) {
+		var node = nodes[i];
+		var nodeId = i;
+		nodeIdMap.set(node, nodeId);
+		
+		jsonNodes.push({
+			id: nodeId,
+			x: node.x,
+			y: node.y, 
+			text: node.text,
+			color: node.color || 'yellow'
+		});
+	}
+	
+	// Serialize links with node ID references
+	var jsonLinks = [];
+	for (var i = 0; i < links.length; i++) {
+		var link = links[i];
+		var linkData = {
+			text: link.text
+		};
+		
+		// Handle different link types - simplified for this example
+		if (link.constructor.name === 'SelfLink') {
+			linkData.type = 'SelfLink';
+			linkData.node = nodeIdMap.get(link.node);
+			linkData.anchorAngle = link.anchorAngle;
+		} else if (link.constructor.name === 'StartLink') {
+			linkData.type = 'StartLink';
+			linkData.node = nodeIdMap.get(link.node);
+			linkData.deltaX = link.deltaX;
+			linkData.deltaY = link.deltaY;
+		} else if (link.constructor.name === 'Link') {
+			linkData.type = 'Link';
+			linkData.nodeA = nodeIdMap.get(link.nodeA);
+			linkData.nodeB = nodeIdMap.get(link.nodeB);
+			linkData.text = link.text;
+			linkData.lineAngleAdjust = link.lineAngleAdjust;
+			linkData.parallelPart = link.parallelPart;
+			linkData.perpendicularPart = link.perpendicularPart;
+		}
+		
+		jsonLinks.push(linkData);
+	}
+	
+	// Serialize legend descriptions
+	var jsonLegend = {};
+	if (typeof legendEntries !== 'undefined') {
+		for (var key in legendEntries) {
+			if (legendEntries[key].description && legendEntries[key].description.trim() !== '') {
+				jsonLegend[key] = legendEntries[key].description;
+			}
+		}
+	}
+
+	return {
+		version: '1.0',
+		created: new Date().toISOString(),
+		canvas: {
+			width: typeof canvas !== 'undefined' ? canvas.width : 800,
+			height: typeof canvas !== 'undefined' ? canvas.height : 600
+		},
+		nodes: jsonNodes,
+		links: jsonLinks,
+		legend: jsonLegend
+	};
+}
+
+// Initialize file explorer when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+	// Check if File System Access API is supported and show/hide explorer accordingly
+	if ('showDirectoryPicker' in window) {
+		showFileExplorer();
+		updateSaveButtonStates();
+		console.log('📂 File Explorer UI initialized');
+	} else {
+		console.log('⚠️ File System Access API not supported - File Explorer hidden');
+	}
+});
 	</script>
 </body></html>

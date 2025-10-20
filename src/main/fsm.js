@@ -1766,6 +1766,13 @@ window.onload = function() {
 	initializeFilenameInput();
 	initializeGuideBoxState();
 
+	// Initialize File Explorer Manager
+	FileExplorerManager.init().then(function() {
+		console.log('📂 File Explorer system ready');
+	}).catch(function(error) {
+		console.error('File Explorer initialization error:', error);
+	});
+
 	canvas.onmousedown = function(e) {
 		console.log("canvas element in mousedown:", canvas);
 		var mouse = crossBrowserRelativeMousePos(e);
@@ -2581,6 +2588,651 @@ function initializeFilenameInput() {
 		});
 	}
 }
+
+// =============================================================================
+// FILE EXPLORER SYSTEM - IndexedDB Storage for Directory Handle Persistence
+// =============================================================================
+
+/**
+ * DirectoryStorage - IndexedDB wrapper for persisting File System Access API directory handles
+ * 
+ * Purpose: Stores FileSystemDirectoryHandle objects across browser sessions using IndexedDB.
+ * These handles cannot be serialized to localStorage, so IndexedDB is required for persistence.
+ * 
+ * Features:
+ * - Cross-session directory handle persistence
+ * - Permission verification and re-prompting
+ * - Error handling for storage quota and corruption
+ * - Clean separation from canvas state management
+ */
+var DirectoryStorage = {
+	DB_NAME: 'NetworkSketchpadFS',
+	DB_VERSION: 1,
+	STORE_NAME: 'directoryHandles',
+	
+	/**
+	 * Opens IndexedDB connection with proper error handling and upgrades
+	 */
+	openDB: function() {
+		return new Promise(function(resolve, reject) {
+			try {
+				var request = indexedDB.open(DirectoryStorage.DB_NAME, DirectoryStorage.DB_VERSION);
+				
+				request.onerror = function() {
+					console.error('IndexedDB open error:', request.error);
+					reject(new Error('Failed to open IndexedDB: ' + (request.error ? request.error.message : 'Unknown error')));
+				};
+				
+				request.onsuccess = function() {
+					resolve(request.result);
+				};
+				
+				request.onupgradeneeded = function(event) {
+					console.log('IndexedDB upgrade needed, creating object stores');
+					var db = event.target.result;
+					
+					// Create directory handles store if it doesn't exist
+					if (!db.objectStoreNames.contains(DirectoryStorage.STORE_NAME)) {
+						var store = db.createObjectStore(DirectoryStorage.STORE_NAME);
+						console.log('Created directoryHandles object store');
+					}
+				};
+			} catch (error) {
+				console.error('IndexedDB not available:', error);
+				reject(new Error('IndexedDB not supported: ' + error.message));
+			}
+		});
+	},
+	
+	/**
+	 * Stores a directory handle with the given key
+	 * @param {string} key - Storage key (e.g., 'sketchDirectory')
+	 * @param {FileSystemDirectoryHandle} handle - Directory handle to store
+	 */
+	storeHandle: function(key, handle) {
+		return new Promise(function(resolve, reject) {
+			DirectoryStorage.openDB().then(function(db) {
+				try {
+					var transaction = db.transaction([DirectoryStorage.STORE_NAME], 'readwrite');
+					var store = transaction.objectStore(DirectoryStorage.STORE_NAME);
+					
+					transaction.onerror = function() {
+						console.error('Transaction error storing handle:', transaction.error);
+						reject(new Error('Failed to store directory handle: ' + (transaction.error ? transaction.error.message : 'Unknown error')));
+					};
+					
+					transaction.oncomplete = function() {
+						console.log('Successfully stored directory handle with key:', key);
+						resolve();
+					};
+					
+					var request = store.put(handle, key);
+					request.onerror = function() {
+						console.error('Store put error:', request.error);
+						reject(new Error('Failed to put handle in store: ' + (request.error ? request.error.message : 'Unknown error')));
+					};
+					
+				} catch (error) {
+					console.error('Error setting up storage transaction:', error);
+					reject(error);
+				}
+			}).catch(function(error) {
+				reject(error);
+			});
+		});
+	},
+	
+	/**
+	 * Retrieves a directory handle by key
+	 * @param {string} key - Storage key to retrieve
+	 * @returns {Promise<FileSystemDirectoryHandle|null>} The stored handle or null if not found
+	 */
+	getHandle: function(key) {
+		return new Promise(function(resolve, reject) {
+			DirectoryStorage.openDB().then(function(db) {
+				try {
+					var transaction = db.transaction([DirectoryStorage.STORE_NAME], 'readonly');
+					var store = transaction.objectStore(DirectoryStorage.STORE_NAME);
+					
+					transaction.onerror = function() {
+						console.error('Transaction error getting handle:', transaction.error);
+						reject(new Error('Failed to retrieve directory handle: ' + (transaction.error ? transaction.error.message : 'Unknown error')));
+					};
+					
+					var request = store.get(key);
+					
+					request.onsuccess = function() {
+						var result = request.result;
+						if (result) {
+							console.log('Successfully retrieved directory handle with key:', key);
+							resolve(result);
+						} else {
+							console.log('No directory handle found with key:', key);
+							resolve(null);
+						}
+					};
+					
+					request.onerror = function() {
+						console.error('Store get error:', request.error);
+						reject(new Error('Failed to get handle from store: ' + (request.error ? request.error.message : 'Unknown error')));
+					};
+					
+				} catch (error) {
+					console.error('Error setting up retrieval transaction:', error);
+					reject(error);
+				}
+			}).catch(function(error) {
+				reject(error);
+			});
+		});
+	},
+	
+	/**
+	 * Removes a directory handle by key
+	 * @param {string} key - Storage key to remove
+	 */
+	removeHandle: function(key) {
+		return new Promise(function(resolve, reject) {
+			DirectoryStorage.openDB().then(function(db) {
+				try {
+					var transaction = db.transaction([DirectoryStorage.STORE_NAME], 'readwrite');
+					var store = transaction.objectStore(DirectoryStorage.STORE_NAME);
+					
+					transaction.onerror = function() {
+						console.error('Transaction error removing handle:', transaction.error);
+						reject(new Error('Failed to remove directory handle: ' + (transaction.error ? transaction.error.message : 'Unknown error')));
+					};
+					
+					transaction.oncomplete = function() {
+						console.log('Successfully removed directory handle with key:', key);
+						resolve();
+					};
+					
+					var request = store.delete(key);
+					request.onerror = function() {
+						console.error('Store delete error:', request.error);
+						reject(new Error('Failed to delete handle from store: ' + (request.error ? request.error.message : 'Unknown error')));
+					};
+					
+				} catch (error) {
+					console.error('Error setting up removal transaction:', error);
+					reject(error);
+				}
+			}).catch(function(error) {
+				reject(error);
+			});
+		});
+	},
+	
+	/**
+	 * Verifies that a stored directory handle still has valid permissions
+	 * @param {FileSystemDirectoryHandle} handle - Handle to verify
+	 * @returns {Promise<boolean>} True if handle has valid permissions
+	 */
+	verifyPermissions: function(handle) {
+		return new Promise(function(resolve) {
+			try {
+				if (!handle || typeof handle.queryPermission !== 'function') {
+					console.log('Invalid or missing directory handle');
+					resolve(false);
+					return;
+				}
+				
+				handle.queryPermission({ mode: 'readwrite' }).then(function(permission) {
+					if (permission === 'granted') {
+						console.log('Directory handle has granted permissions');
+						resolve(true);
+					} else if (permission === 'prompt') {
+						console.log('Directory handle needs permission prompt');
+						// Try to request permission
+						handle.requestPermission({ mode: 'readwrite' }).then(function(newPermission) {
+							var hasPermission = newPermission === 'granted';
+							console.log('Permission request result:', newPermission);
+							resolve(hasPermission);
+						}).catch(function(error) {
+							console.log('Permission request failed:', error);
+							resolve(false);
+						});
+					} else {
+						console.log('Directory handle permissions denied');
+						resolve(false);
+					}
+				}).catch(function(error) {
+					console.error('Error checking handle permissions:', error);
+					resolve(false);
+				});
+			} catch (error) {
+				console.error('Error in permission verification:', error);
+				resolve(false);
+			}
+		});
+	},
+	
+	/**
+	 * Tests if IndexedDB is available and working
+	 * @returns {Promise<boolean>} True if IndexedDB is functional
+	 */
+	isAvailable: function() {
+		return new Promise(function(resolve) {
+			try {
+				if (!window.indexedDB) {
+					console.log('IndexedDB not available in this browser');
+					resolve(false);
+					return;
+				}
+				
+				// Test by trying to open database
+				DirectoryStorage.openDB().then(function(db) {
+					db.close();
+					console.log('IndexedDB is available and functional');
+					resolve(true);
+				}).catch(function(error) {
+					console.error('IndexedDB test failed:', error);
+					resolve(false);
+				});
+			} catch (error) {
+				console.error('IndexedDB availability check failed:', error);
+				resolve(false);
+			}
+		});
+	}
+};
+
+/**
+ * FileExplorerManager - Core file system operations using File System Access API
+ * 
+ * Purpose: Manages directory selection, file enumeration, and file operations
+ * using the File System Access API, with IndexedDB persistence for directory handles.
+ * 
+ * Features:
+ * - Directory selection with showDirectoryPicker()
+ * - Automatic file enumeration and filtering (.json files)
+ * - File read/write operations with proper error handling
+ * - Directory handle persistence via DirectoryStorage
+ * - Permission management and re-prompting
+ */
+var FileExplorerManager = {
+	directoryHandle: null,
+	currentFilename: null,
+	files: [],
+	
+	/**
+	 * Initialize the file explorer system
+	 */
+	init: function() {
+		var self = this;
+		console.log('🗂️ Initializing FileExplorerManager...');
+		
+		return new Promise(function(resolve) {
+			// Check if File System Access API is supported
+			self.checkAPISupport().then(function(supported) {
+				if (supported) {
+					console.log('✅ File System Access API is supported');
+					// Try to load previously stored directory
+					return self.loadStoredDirectory();
+				} else {
+					console.log('⚠️ File System Access API not supported in this browser');
+					return false;
+				}
+			}).then(function(loadedDirectory) {
+				if (loadedDirectory) {
+					console.log('✅ Successfully loaded stored directory');
+				} else {
+					console.log('ℹ️ No stored directory found or failed to load');
+				}
+				
+				// Always resolve - initialization complete regardless of directory loading
+				resolve();
+			}).catch(function(error) {
+				console.error('Error during FileExplorerManager initialization:', error);
+				resolve(); // Still resolve - don't fail initialization
+			});
+		});
+	},
+	
+	/**
+	 * Check if File System Access API is supported
+	 */
+	checkAPISupport: function() {
+		return Promise.resolve('showDirectoryPicker' in window);
+	},
+	
+	/**
+	 * Prompt user to choose a directory
+	 */
+	chooseDirectory: function() {
+		var self = this;
+		console.log('📁 Prompting user to choose directory...');
+		
+		return new Promise(function(resolve, reject) {
+			self.checkAPISupport().then(function(supported) {
+				if (!supported) {
+					throw new Error('File System Access API not supported in this browser');
+				}
+				
+				// Show directory picker
+				return window.showDirectoryPicker({ mode: 'readwrite' });
+			}).then(function(handle) {
+				console.log('✅ User selected directory:', handle.name);
+				
+				// Store the handle for persistence
+				return DirectoryStorage.storeHandle('sketchDirectory', handle).then(function() {
+					self.directoryHandle = handle;
+					return self.refreshFileList();
+				});
+			}).then(function() {
+				console.log('✅ Directory setup complete');
+				resolve();
+			}).catch(function(error) {
+				if (error.name === 'AbortError') {
+					console.log('ℹ️ User cancelled directory selection');
+					resolve(); // Don't treat cancellation as an error
+				} else {
+					console.error('❌ Failed to choose directory:', error);
+					reject(error);
+				}
+			});
+		});
+	},
+	
+	/**
+	 * Load previously stored directory handle
+	 */
+	loadStoredDirectory: function() {
+		var self = this;
+		console.log('🔍 Looking for stored directory handle...');
+		
+		return new Promise(function(resolve) {
+			var retrievedHandle = null; // Store handle in wider scope
+			
+			DirectoryStorage.getHandle('sketchDirectory').then(function(handle) {
+				if (!handle) {
+					console.log('ℹ️ No stored directory handle found');
+					resolve(false);
+					return;
+				}
+				
+				console.log('📁 Found stored directory handle:', handle.name);
+				retrievedHandle = handle; // Store handle for later use
+				
+				// Verify permissions are still valid
+				return DirectoryStorage.verifyPermissions(handle);
+			}).then(function(hasPermissions) {
+				if (hasPermissions) {
+					console.log('✅ Directory handle has valid permissions');
+					self.directoryHandle = retrievedHandle; // Use stored handle
+					return self.refreshFileList().then(function() {
+						resolve(true);
+					});
+				} else {
+					console.log('⚠️ Directory handle permissions invalid, removing stored handle');
+					return DirectoryStorage.removeHandle('sketchDirectory').then(function() {
+						resolve(false);
+					});
+				}
+			}).catch(function(error) {
+				console.error('Error loading stored directory:', error);
+				// Clean up invalid handle
+				return DirectoryStorage.removeHandle('sketchDirectory').then(function() {
+					resolve(false);
+				});
+			});
+		});
+	},
+	
+	/**
+	 * Refresh the list of JSON files in the current directory
+	 */
+	refreshFileList: function() {
+		var self = this;
+		
+		return new Promise(function(resolve, reject) {
+			if (!self.directoryHandle) {
+				self.files = [];
+				console.log('ℹ️ No directory handle - file list cleared');
+				resolve();
+				return;
+			}
+			
+			console.log('🔄 Refreshing file list...');
+			self.files = [];
+			
+			var filePromises = [];
+			
+			// Iterate through directory entries
+			var iterator = self.directoryHandle.entries();
+			
+			function processEntries() {
+				iterator.next().then(function(result) {
+					if (result.done) {
+						// All entries processed
+						Promise.all(filePromises).then(function() {
+							// Sort files alphabetically
+							self.files.sort(function(a, b) {
+								return a.name.localeCompare(b.name);
+							});
+							console.log('✅ Found ' + self.files.length + ' JSON files');
+							resolve();
+						});
+					} else {
+						var entry = result.value;
+						var name = entry[0];
+						var handle = entry[1];
+						
+						// Only include JSON files
+						if (handle.kind === 'file' && name.toLowerCase().endsWith('.json')) {
+							self.files.push({ name: name, handle: handle });
+						}
+						
+						// Continue processing
+						processEntries();
+					}
+				}).catch(function(error) {
+					console.error('Error reading directory entries:', error);
+					reject(error);
+				});
+			}
+			
+			processEntries();
+		});
+	},
+	
+	/**
+	 * Read a file's contents
+	 */
+	readFile: function(filename) {
+		var self = this;
+		console.log('📖 Reading file:', filename);
+		
+		return new Promise(function(resolve, reject) {
+			var fileData = self.files.find(function(f) {
+				return f.name === filename;
+			});
+			
+			if (!fileData) {
+				reject(new Error('File not found: ' + filename));
+				return;
+			}
+			
+			fileData.handle.getFile().then(function(file) {
+				return file.text();
+			}).then(function(content) {
+				console.log('✅ Successfully read file:', filename);
+				resolve(content);
+			}).catch(function(error) {
+				console.error('❌ Failed to read file:', filename, error);
+				reject(error);
+			});
+		});
+	},
+	
+	/**
+	 * Write content to a file
+	 */
+	writeFile: function(filename, content) {
+		var self = this;
+		console.log('💾 Writing file:', filename);
+		
+		return new Promise(function(resolve, reject) {
+			if (!self.directoryHandle) {
+				reject(new Error('No directory selected'));
+				return;
+			}
+			
+			// Ensure filename has .json extension
+			var fullFilename = filename.endsWith('.json') ? filename : filename + '.json';
+			
+			// Get or create file handle
+			self.directoryHandle.getFileHandle(fullFilename, { create: true }).then(function(fileHandle) {
+				return fileHandle.createWritable();
+			}).then(function(writable) {
+				return writable.write(content).then(function() {
+					return writable.close();
+				});
+			}).then(function() {
+				console.log('✅ Successfully wrote file:', fullFilename);
+				
+				// Update current filename tracking
+				self.currentFilename = fullFilename;
+				
+				// Refresh file list to show new/updated file
+				return self.refreshFileList();
+			}).then(function() {
+				resolve();
+			}).catch(function(error) {
+				console.error('❌ Failed to write file:', fullFilename, error);
+				reject(error);
+			});
+		});
+	},
+	
+	/**
+	 * Check if a file exists in the current directory
+	 */
+	fileExists: function(filename) {
+		return this.files.some(function(file) {
+			return file.name === filename;
+		});
+	},
+	
+	/**
+	 * Get current directory name for display
+	 */
+	getCurrentDirectoryName: function() {
+		return this.directoryHandle ? this.directoryHandle.name : null;
+	},
+	
+	/**
+	 * Clear current directory (for testing or reset)
+	 */
+	clearDirectory: function() {
+		var self = this;
+		console.log('🗑️ Clearing current directory...');
+		
+		return DirectoryStorage.removeHandle('sketchDirectory').then(function() {
+			self.directoryHandle = null;
+			self.currentFilename = null;
+			self.files = [];
+			console.log('✅ Directory cleared');
+		});
+	}
+};
+
+/**
+ * Test function for IndexedDB Directory Storage System
+ * Call this from browser console to verify functionality
+ */
+function testDirectoryStorage() {
+	console.log('🧪 Testing DirectoryStorage system...');
+	
+	DirectoryStorage.isAvailable().then(function(available) {
+		if (available) {
+			console.log('✅ IndexedDB is available and functional');
+			
+			// Test storing a mock handle (for testing without File System Access API)
+			var mockHandle = { 
+				name: 'test-directory', 
+				kind: 'directory',
+				testProperty: 'This is a test handle'
+			};
+			
+			console.log('🔄 Testing handle storage...');
+			return DirectoryStorage.storeHandle('test-key', mockHandle);
+		} else {
+			throw new Error('IndexedDB is not available');
+		}
+	}).then(function() {
+		console.log('✅ Successfully stored test handle');
+		console.log('🔄 Testing handle retrieval...');
+		return DirectoryStorage.getHandle('test-key');
+	}).then(function(retrievedHandle) {
+		if (retrievedHandle && retrievedHandle.testProperty === 'This is a test handle') {
+			console.log('✅ Successfully retrieved test handle:', retrievedHandle);
+			console.log('🔄 Testing handle removal...');
+			return DirectoryStorage.removeHandle('test-key');
+		} else {
+			throw new Error('Retrieved handle does not match stored handle');
+		}
+	}).then(function() {
+		console.log('✅ Successfully removed test handle');
+		console.log('🔄 Testing retrieval of removed handle...');
+		return DirectoryStorage.getHandle('test-key');
+	}).then(function(shouldBeNull) {
+		if (shouldBeNull === null) {
+			console.log('✅ Confirmed handle was removed (returned null)');
+			console.log('🎉 All DirectoryStorage tests passed!');
+		} else {
+			throw new Error('Handle was not properly removed');
+		}
+	}).catch(function(error) {
+		console.error('❌ DirectoryStorage test failed:', error);
+	});
+}
+
+// Make test function globally available for debugging
+window.testDirectoryStorage = testDirectoryStorage;
+
+/**
+ * Test function for FileExplorerManager system
+ * Call this from browser console to verify File System Access API functionality
+ * Note: This will prompt for directory access
+ */
+function testFileExplorerManager() {
+	console.log('🧪 Testing FileExplorerManager system...');
+	
+	FileExplorerManager.checkAPISupport().then(function(supported) {
+		if (supported) {
+			console.log('✅ File System Access API is supported');
+			console.log('🔄 Initializing FileExplorerManager...');
+			return FileExplorerManager.init();
+		} else {
+			throw new Error('File System Access API not supported in this browser');
+		}
+	}).then(function() {
+		console.log('✅ FileExplorerManager initialized');
+		console.log('📁 Current directory:', FileExplorerManager.getCurrentDirectoryName() || 'None');
+		console.log('📄 Files found:', FileExplorerManager.files.length);
+		
+		// List files if any
+		if (FileExplorerManager.files.length > 0) {
+			console.log('📋 File list:');
+			FileExplorerManager.files.forEach(function(file, index) {
+				console.log('  ' + (index + 1) + '. ' + file.name);
+			});
+		}
+		
+		console.log('🎉 FileExplorerManager test completed!');
+		console.log('💡 To test directory selection, run: FileExplorerManager.chooseDirectory()');
+	}).catch(function(error) {
+		console.error('❌ FileExplorerManager test failed:', error);
+	});
+}
+
+// Make test function globally available for debugging
+window.testFileExplorerManager = testFileExplorerManager;
+
+// Initialize FileExplorerManager when the page loads (after window.onload)
+// This will be called from the existing window.onload function
 
 function downloadAsJSON() {
 	// Create node ID mapping for link references
