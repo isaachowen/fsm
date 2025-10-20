@@ -341,17 +341,7 @@ if (typeof btoa == 'undefined') {
 	
 	<!-- Action buttons box - top left -->
 	<div id="actionbuttonbox">
-		<div style="margin-bottom: 8px;">
-			<label for="filenameInput" style="display: block; margin-bottom: 4px; font-size: 11px; color: #333;">Filename on save:</label>
-			<div style="display: flex; align-items: center; gap: 2px;">
-				<input type="text" id="filenameInput" placeholder="sketch_name" value=""
-					   style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 3px; font-size: 11px; box-sizing: border-box; font-family: inherit;">
-				<span style="font-size: 11px; color: #666; font-family: inherit;">.json</span>
-			</div>
-		</div>
-		<label for="jsonFileInput" class="primary-button file-button">Load Sketch (from JSON)</label>
-		<input type="file" id="jsonFileInput" accept=".json" onchange="importFromJSON(this)" style="display: none;">
-		<button onclick="downloadAsJSON()" class="primary-button">Save Sketch (to JSON)</button>
+		<!-- Legacy file input and save-to-download removed; handled by File Explorer -->
 		<button onclick="clearCanvas()" class="danger-button">Clear Sketch</button>
 	</div>
 
@@ -458,6 +448,16 @@ if (typeof btoa == 'undefined') {
 			
 			<!-- Save buttons area -->
 			<div id="save-buttons-container" style="display: none; margin-top: 12px;">
+				<!-- Filename input -->
+				<div style="margin-bottom: 10px;">
+					<label for="filenameInput" style="display: block; margin-bottom: 4px; font-size: 11px; color: #333; font-weight: bold;">Filename on save:</label>
+					<div style="display: flex; align-items: center; gap: 2px;">
+						<input type="text" id="filenameInput" placeholder="sketch_name" value=""
+							   style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 3px; font-size: 11px; box-sizing: border-box; font-family: inherit;">
+						<span style="font-size: 11px; color: #666; font-family: inherit;">.json</span>
+					</div>
+				</div>
+				
 				<div style="display: flex; gap: 6px;">
 					<button id="save-btn" onclick="saveCurrentSketch()" style="
 						flex: 1;
