@@ -299,13 +299,7 @@ if (typeof btoa == 'undefined') {
 
 	</script>
 </head><body>
-	<h1>
-		Network Sketchpad
-		<br>
-		<span style="font-size: 12px; font-weight: normal; font-style: italic; opacity: 0.8;">
-			Forked from <a href="http://madebyevan.com/fsm/" style="color: inherit;">Finite State Machine Designer</a>
-		</span>
-	</h1>
+	<h1>Network Sketchpad</h1>
 	<canvas id="canvas" width="800" height="600">
 		<span class="error">Your browser does not support<br>the HTML5 &lt;canvas&gt; element</span>
 	</canvas>
@@ -344,11 +338,11 @@ if (typeof btoa == 'undefined') {
 		<!-- All functionality moved to File Explorer -->
 	</div>
 
-	<!-- File Explorer box - top right -->
+	<!-- File Explorer box - left side below title -->
 	<div id="fileexplorerbox" style="
 		position: absolute;
-		top: 20px;
-		right: 20px;
+		top: 75px;
+		left: 20px;
 		background: rgba(223, 223, 223, 0.9);
 		border-radius: 10px;
 		padding: 15px;
@@ -372,7 +366,7 @@ if (typeof btoa == 'undefined') {
 			justify-content: space-between; 
 			font-size: 14px;
 		">
-			<span>📁 File Explorer</span>
+			<span>Local Explorer</span>
 			<span id="explorer-toggle" style="font-size: 12px; font-weight: normal;">▼</span>
 		</p>
 		
@@ -391,7 +385,7 @@ if (typeof btoa == 'undefined') {
 					No directory selected
 				</div>
 				<div id="directory-path" style="color: #666; font-family: monospace; font-size: 10px; word-break: break-all;">
-					Select a directory to browse and save sketches
+					Select a local directory in which to browse, create, save, and update sketches (JSON files with parsable structure).
 				</div>
 			</div>
 			
@@ -487,7 +481,7 @@ if (typeof btoa == 'undefined') {
 				
 				<!-- Filename input -->
 				<div style="margin-bottom: 8px;">
-					<label for="filenameInput" style="display: block; margin-bottom: 4px; font-size: 11px; color: #333; font-weight: bold;">Filename on save:</label>
+					<label for="filenameInput" style="display: block; margin-bottom: 4px; font-size: 11px; color: #333; font-weight: bold;">Filename on Save As:</label>
 					<div style="display: flex; align-items: center; gap: 2px;">
 						<input type="text" id="filenameInput" placeholder="sketch_name" value=""
 							   style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 3px; font-size: 11px; box-sizing: border-box; font-family: inherit;">
@@ -552,10 +546,10 @@ if (typeof btoa == 'undefined') {
 		</div>
 	</div>
 
-	<!-- Guide/help box - bottom left -->
+	<!-- Info/help box - bottom left -->
 	<div id="guibox">
 		<p id="controls-header" onclick="toggleControls()" style="margin: 0; font-weight: bold; cursor: pointer; user-select: none; display: flex; align-items: center; justify-content: space-between;">
-			<span>Guide</span>
+			<span>Info</span>
 			<span id="controls-toggle" style="font-size: 14px; font-weight: normal;">►</span>
 		</p>
 		<div id="controls-content" style="transition: all 0.3s ease-in-out; margin-top: 12px; display: none">
@@ -595,6 +589,13 @@ if (typeof btoa == 'undefined') {
 						<text x="0" y="25" text-anchor="middle" font-size="12" font-family="Arial, sans-serif" fill="#333">r</text>
 					</g>
 				</svg>
+			</div>
+			
+			<!-- Attribution at bottom -->
+			<div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid #ddd; text-align: center;">
+				<span style="font-size: 11px; color: #666; font-style: italic;">
+					Forked from <a href="http://madebyevan.com/fsm/" style="color: #666; text-decoration: underline;">Finite State Machine Designer</a>
+				</span>
 			</div>
 		</div>
 	</div>
