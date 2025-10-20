@@ -134,7 +134,18 @@ function drawText(c, originalText, x, y, angleOrNull, isSelected) {
 	} else {
 		x = Math.round(x);
 		y = Math.round(y);
+		
+		// Draw white outline first for better visibility on all backgrounds
+		var originalStrokeStyle = c.strokeStyle;
+		c.strokeStyle = '#ffffff';  // white outline
+		c.lineWidth = 3;            // tight outline width
+		c.strokeText(text, x, y + 6);
+		
+		// Then draw black text on top
 		c.fillText(text, x, y + 6);
+		
+		// Restore original stroke style
+		c.strokeStyle = originalStrokeStyle;
 		// Only show caret when in editing_text mode (ui_flow_v2) or legacy editing mode
 		var shouldShowCaret = false;
 		if (ui_flow_v2) {
@@ -2144,8 +2155,8 @@ document.onkeydown = function(e) {
 
 	if(key == 16) {
 		shift = true;
-	} else if(key == 81 || key == 87 || key == 69 || key == 82 || key == 84) { // Q, W, E, R, T keys
-		colorModifier = String.fromCharCode(key); // Convert keycode to letter (Q, W, E, R, T)
+	} else if(key == 81 || key == 87 || key == 69 || key == 82 || key == 84 || key == 65 || key == 83 || key == 68 || key == 70 || key == 71) { // Q, W, E, R, T, A, S, D, F, G keys
+		colorModifier = String.fromCharCode(key); // Convert keycode to letter (Q, W, E, R, T, A, S, D, F, G)
 		
 		// Immediate color change in selection or multiselect mode
 		if(ui_flow_v2 && InteractionManager.canChangeNodeAppearance()) {
@@ -2332,7 +2343,7 @@ document.onkeyup = function(e) {
 
 	if(key == 16) {
 		shift = false;
-	} else if(key == 81 || key == 87 || key == 69 || key == 82 || key == 84) { // Q, W, E, R, T keys
+	} else if(key == 81 || key == 87 || key == 69 || key == 82 || key == 84 || key == 65 || key == 83 || key == 68 || key == 70 || key == 71) { // Q, W, E, R, T, A, S, D, F, G keys
 		colorModifier = null;
 	}
 };
@@ -2393,7 +2404,7 @@ function getColorFromModifier(modifier) {
 	 * - switch statement for modifier-to-color mapping
 	 * - No external function calls
 	 * 
-	 * Purpose: Translates keyboard input (letter keys Q,W,E,R,T) into corresponding
+	 * Purpose: Translates keyboard input (letter keys Q,W,E,R,T,A,S,D,F,G) into corresponding
 	 * node color strings. Enables quick color changes via keyboard shortcuts.
 	 * Returns color names that correspond to Node color property values.
 	 */
@@ -2403,6 +2414,11 @@ function getColorFromModifier(modifier) {
 		case 'E': return 'blue';    // E for blue
 		case 'R': return 'pink';    // R for pink
 		case 'T': return 'white';   // T for white
+		case 'A': return 'black';   // A for black
+		case 'S': return 'gray';    // S for gray
+		case 'D': return 'red';     // D for red
+		case 'F': return 'orange';  // F for orange
+		case 'G': return 'purple';  // G for purple
 		default: return 'yellow';   // Default fallback
 	}
 }
