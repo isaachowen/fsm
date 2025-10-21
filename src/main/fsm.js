@@ -183,13 +183,8 @@ function drawText(c, originalText, x, y, angleOrNull, isSelected) {
 		
 		// Restore original stroke style
 		c.strokeStyle = originalStrokeStyle;
-		// Only show caret when in editing_text mode (ui_flow_v2) or legacy editing mode
-		var shouldShowCaret = false;
-		if (ui_flow_v2) {
-			shouldShowCaret = (InteractionManager.getMode() === 'editing_text' && isSelected);
-		} else {
-			shouldShowCaret = (InteractionManager.canEditText() && isSelected);
-		}
+		// Only show caret when in editing_text mode
+		var shouldShowCaret = (InteractionManager.getMode() === 'editing_text' && isSelected);
 		
 		if(shouldShowCaret && caretVisible && canvasHasFocus() && document.hasFocus()) {
 			var cursorX = x; // Start at beginning of text
@@ -560,14 +555,6 @@ var hitTargetPadding = 6; // pixels
 // INTERACTION MANAGER - SINGLE SOURCE OF TRUTH
 // =============================================================================
 
-// Feature flag for new UI flow
-var ui_flow_v2 = true; // Set to true to enable new three-state interaction modes
-
-// Update guide content when ui_flow_v2 is defined
-if (typeof populateGuide === 'function') {
-	populateGuide();
-}
-
 // Make InteractionManager globally accessible for debugging
 window.InteractionManager = {
     // Internal state
@@ -586,50 +573,30 @@ window.InteractionManager = {
     setSelected: function(obj) {
         console.log('🎯 Selection changed:', obj);
         
-        if (ui_flow_v2) {
-            // New behavior: automatic mode transitions
-            if (obj === null) {
-                this.enterCanvasMode();
-            } else {
-                this.enterSelectionMode(obj);
-            }
+        // Automatic mode transitions
+        if (obj === null) {
+            this.enterCanvasMode();
         } else {
-            // Current behavior: direct assignment
-            this._selectedObject = obj;
+            this.enterSelectionMode(obj);
         }
     },
     
-    // Capability checks (ready for mode logic)
+    // Capability checks
     canEditText: function() {
-        if (ui_flow_v2) {
-            // New behavior: can only edit text in 'editing_text' mode
-            return this._mode === 'editing_text' && this._selectedObject && 'text' in this._selectedObject;
-        } else {
-            // Current behavior: any selected object with text can be edited
-            return this._selectedObject != null && 'text' in this._selectedObject;
-        }
+        // Can only edit text in 'editing_text' mode
+        return this._mode === 'editing_text' && this._selectedObject && 'text' in this._selectedObject;
     },
     
     canChangeNodeAppearance: function() {
-        if (ui_flow_v2) {
-            // New behavior: can change appearance in 'selection' mode (single node) or 'multiselect' mode (multiple nodes)
-            return (this._mode === 'selection' && this._selectedObject instanceof Node) ||
-                   (this._mode === 'multiselect' && selectedNodes.length > 0);
-        } else {
-            // Current behavior: any selected Node can change appearance
-            return this._selectedObject instanceof Node;
-        }
+        // Can change appearance in 'selection' mode (single node) or 'multiselect' mode (multiple nodes)
+        return (this._mode === 'selection' && this._selectedObject instanceof Node) ||
+               (this._mode === 'multiselect' && selectedNodes.length > 0);
     },
     
     canDrag: function() {
-        if (ui_flow_v2) {
-            // New behavior: can drag in 'selection' mode (single object) or 'multiselect' mode (multiple nodes)
-            return (this._mode === 'selection' && this._selectedObject) ||
-                   (this._mode === 'multiselect' && selectedNodes.length > 0);
-        } else {
-            // Current behavior: any selected object can be dragged
-            return this._selectedObject != null;
-        }
+        // Can drag in 'selection' mode (single object) or 'multiselect' mode (multiple nodes)
+        return (this._mode === 'selection' && this._selectedObject) ||
+               (this._mode === 'multiselect' && selectedNodes.length > 0);
     },
     
     // Utility methods
@@ -642,28 +609,24 @@ window.InteractionManager = {
     clearSelection: function() {
         console.log('InteractionManager.clearSelection() called');
         this._selectedObject = null;
-        if (ui_flow_v2) {
-            this._mode = 'canvas';
-            console.log('📊 _mode changed to:', this._mode);
-        }
+        this._mode = 'canvas';
+        console.log('📊 _mode changed to:', this._mode);
     },
     
-    // Mode transition methods (for ui_flow_v2)
+    // Mode transition methods
     enterCanvasMode: function() {
-        if (ui_flow_v2) {
-            console.log('🎯 Entering canvas mode');
-            
-            // Clean up any active text overlay
-            cleanupTextOverlay();
-            
-            this._selectedObject = null;
-            this._mode = 'canvas';
-            draw();
-        }
+        console.log('🎯 Entering canvas mode');
+        
+        // Clean up any active text overlay
+        cleanupTextOverlay();
+        
+        this._selectedObject = null;
+        this._mode = 'canvas';
+        draw();
     },
     
     enterSelectionMode: function(obj) {
-        if (ui_flow_v2 && obj) {
+        if (obj) {
             console.log('🎯 Entering selection mode for:', obj);
             
             // Clean up cursor state
@@ -678,7 +641,7 @@ window.InteractionManager = {
     },
     
     enterEditingMode: function(obj) {
-        if (ui_flow_v2 && obj && 'text' in obj) {
+        if (obj && 'text' in obj) {
             console.log('🖊️  Entering editing_text mode for:', obj);
             this._selectedObject = obj;
             this._mode = 'editing_text';
@@ -691,7 +654,7 @@ window.InteractionManager = {
     },
     
     enterMultiselectMode: function() {
-        if (ui_flow_v2 && selectedNodes.length > 0) {
+        if (selectedNodes.length > 0) {
             console.log('🎯 Entering multiselect mode with', selectedNodes.length, 'nodes');
             this._mode = 'multiselect';
             console.log('📊 _mode changed to:', this._mode);
@@ -1866,10 +1829,8 @@ window.onload = function() {
 				dragState.startDrag();
 			}
 			
-			// Only reset caret if we're in editing mode (ui_flow_v2) or legacy mode with text editing capability
-			if (!ui_flow_v2 && InteractionManager.canEditText()) {
-				resetCaret();
-			} else if (ui_flow_v2 && InteractionManager.getMode() === 'editing_text') {
+			// Only reset caret if we're in editing mode
+			if (InteractionManager.getMode() === 'editing_text') {
 				resetCaret();
 			}
 		} else if(shift) {
@@ -1941,16 +1902,14 @@ window.onload = function() {
 			}
 			
 			// Mode transition: double-clicking a node without modifiers switches to editing mode
-			if(ui_flow_v2 && colorModifier == null) {
+			if(colorModifier == null) {
 				InteractionManager.enterEditingMode(InteractionManager.getSelected());
 			}
 			
 			draw();
 		} else if(InteractionManager.getSelected() && 'text' in InteractionManager.getSelected()) {
 			// Mode transition: double-clicking any object with text (links) switches to editing mode
-			if(ui_flow_v2) {
-				InteractionManager.enterEditingMode(InteractionManager.getSelected());
-			}
+			InteractionManager.enterEditingMode(InteractionManager.getSelected());
 			draw();
 		}
 	};
@@ -2202,66 +2161,75 @@ document.onkeydown = function(e) {
 	} else if(key == 65 || key == 83 || key == 68 || key == 70 || key == 71 || key == 90 || key == 88 || key == 67 || key == 86 || key == 66) { // A, S, D, F, G, Z, X, C, V, B keys
 		colorModifier = String.fromCharCode(key); // Convert keycode to letter (A, S, D, F, G, Z, X, C, V, B)
 		
-		// Immediate color change in selection or multiselect mode
-		if(ui_flow_v2 && InteractionManager.canChangeNodeAppearance()) {
-			if(InteractionManager.getMode() === 'selection') {
-				// Single node selection
-				InteractionManager.getSelected().color = getColorFromModifier(colorModifier);
-			} else if(InteractionManager.getMode() === 'multiselect') {
-				// Multiple node selection - apply to all selected nodes
-				for(var i = 0; i < selectedNodes.length; i++) {
-					selectedNodes[i].color = getColorFromModifier(colorModifier);
+		// Only change colors when NOT in editing text mode
+		if(InteractionManager.getMode() !== 'editing_text') {
+			// Immediate color change in selection or multiselect mode
+			if(InteractionManager.canChangeNodeAppearance()) {
+				if(InteractionManager.getMode() === 'selection') {
+					// Single node selection
+					InteractionManager.getSelected().color = getColorFromModifier(colorModifier);
+				} else if(InteractionManager.getMode() === 'multiselect') {
+					// Multiple node selection - apply to all selected nodes
+					for(var i = 0; i < selectedNodes.length; i++) {
+						selectedNodes[i].color = getColorFromModifier(colorModifier);
+					}
 				}
+				suppressTypingUntil = Date.now() + 300; // Suppress typing briefly
+				updateLegend(); // Update legend after color change
+				
+				// HISTORY: Push state after color change (immediate operation)
+				pushHistoryState({skipIfEqual: true});
+				
+				draw();
 			}
-			suppressTypingUntil = Date.now() + 300; // Suppress typing briefly
-			updateLegend(); // Update legend after color change
 			
-			// HISTORY: Push state after color change (immediate operation)
-			pushHistoryState({skipIfEqual: true});
-			
-			draw();
-		}
-		
-		// Link color change when a link is selected
-		if(selectedObject != null && (selectedObject instanceof Link || selectedObject instanceof SelfLink || selectedObject instanceof StartLink)) {
-			var oldColor = selectedObject.color;
-			selectedObject.color = getColorFromModifier(colorModifier);
-			console.log('Link color changed from', oldColor, 'to', selectedObject.color);
-			
-			suppressTypingUntil = Date.now() + 300; // Suppress typing briefly
-			
-			// HISTORY: Push state after color change (immediate operation)
-			pushHistoryState({skipIfEqual: true});
-			
-			draw();
+			// Link color change when a link is selected
+			if(selectedObject != null && (selectedObject instanceof Link || selectedObject instanceof SelfLink || selectedObject instanceof StartLink)) {
+				var oldColor = selectedObject.color;
+				selectedObject.color = getColorFromModifier(colorModifier);
+				console.log('Link color changed from', oldColor, 'to', selectedObject.color);
+				
+				suppressTypingUntil = Date.now() + 300; // Suppress typing briefly
+				
+				// HISTORY: Push state after color change (immediate operation)
+				pushHistoryState({skipIfEqual: true});
+				
+				draw();
+			}
 		}
 	} else if(key == 49) { // '1' key - set to traditional arrow
-		// Set arrow type to traditional arrow for selected link
-		if(selectedObject != null && (selectedObject instanceof Link || selectedObject instanceof SelfLink || selectedObject instanceof StartLink)) {
-			var oldType = selectedObject.arrowType;
-			selectedObject.arrowType = 'arrow';
-			console.log('Arrow type changed from', oldType, 'to', selectedObject.arrowType);
-			
-			// HISTORY: Push state after arrow type change (immediate operation)
-			pushHistoryState({skipIfEqual: true});
-			
-			draw();
-		} else {
-			console.log('No link selected or wrong object type:', selectedObject);
+		// Only change arrow type when NOT in editing text mode
+		if(InteractionManager.getMode() !== 'editing_text') {
+			// Set arrow type to traditional arrow for selected link
+			if(selectedObject != null && (selectedObject instanceof Link || selectedObject instanceof SelfLink || selectedObject instanceof StartLink)) {
+				var oldType = selectedObject.arrowType;
+				selectedObject.arrowType = 'arrow';
+				console.log('Arrow type changed from', oldType, 'to', selectedObject.arrowType);
+				
+				// HISTORY: Push state after arrow type change (immediate operation)
+				pushHistoryState({skipIfEqual: true});
+				
+				draw();
+			} else {
+				console.log('No link selected or wrong object type:', selectedObject);
+			}
 		}
 	} else if(key == 50) { // '2' key - set to T-shaped arrow
-		// Set arrow type to T-shaped arrow for selected link
-		if(selectedObject != null && (selectedObject instanceof Link || selectedObject instanceof SelfLink || selectedObject instanceof StartLink)) {
-			var oldType = selectedObject.arrowType;
-			selectedObject.arrowType = 'T';
-			console.log('Arrow type changed from', oldType, 'to', selectedObject.arrowType);
-			
-			// HISTORY: Push state after arrow type change (immediate operation)
-			pushHistoryState({skipIfEqual: true});
-			
-			draw();
-		} else {
-			console.log('No link selected or wrong object type:', selectedObject);
+		// Only change arrow type when NOT in editing text mode
+		if(InteractionManager.getMode() !== 'editing_text') {
+			// Set arrow type to T-shaped arrow for selected link
+			if(selectedObject != null && (selectedObject instanceof Link || selectedObject instanceof SelfLink || selectedObject instanceof StartLink)) {
+				var oldType = selectedObject.arrowType;
+				selectedObject.arrowType = 'T';
+				console.log('Arrow type changed from', oldType, 'to', selectedObject.arrowType);
+				
+				// HISTORY: Push state after arrow type change (immediate operation)
+				pushHistoryState({skipIfEqual: true});
+				
+				draw();
+			} else {
+				console.log('No link selected or wrong object type:', selectedObject);
+			}
 		}
 	} else if(!canvasHasFocus()) {
 		// don't read keystrokes when other things have focus
@@ -2325,7 +2293,7 @@ document.onkeydown = function(e) {
 		return false;
 	} else if(key == 46) { // delete key
 		// Only delete nodes/links when NOT in text editing mode
-		if(ui_flow_v2 && InteractionManager.getMode() === 'editing_text') {
+		if(InteractionManager.getMode() === 'editing_text') {
 			// In text editing mode, delete key should delete character at cursor (forward delete)
 			if(InteractionManager.canEditText()) {
 				var selected = InteractionManager.getSelected();
@@ -2397,29 +2365,25 @@ document.onkeydown = function(e) {
 			canvasHistory.pending = null;
 		}
 		
-		if(ui_flow_v2) {
-			// Mode transitions: editing_text → selection → canvas, multiselect → canvas
-			if(InteractionManager.getMode() === 'editing_text') {
-				InteractionManager.enterSelectionMode(InteractionManager.getSelected());
-				draw(); // Redraw to hide the caret immediately
-			} else if(InteractionManager.getMode() === 'selection') {
-				InteractionManager.enterCanvasMode();
-				draw(); // Redraw to update visual state
-			} else if(InteractionManager.getMode() === 'multiselect') {
-				// Exit multiselect mode and clear selections
-				selectedNodes = [];
-				InteractionManager.enterCanvasMode();
-				draw(); // Redraw to update visual state
-			}
-			// If already in canvas mode, escape does nothing
+		// Mode transitions: editing_text → selection → canvas, multiselect → canvas
+		if(InteractionManager.getMode() === 'editing_text') {
+			InteractionManager.enterSelectionMode(InteractionManager.getSelected());
+			draw(); // Redraw to hide the caret immediately
+		} else if(InteractionManager.getMode() === 'selection') {
+			InteractionManager.enterCanvasMode();
+			draw(); // Redraw to update visual state
+		} else if(InteractionManager.getMode() === 'multiselect') {
+			// Exit multiselect mode and clear selections
+			selectedNodes = [];
+			InteractionManager.enterCanvasMode();
+			draw(); // Redraw to update visual state
 		}
+		// If already in canvas mode, escape does nothing
 	} else if(key == 13) { // enter key
-		if(ui_flow_v2) {
-			// Mode transition: selection → editing_text (if node with text is selected)
-			if(InteractionManager.getMode() === 'selection' && InteractionManager.getSelected() && 'text' in InteractionManager.getSelected()) {
-				InteractionManager.enterEditingMode(InteractionManager.getSelected());
-				draw(); // Redraw to show the caret
-			}
+		// Mode transition: selection → editing_text (if node with text is selected)
+		if(InteractionManager.getMode() === 'selection' && InteractionManager.getSelected() && 'text' in InteractionManager.getSelected()) {
+			InteractionManager.enterEditingMode(InteractionManager.getSelected());
+			draw(); // Redraw to show the caret
 		}
 	}
 };
@@ -2445,7 +2409,7 @@ document.onkeypress = function(e) {
 		return false;
 	} else if(key >= 0x20 && key <= 0x7E && !e.metaKey && !e.altKey && !e.ctrlKey && InteractionManager.canEditText()) {
 		// Mode transition: automatically enter editing_text mode when typing begins
-		if(ui_flow_v2 && InteractionManager.getMode() !== 'editing_text') {
+		if(InteractionManager.getMode() !== 'editing_text') {
 			InteractionManager.enterEditingMode(InteractionManager.getSelected());
 		}
 		
