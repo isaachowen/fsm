@@ -16,6 +16,7 @@ function Link(a, b) {
 	this.nodeB = b;
 	this.text = '';
 	this.arrowType = 'arrow'; // 'arrow' for traditional triangle, 'T' for T-shaped
+	this.color = 'gray'; // Default link color (matches getColorFromModifier default for edges)
 	this.lineAngleAdjust = 0; // value to add to textAngle when link is straight line
 
 	// make anchor point relative to the locations of nodeA and nodeB

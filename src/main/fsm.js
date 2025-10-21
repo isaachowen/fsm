@@ -81,15 +81,20 @@ function drawTArrow(c, x, y, angle) {
 	var dx = Math.cos(angle);
 	var dy = Math.sin(angle);
 	
+	// Step back by 3 pixels from the edge of the node
+	var stepBack = 3;
+	var arrowX = x - stepBack * dx;
+	var arrowY = y - stepBack * dy;
+	
 	// Draw T-shaped arrow: a line perpendicular to the direction
 	c.beginPath();
 	c.lineWidth = 3; // Make T-arrow slightly thicker for visibility
-	c.moveTo(x + 6 * dy, y - 6 * dx);
-	c.lineTo(x - 6 * dy, y + 6 * dx);
+	c.moveTo(arrowX + 6 * dy, arrowY - 6 * dx);
+	c.lineTo(arrowX - 6 * dy, arrowY + 6 * dx);
 	c.stroke();
 	
 	// Reset line width
-	c.lineWidth = 2;
+	c.lineWidth = 3;
 }
 
 function canvasHasFocus() {
@@ -1544,7 +1549,7 @@ function drawMiniNode(miniCanvas, color) {
 	
 	c.fillStyle = tempNode.getBaseColor();
 	c.strokeStyle = '#9ac29a';
-	c.lineWidth = 1.5;
+	c.lineWidth = 1;  // Thinner border to match main nodes
 	
 	c.beginPath();
 	c.arc(centerX, centerY, miniRadius, 0, 2 * Math.PI, false);
@@ -1605,7 +1610,7 @@ function drawUsing(c) {
 	c.translate(0.5, 0.5);
 
 	for(var i = 0; i < nodes.length; i++) {
-		c.lineWidth = 2;
+		c.lineWidth = 1;  // Thinner border for normal nodes
 		var node = nodes[i];
 		var isSelected = (node == selectedObject);
 		var isMultiSelected = (selectedNodes.indexOf(node) !== -1);
@@ -1613,10 +1618,11 @@ function drawUsing(c) {
 		if(isSelected) {
 			c.strokeStyle = '#ff9500';  // warm orange for selected
 			c.fillStyle = node.getSelectedColor();  // Use node's selected color
+			c.lineWidth = 2;  // Thinner border for multi-selected nodes (was 3)
 		} else if(isMultiSelected) {
 			c.strokeStyle = '#0066cc';  // blue for multi-selected nodes
 			c.fillStyle = node.getSelectedColor();  // Use node's selected color
-			c.lineWidth = 3;  // Thicker border for multi-selected nodes
+			c.lineWidth = 2;  // Thinner border for multi-selected nodes (was 3)
 		} else {
 			c.strokeStyle = '#9ac29a';  // darker engineering green accent
 			c.fillStyle = node.getBaseColor();      // Use node's base color
@@ -1624,19 +1630,21 @@ function drawUsing(c) {
 		node.draw(c);
 	}
 	for(var i = 0; i < links.length; i++) {
-		c.lineWidth = 2;
+		c.lineWidth = 3;
 		if(links[i] == selectedObject) {
 			c.fillStyle = c.strokeStyle = '#ff9500';  // warm orange for selected
 		} else {
-			c.strokeStyle = '#9ac29a';  // darker engineering green accent
-			c.fillStyle = '#9ac29a';    // darker engineering green accent for arrows too
+			var linkColorHex = getLinkColorHex(links[i].color);
+			c.strokeStyle = linkColorHex;  // Use link's color
+			c.fillStyle = linkColorHex;    // Use link's color for arrows too
 		}
 		links[i].draw(c);
 	}
 	if(currentLink != null) {
-		c.lineWidth = 2;
-		c.strokeStyle = '#9ac29a';  // darker engineering green accent
-		c.fillStyle = '#9ac29a';    // darker engineering green accent for arrows too
+		c.lineWidth = 3;
+		var linkColorHex = getLinkColorHex(currentLink.color || 'gray');
+		c.strokeStyle = linkColorHex;  // Use link's color or default gray
+		c.fillStyle = linkColorHex;    // Use link's color or default gray for arrows too
 		currentLink.draw(c);
 	}
 
@@ -2191,8 +2199,8 @@ document.onkeydown = function(e) {
 
 	if(key == 16) {
 		shift = true;
-	} else if(key == 81 || key == 87 || key == 69 || key == 82 || key == 84 || key == 65 || key == 83 || key == 68 || key == 70 || key == 71) { // Q, W, E, R, T, A, S, D, F, G keys
-		colorModifier = String.fromCharCode(key); // Convert keycode to letter (Q, W, E, R, T, A, S, D, F, G)
+	} else if(key == 65 || key == 83 || key == 68 || key == 70 || key == 71 || key == 90 || key == 88 || key == 67 || key == 86 || key == 66) { // A, S, D, F, G, Z, X, C, V, B keys
+		colorModifier = String.fromCharCode(key); // Convert keycode to letter (A, S, D, F, G, Z, X, C, V, B)
 		
 		// Immediate color change in selection or multiselect mode
 		if(ui_flow_v2 && InteractionManager.canChangeNodeAppearance()) {
@@ -2207,6 +2215,20 @@ document.onkeydown = function(e) {
 			}
 			suppressTypingUntil = Date.now() + 300; // Suppress typing briefly
 			updateLegend(); // Update legend after color change
+			
+			// HISTORY: Push state after color change (immediate operation)
+			pushHistoryState({skipIfEqual: true});
+			
+			draw();
+		}
+		
+		// Link color change when a link is selected
+		if(selectedObject != null && (selectedObject instanceof Link || selectedObject instanceof SelfLink || selectedObject instanceof StartLink)) {
+			var oldColor = selectedObject.color;
+			selectedObject.color = getColorFromModifier(colorModifier);
+			console.log('Link color changed from', oldColor, 'to', selectedObject.color);
+			
+			suppressTypingUntil = Date.now() + 300; // Suppress typing briefly
 			
 			// HISTORY: Push state after color change (immediate operation)
 			pushHistoryState({skipIfEqual: true});
@@ -2407,7 +2429,7 @@ document.onkeyup = function(e) {
 
 	if(key == 16) {
 		shift = false;
-	} else if(key == 81 || key == 87 || key == 69 || key == 82 || key == 84 || key == 65 || key == 83 || key == 68 || key == 70 || key == 71) { // Q, W, E, R, T, A, S, D, F, G keys
+	} else if(key == 65 || key == 83 || key == 68 || key == 70 || key == 71 || key == 90 || key == 88 || key == 67 || key == 86 || key == 66) { // A, S, D, F, G, Z, X, C, V, B keys
 		colorModifier = null;
 	}
 };
@@ -2468,22 +2490,53 @@ function getColorFromModifier(modifier) {
 	 * - switch statement for modifier-to-color mapping
 	 * - No external function calls
 	 * 
-	 * Purpose: Translates keyboard input (letter keys Q,W,E,R,T,A,S,D,F,G) into corresponding
+	 * Purpose: Translates keyboard input (letter keys A,S,D,F,G,Z,X,C,V,B) into corresponding
 	 * node color strings. Enables quick color changes via keyboard shortcuts.
 	 * Returns color names that correspond to Node color property values.
 	 */
 	switch(modifier) {
-		case 'Q': return 'yellow';  // Q for default yellow
-		case 'W': return 'green';   // W for green  
-		case 'E': return 'blue';    // E for blue
-		case 'R': return 'pink';    // R for pink
-		case 'T': return 'white';   // T for white
-		case 'A': return 'black';   // A for black
-		case 'S': return 'gray';    // S for gray
-		case 'D': return 'red';     // D for red
-		case 'F': return 'orange';  // F for orange
-		case 'G': return 'purple';  // G for purple
+		case 'A': return 'yellow';  // A for default yellow
+		case 'S': return 'green';   // S for green  
+		case 'D': return 'blue';    // D for blue
+		case 'F': return 'pink';    // F for pink
+		case 'G': return 'white';   // G for white
+		case 'Z': return 'black';   // Z for black
+		case 'X': return 'gray';    // X for gray
+		case 'C': return 'red';     // C for red
+		case 'V': return 'orange';  // V for orange
+		case 'B': return 'purple';  // B for purple
 		default: return 'yellow';   // Default fallback
+	}
+}
+
+function getLinkColorHex(colorName) {
+	/**
+	 * getLinkColorHex - Converts color name to hex code for link rendering
+	 * 
+	 * Called by:
+	 * - drawUsing() when setting stroke/fill styles for links
+	 * - Any function that needs hex color codes for link visualization
+	 * 
+	 * Calls:
+	 * - switch statement for color name to hex mapping
+	 * - No external function calls
+	 * 
+	 * Purpose: Translates human-readable color names (from getColorFromModifier)
+	 * into hex color codes that canvas context can use for strokeStyle/fillStyle.
+	 * Provides consistent color mapping between nodes and links.
+	 */
+	switch(colorName) {
+		case 'yellow': return '#ffff80';  // Light yellow
+		case 'green': return '#80ff80';   // Light green
+		case 'blue': return '#8080ff';    // Light blue
+		case 'pink': return '#ff80ff';    // Light pink
+		case 'white': return '#ffffff';   // White
+		case 'black': return '#000000';   // Black
+		case 'gray': return '#9ac29a';    // Default engineering green (matches original link color)
+		case 'red': return '#ff8080';     // Light red
+		case 'orange': return '#ffb380';  // Light orange
+		case 'purple': return '#c080ff';  // Light purple
+		default: return '#9ac29a';        // Default to engineering green
 	}
 }
 
@@ -3475,6 +3528,7 @@ function processJSONData(jsonData, filename) {
 		
 		link.text = linkData.text || '';
 		link.arrowType = linkData.arrowType || 'arrow'; // Restore arrow type with fallback
+		link.color = linkData.color || 'gray'; // Restore link color with fallback
 		links.push(link);
 	}
 	

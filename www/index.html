@@ -1083,7 +1083,8 @@ function createJSONData() {
 		var link = links[i];
 		var linkData = {
 			text: link.text,
-			arrowType: link.arrowType || 'arrow'  // Include arrow type
+			arrowType: link.arrowType || 'arrow',  // Include arrow type
+			color: link.color || 'gray'            // Include link color
 		};
 		
 		// Handle different link types - simplified for this example

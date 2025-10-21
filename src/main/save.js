@@ -24,12 +24,14 @@ function restoreBackup() {
 				link.anchorAngle = backupLink.anchorAngle;
 				link.text = backupLink.text;
 				link.arrowType = backupLink.arrowType || 'arrow';
+				link.color = backupLink.color || 'gray';
 			} else if(backupLink.type == 'StartLink') {
 				link = new StartLink(nodes[backupLink.node]);
 				link.deltaX = backupLink.deltaX;
 				link.deltaY = backupLink.deltaY;
 				link.text = backupLink.text;
 				link.arrowType = backupLink.arrowType || 'arrow';
+				link.color = backupLink.color || 'gray';
 			} else if(backupLink.type == 'Link') {
 				link = new Link(nodes[backupLink.nodeA], nodes[backupLink.nodeB]);
 				link.parallelPart = backupLink.parallelPart;
@@ -37,6 +39,7 @@ function restoreBackup() {
 				link.text = backupLink.text;
 				link.lineAngleAdjust = backupLink.lineAngleAdjust;
 				link.arrowType = backupLink.arrowType || 'arrow';
+				link.color = backupLink.color || 'gray';
 			}
 			if(link != null) {
 				links.push(link);
@@ -125,6 +128,7 @@ function saveBackup() {
 				'text': link.text,
 				'anchorAngle': link.anchorAngle,
 				'arrowType': link.arrowType || 'arrow',
+				'color': link.color || 'gray',
 			};
 		} else if(link instanceof StartLink) {
 			backupLink = {
@@ -134,6 +138,7 @@ function saveBackup() {
 				'deltaX': link.deltaX,
 				'deltaY': link.deltaY,
 				'arrowType': link.arrowType || 'arrow',
+				'color': link.color || 'gray',
 			};
 		} else if(link instanceof Link) {
 			backupLink = {
@@ -145,6 +150,7 @@ function saveBackup() {
 				'parallelPart': link.parallelPart,
 				'perpendicularPart': link.perpendicularPart,
 				'arrowType': link.arrowType || 'arrow',
+				'color': link.color || 'gray',
 			};
 		}
 		if(backupLink != null) {

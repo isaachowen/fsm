@@ -21,6 +21,7 @@ function SelfLink(node, mouse) {
 	this.mouseOffsetAngle = 0;
 	this.text = '';
 	this.arrowType = 'arrow'; // 'arrow' for traditional triangle, 'T' for T-shaped
+	this.color = 'gray'; // Default link color (matches getColorFromModifier default for edges)
 
 	if(mouse) {
 		this.setAnchorPoint(mouse.x, mouse.y);
