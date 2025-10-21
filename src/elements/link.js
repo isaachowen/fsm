@@ -167,10 +167,31 @@ Link.prototype.draw = function(c) {
 	// draw arc
 	c.beginPath();
 	if(stuff.hasCircle) {
-		c.arc(stuff.circleX, stuff.circleY, stuff.circleRadius, stuff.startAngle, stuff.endAngle, stuff.isReversed);
+		// For curved lines, adjust the end angle to stop before the arrow
+		// Use shorter offset for T-arrows since they're stepped back further
+		var pixelOffset = this.arrowType === 'T' ? 3 : 5;
+		var arrowOffset = pixelOffset / stuff.circleRadius; // pixels converted to radians
+		
+		// Always subtract from endAngle to shorten the arc (regardless of direction)
+		var adjustedEndAngle;
+		if (stuff.isReversed) {
+			adjustedEndAngle = stuff.endAngle + arrowOffset; // For reversed arcs, add to shorten
+		} else {
+			adjustedEndAngle = stuff.endAngle - arrowOffset; // For normal arcs, subtract to shorten
+		}
+		
+		c.arc(stuff.circleX, stuff.circleY, stuff.circleRadius, stuff.startAngle, adjustedEndAngle, stuff.isReversed);
 	} else {
+		// For straight lines, shorten the end point by moving it back along the line
+		var dx = stuff.endX - stuff.startX;
+		var dy = stuff.endY - stuff.startY;
+		var length = Math.sqrt(dx * dx + dy * dy);
+		var shortenBy = this.arrowType === 'T' ? 3 : 5; // pixels - shorter for T-arrows
+		var adjustedEndX = stuff.endX - (dx / length) * shortenBy;
+		var adjustedEndY = stuff.endY - (dy / length) * shortenBy;
+		
 		c.moveTo(stuff.startX, stuff.startY);
-		c.lineTo(stuff.endX, stuff.endY);
+		c.lineTo(adjustedEndX, adjustedEndY);
 	}
 	c.stroke();
 	// draw the head of the arrow

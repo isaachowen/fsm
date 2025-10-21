@@ -142,9 +142,12 @@ SelfLink.prototype.draw = function(c) {
 	 * Always draws as a circular arc (never straight lines).
 	 */
 	var stuff = this.getEndPointsAndArcParams();
-	// draw arc
+	// draw arc - shorten it before the arrow
 	c.beginPath();
-	c.arc(stuff.circleX, stuff.circleY, stuff.circleRadius, stuff.startAngle, stuff.endAngle, false);
+	var pixelOffset = this.arrowType === 'T' ? 3 : 5;
+	var arrowOffset = pixelOffset / stuff.circleRadius; // pixels converted to radians - shorter for T-arrows
+	var adjustedEndAngle = stuff.endAngle - arrowOffset; // Always subtract for self-links
+	c.arc(stuff.circleX, stuff.circleY, stuff.circleRadius, stuff.startAngle, adjustedEndAngle, false);
 	c.stroke();
 	// draw the text on the loop farthest from the node
 	var textX = stuff.circleX + stuff.circleRadius * Math.cos(this.anchorAngle);

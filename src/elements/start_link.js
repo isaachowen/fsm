@@ -106,10 +106,17 @@ StartLink.prototype.draw = function(c) {
 	 */
 	var stuff = this.getEndPoints();
 
-	// draw the line
+	// draw the line - shorten it before the arrow
+	var dx = stuff.endX - stuff.startX;
+	var dy = stuff.endY - stuff.startY;
+	var length = Math.sqrt(dx * dx + dy * dy);
+	var shortenBy = this.arrowType === 'T' ? 3 : 5; // pixels - shorter for T-arrows
+	var adjustedEndX = stuff.endX - (dx / length) * shortenBy;
+	var adjustedEndY = stuff.endY - (dy / length) * shortenBy;
+	
 	c.beginPath();
 	c.moveTo(stuff.startX, stuff.startY);
-	c.lineTo(stuff.endX, stuff.endY);
+	c.lineTo(adjustedEndX, adjustedEndY);
 	c.stroke();
 
 	// draw the text at the end without the arrow
