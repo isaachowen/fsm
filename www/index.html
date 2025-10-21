@@ -628,13 +628,13 @@ function populateGuide() {
 		// New three-state interaction system
 		html += '<ul style="margin: 0 0 15px 0; padding-left: 20px; line-height: 16px;">';
 		html += '<li><b>Add node:</b> double-click (hold color keys)</li>';
-		html += '<li><b>Select object:</b> single click</li>';
-		html += '<li><b>Edit text:</b> double-click selected object OR press Enter</li>';
+		html += '<li><b>Select object (node or edge):</b> single click</li>';
+		html += '<li><b>Edit text:</b> double-click object OR press Enter after selecting an object</li>';
 		html += '<li><b>Exit editing:</b> press Escape (steps back through modes) or click away</li>';
 		html += '<li><b>Move objects:</b> drag when selected</li>';
 		html += '<li><b>Select multiple:</b> drag box around nodes</li>';
 		html += '<li><b>Move group:</b> drag any selected node</li>';
-		html += '<li><b>Add arrow:</b> shift-drag between nodes</li>';
+		html += '<li><b>Add edge:</b> shift-drag between nodes</li>';
 		html += '<li><b>Delete:</b> select + delete key</li>';
 		html += '<li><b>Change color:</b> select node + press q|w|e|r|t|a|s|d|f|g</li>';
 		html += '<li><b>Subscript text:</b> use underscore (S_0)</li>';
@@ -1082,7 +1082,8 @@ function createJSONData() {
 	for (var i = 0; i < links.length; i++) {
 		var link = links[i];
 		var linkData = {
-			text: link.text
+			text: link.text,
+			arrowType: link.arrowType || 'arrow'  // Include arrow type
 		};
 		
 		// Handle different link types - simplified for this example

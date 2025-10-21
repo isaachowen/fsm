@@ -23,17 +23,20 @@ function restoreBackup() {
 				link = new SelfLink(nodes[backupLink.node]);
 				link.anchorAngle = backupLink.anchorAngle;
 				link.text = backupLink.text;
+				link.arrowType = backupLink.arrowType || 'arrow';
 			} else if(backupLink.type == 'StartLink') {
 				link = new StartLink(nodes[backupLink.node]);
 				link.deltaX = backupLink.deltaX;
 				link.deltaY = backupLink.deltaY;
 				link.text = backupLink.text;
+				link.arrowType = backupLink.arrowType || 'arrow';
 			} else if(backupLink.type == 'Link') {
 				link = new Link(nodes[backupLink.nodeA], nodes[backupLink.nodeB]);
 				link.parallelPart = backupLink.parallelPart;
 				link.perpendicularPart = backupLink.perpendicularPart;
 				link.text = backupLink.text;
 				link.lineAngleAdjust = backupLink.lineAngleAdjust;
+				link.arrowType = backupLink.arrowType || 'arrow';
 			}
 			if(link != null) {
 				links.push(link);
@@ -121,6 +124,7 @@ function saveBackup() {
 				'node': nodes.indexOf(link.node),
 				'text': link.text,
 				'anchorAngle': link.anchorAngle,
+				'arrowType': link.arrowType || 'arrow',
 			};
 		} else if(link instanceof StartLink) {
 			backupLink = {
@@ -129,6 +133,7 @@ function saveBackup() {
 				'text': link.text,
 				'deltaX': link.deltaX,
 				'deltaY': link.deltaY,
+				'arrowType': link.arrowType || 'arrow',
 			};
 		} else if(link instanceof Link) {
 			backupLink = {
@@ -139,6 +144,7 @@ function saveBackup() {
 				'lineAngleAdjust': link.lineAngleAdjust,
 				'parallelPart': link.parallelPart,
 				'perpendicularPart': link.perpendicularPart,
+				'arrowType': link.arrowType || 'arrow',
 			};
 		}
 		if(backupLink != null) {

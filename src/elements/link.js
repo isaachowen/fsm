@@ -15,6 +15,7 @@ function Link(a, b) {
 	this.nodeA = a;
 	this.nodeB = b;
 	this.text = '';
+	this.arrowType = 'arrow'; // 'arrow' for traditional triangle, 'T' for T-shaped
 	this.lineAngleAdjust = 0; // value to add to textAngle when link is straight line
 
 	// make anchor point relative to the locations of nodeA and nodeB
@@ -173,9 +174,17 @@ Link.prototype.draw = function(c) {
 	c.stroke();
 	// draw the head of the arrow
 	if(stuff.hasCircle) {
-		drawArrow(c, stuff.endX, stuff.endY, stuff.endAngle - stuff.reverseScale * (Math.PI / 2));
+		if (this.arrowType === 'T') {
+			drawTArrow(c, stuff.endX, stuff.endY, stuff.endAngle - stuff.reverseScale * (Math.PI / 2));
+		} else {
+			drawArrow(c, stuff.endX, stuff.endY, stuff.endAngle - stuff.reverseScale * (Math.PI / 2));
+		}
 	} else {
-		drawArrow(c, stuff.endX, stuff.endY, Math.atan2(stuff.endY - stuff.startY, stuff.endX - stuff.startX));
+		if (this.arrowType === 'T') {
+			drawTArrow(c, stuff.endX, stuff.endY, Math.atan2(stuff.endY - stuff.startY, stuff.endX - stuff.startX));
+		} else {
+			drawArrow(c, stuff.endX, stuff.endY, Math.atan2(stuff.endY - stuff.startY, stuff.endX - stuff.startX));
+		}
 	}
 	// draw the text
 	if(stuff.hasCircle) {

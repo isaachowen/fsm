@@ -60,6 +60,38 @@ function drawArrow(c, x, y, angle) {
 	c.fill();
 }
 
+function drawTArrow(c, x, y, angle) {
+	/**
+	 * drawTArrow - Renders a T-shaped arrow head at specified position and angle
+	 * 
+	 * Called by:
+	 * - Link.prototype.draw() for transition arrows when arrowType is 'T'
+	 * - StartLink.prototype.draw() for start state arrows when arrowType is 'T'
+	 * - SelfLink.prototype.draw() for self-loop arrows when arrowType is 'T'
+	 * 
+	 * Calls:
+	 * - Math.cos(), Math.sin() for angle calculations
+	 * - c.beginPath(), c.moveTo(), c.lineTo(), c.stroke() for drawing T-shape
+	 * - Canvas 2D API for rendering the T-shaped arrow
+	 * 
+	 * Purpose: Draws a T-shaped arrow head to indicate direction of state
+	 * transitions. The T points perpendicular to the direction specified by angle.
+	 * Alternative to the traditional triangular arrow for visual variety.
+	 */
+	var dx = Math.cos(angle);
+	var dy = Math.sin(angle);
+	
+	// Draw T-shaped arrow: a line perpendicular to the direction
+	c.beginPath();
+	c.lineWidth = 3; // Make T-arrow slightly thicker for visibility
+	c.moveTo(x + 6 * dy, y - 6 * dx);
+	c.lineTo(x - 6 * dy, y + 6 * dx);
+	c.stroke();
+	
+	// Reset line width
+	c.lineWidth = 2;
+}
+
 function canvasHasFocus() {
 	/**
 	 * canvasHasFocus - Determines if the canvas has keyboard focus for input
@@ -942,7 +974,10 @@ CanvasRecentHistoryManager.prototype.serializeCurrentState = function() {
 	// Serialize links (content only, no selection state)
 	for (var i = 0; i < links.length; i++) {
 		var link = links[i];
-		var linkData = { text: link.text };
+		var linkData = { 
+			text: link.text,
+			arrowType: link.arrowType || 'arrow'  // Include arrow type
+		};
 		
 		if (link instanceof SelfLink) {
 			linkData.type = 'SelfLink';
@@ -1029,6 +1064,7 @@ CanvasRecentHistoryManager.prototype.restoreState = function(state) {
 		
 		if (link) {
 			link.text = linkData.text || '';
+			link.arrowType = linkData.arrowType || 'arrow';  // Restore arrow type
 			links.push(link);
 		}
 	}
@@ -2177,6 +2213,34 @@ document.onkeydown = function(e) {
 			
 			draw();
 		}
+	} else if(key == 49) { // '1' key - set to traditional arrow
+		// Set arrow type to traditional arrow for selected link
+		if(selectedObject != null && (selectedObject instanceof Link || selectedObject instanceof SelfLink || selectedObject instanceof StartLink)) {
+			var oldType = selectedObject.arrowType;
+			selectedObject.arrowType = 'arrow';
+			console.log('Arrow type changed from', oldType, 'to', selectedObject.arrowType);
+			
+			// HISTORY: Push state after arrow type change (immediate operation)
+			pushHistoryState({skipIfEqual: true});
+			
+			draw();
+		} else {
+			console.log('No link selected or wrong object type:', selectedObject);
+		}
+	} else if(key == 50) { // '2' key - set to T-shaped arrow
+		// Set arrow type to T-shaped arrow for selected link
+		if(selectedObject != null && (selectedObject instanceof Link || selectedObject instanceof SelfLink || selectedObject instanceof StartLink)) {
+			var oldType = selectedObject.arrowType;
+			selectedObject.arrowType = 'T';
+			console.log('Arrow type changed from', oldType, 'to', selectedObject.arrowType);
+			
+			// HISTORY: Push state after arrow type change (immediate operation)
+			pushHistoryState({skipIfEqual: true});
+			
+			draw();
+		} else {
+			console.log('No link selected or wrong object type:', selectedObject);
+		}
 	} else if(!canvasHasFocus()) {
 		// don't read keystrokes when other things have focus
 		return true;
@@ -3274,8 +3338,10 @@ function downloadAsJSON() {
 	var jsonLinks = [];
 	for (var i = 0; i < links.length; i++) {
 		var link = links[i];
+		console.log('Serializing link', i, 'with arrowType:', link.arrowType);
 		var linkData = {
-			text: link.text
+			text: link.text,
+			arrowType: link.arrowType || 'arrow'  // Include arrow type
 		};
 		
 		// Handle different link types
@@ -3408,6 +3474,7 @@ function processJSONData(jsonData, filename) {
 		}
 		
 		link.text = linkData.text || '';
+		link.arrowType = linkData.arrowType || 'arrow'; // Restore arrow type with fallback
 		links.push(link);
 	}
 	

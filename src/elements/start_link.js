@@ -18,6 +18,7 @@ function StartLink(node, start) {
 	this.deltaX = 0;
 	this.deltaY = 0;
 	this.text = '';
+	this.arrowType = 'arrow'; // 'arrow' for traditional triangle, 'T' for T-shaped
 
 	if(start) {
 		this.setAnchorPoint(start.x, start.y);
@@ -115,7 +116,11 @@ StartLink.prototype.draw = function(c) {
 	drawText(c, this.text, stuff.startX, stuff.startY, textAngle, selectedObject == this);
 
 	// draw the head of the arrow
-	drawArrow(c, stuff.endX, stuff.endY, Math.atan2(-this.deltaY, -this.deltaX));
+	if (this.arrowType === 'T') {
+		drawTArrow(c, stuff.endX, stuff.endY, Math.atan2(-this.deltaY, -this.deltaX));
+	} else {
+		drawArrow(c, stuff.endX, stuff.endY, Math.atan2(-this.deltaY, -this.deltaX));
+	}
 };
 
 StartLink.prototype.containsPoint = function(x, y) {

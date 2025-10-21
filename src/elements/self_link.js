@@ -20,6 +20,7 @@ function SelfLink(node, mouse) {
 	this.anchorAngle = 0;
 	this.mouseOffsetAngle = 0;
 	this.text = '';
+	this.arrowType = 'arrow'; // 'arrow' for traditional triangle, 'T' for T-shaped
 
 	if(mouse) {
 		this.setAnchorPoint(mouse.x, mouse.y);
@@ -149,7 +150,11 @@ SelfLink.prototype.draw = function(c) {
 	var textY = stuff.circleY + stuff.circleRadius * Math.sin(this.anchorAngle);
 	drawText(c, this.text, textX, textY, this.anchorAngle, selectedObject == this);
 	// draw the head of the arrow
-	drawArrow(c, stuff.endX, stuff.endY, stuff.endAngle + Math.PI * 0.4);
+	if (this.arrowType === 'T') {
+		drawTArrow(c, stuff.endX, stuff.endY, stuff.endAngle + Math.PI * 0.4);
+	} else {
+		drawArrow(c, stuff.endX, stuff.endY, stuff.endAngle + Math.PI * 0.4);
+	}
 };
 
 SelfLink.prototype.containsPoint = function(x, y) {
