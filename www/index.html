@@ -567,37 +567,40 @@ if (typeof btoa == 'undefined') {
 				<!-- Content populated dynamically -->
 			</div>
 			
-			<!-- Color Guide -->
-			<div class="color-guide" style="margin: 15px 0; text-align: center; padding: 8px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">
-				<p style="margin: 0 0 5px 0; font-size: 12px; font-weight: bold;">Color Examples:</p>
-				<svg width="250" height="60" viewBox="0 0 250 60" style="display: block; margin: 0 auto; max-width: 100%; height: auto;">
-					<!-- Background -->
-					<rect width="250" height="60" fill="#fdfdfd" stroke="#eee" stroke-width="0.5"/>
-					
-					<!-- Color 1: Yellow (q) -->
-					<g transform="translate(50, 20)">
-						<circle cx="0" cy="0" r="12" fill="#fff2a8" stroke="#9ac29a" stroke-width="1.5"/>
-						<text x="0" y="25" text-anchor="middle" font-size="12" font-family="Arial, sans-serif" fill="#333">q</text>
-					</g>
-					
-					<!-- Color 2: Green (w) -->
-					<g transform="translate(100, 20)">
-						<circle cx="0" cy="0" r="12" fill="#c8e6c9" stroke="#9ac29a" stroke-width="1.5"/>
-						<text x="0" y="25" text-anchor="middle" font-size="12" font-family="Arial, sans-serif" fill="#333">w</text>
-					</g>
-					
-					<!-- Color 3: Blue (e) -->
-					<g transform="translate(150, 20)">
-						<circle cx="0" cy="0" r="12" fill="#bbdefb" stroke="#9ac29a" stroke-width="1.5"/>
-						<text x="0" y="25" text-anchor="middle" font-size="12" font-family="Arial, sans-serif" fill="#333">e</text>
-					</g>
-					
-					<!-- Color 4: Pink (r) -->
-					<g transform="translate(200, 20)">
-						<circle cx="0" cy="0" r="12" fill="#f8bbd9" stroke="#9ac29a" stroke-width="1.5"/>
-						<text x="0" y="25" text-anchor="middle" font-size="12" font-family="Arial, sans-serif" fill="#333">r</text>
-					</g>
-				</svg>
+			<!-- Keyboard Modifier Guide -->
+			<div class="keyboard-guide" style="margin: 15px 0; text-align: center; padding: 12px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">
+				<p style="margin: 0 0 10px 0; font-size: 12px; font-weight: bold;">Keyboard Modifiers:</p>
+				<div class="keyboard-layout" style="display: inline-block; font-family: 'Courier New', monospace; font-size: 11px; line-height: 1;">
+					<!-- Number row (12) for arrow types -->
+					<div style="display: flex; gap: 2px; margin-bottom: 4px; justify-content: center;">
+						<div style="width: 28px; height: 28px; border: 1px solid #666; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #f0f0f0; color: #333; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1); position: relative;">
+							1
+							<div style="position: absolute; top: -2px; right: -2px; width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-bottom: 6px solid #333;"></div>
+						</div>
+						<div style="width: 28px; height: 28px; border: 1px solid #666; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #f0f0f0; color: #333; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1); position: relative;">
+							2
+							<div style="position: absolute; top: -1px; right: 2px; width: 6px; height: 2px; background: #333;"></div>
+							<div style="position: absolute; top: 1px; right: 4px; width: 2px; height: 6px; background: #333;"></div>
+						</div>
+					</div>
+					<!-- Top row (ASDFG) -->
+					<div style="display: flex; gap: 2px; margin-bottom: 2px; justify-content: center;">
+						<div style="width: 28px; height: 28px; border: 1px solid #999; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #ffff80; color: #333; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">A</div>
+						<div style="width: 28px; height: 28px; border: 1px solid #999; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #80ff80; color: #333; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">S</div>
+						<div style="width: 28px; height: 28px; border: 1px solid #999; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #8080ff; color: #333; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">D</div>
+						<div style="width: 28px; height: 28px; border: 1px solid #999; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #ff80ff; color: #333; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">F</div>
+						<div style="width: 28px; height: 28px; border: 1px solid #999; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #ffffff; color: #333; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1); border-color: #666;">G</div>
+					</div>
+					<!-- Bottom row (ZXCVB) -->
+					<div style="display: flex; gap: 2px; justify-content: center;">
+						<div style="width: 28px; height: 28px; border: 1px solid #999; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #000000; color: #fff; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">Z</div>
+						<div style="width: 28px; height: 28px; border: 1px solid #999; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #9ac29a; color: #333; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">X</div>
+						<div style="width: 28px; height: 28px; border: 1px solid #999; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #ff8080; color: #333; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">C</div>
+						<div style="width: 28px; height: 28px; border: 1px solid #999; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #ffb380; color: #333; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">V</div>
+						<div style="width: 28px; height: 28px; border: 1px solid #999; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #c080ff; color: #333; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">B</div>
+					</div>
+					<p style="margin: 8px 0 0 0; font-size: 10px; color: #666; font-family: Arial, sans-serif;">Colors: Press keys while selected | Arrows: Press 1 (▶) or 2 (⊣) on selected edge</p>
+				</div>
 			</div>
 			
 			<!-- Attribution at bottom -->
@@ -637,7 +640,7 @@ function populateGuide() {
 	html += '</ul>';
 	
 	html += '<div style="margin: 15px 0; padding: 8px; background: #fff3e0; border: 1px solid #ff9800; border-radius: 4px;">';
-	html += '<p style="margin: 0 0 5px 0; font-weight: bold; color: #e65100; font-size: 12px;">🎯 Interaction Modes:</p>';
+	html += '<p style="margin: 0 0 5px 0; font-weight: bold; color: #e65100; font-size: 12px;">Interaction Modes:</p>';
 	html += '<p style="margin: 0; font-size: 11px; line-height: 14px;">Canvas → Selection (click) → Editing label (double-click/Enter) → back with Escape</p>';
 	html += '</div>';
 	
