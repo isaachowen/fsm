@@ -503,7 +503,7 @@ if (typeof btoa == 'undefined') {
 				font-size: 11px;
 				font-family: inherit;
 			">
-				Save
+				Save Sketch to Local Directory
 			</button>
 		</div>
 		
@@ -795,6 +795,7 @@ function updateFileListDisplay() {
 		html += '  <span class="file-name">' + file.name + '</span>';
 		html += '  <div class="file-actions">';
 		html += '    <button class="file-action-btn" onclick="event.stopPropagation(); loadSketchFile(\'' + file.name + '\')" title="Load this file">📂</button>';
+		html += '    <button class="file-action-btn file-delete-btn" onclick="event.stopPropagation(); confirmDeleteSketchFile(\'' + file.name + '\')" title="Delete this file">🗑️</button>';
 		html += '  </div>';
 		html += '</div>';
 	});
@@ -860,6 +861,38 @@ function loadSketchFile(filename) {
 	}).catch(function(error) {
 		console.error('Failed to read file:', error);
 		showExplorerMessage('Failed to read file: ' + error.message, 'error');
+	});
+}
+
+/**
+ * Prompt user to confirm deletion of a sketch file
+ */
+function confirmDeleteSketchFile(filename) {
+    if (!filename) return;
+    var confirmed = confirm('⚠️ Delete Sketch File\n\nAre you sure you want to permanently delete "' + filename + '"?\n\nThis action cannot be undone and the file will be removed from your local directory.');
+    if (confirmed) {
+        deleteSketchFile(filename);
+    }
+}/**
+ * Delete a sketch file from the selected directory (or show error if not available)
+ */
+function deleteSketchFile(filename) {
+	if (typeof FileExplorerManager === 'undefined' || !FileExplorerManager.directoryHandle) {
+		showExplorerMessage('File deletion not available: no directory selected', 'error');
+		return;
+	}
+
+	showExplorerMessage('Deleting ' + filename + '...', 'info');
+
+	FileExplorerManager.deleteFile(filename).then(function() {
+		showExplorerMessage('Deleted ' + filename, 'info');
+		// Refresh list and UI
+		updateFileListDisplay();
+		updateSaveButtonStates();
+		hideExplorerMessage(1500);
+	}).catch(function(error) {
+		console.error('Failed to delete file:', error);
+		showExplorerMessage('Failed to delete file: ' + error.message, 'error');
 	});
 }
 

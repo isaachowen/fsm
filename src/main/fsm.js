@@ -3364,6 +3364,56 @@ var FileExplorerManager = {
 			});
 		});
 	},
+
+	/**
+	 * Delete a file from the current directory
+	 */
+	deleteFile: function(filename) {
+		var self = this;
+		console.log('🗑️ Deleting file:', filename);
+		return new Promise(function(resolve, reject) {
+			if (!self.directoryHandle) {
+				reject(new Error('No directory selected'));
+				return;
+			}
+
+			// Attempt to remove the entry from the directory
+			self.directoryHandle.removeEntry = self.directoryHandle.removeEntry || null;
+			// Not all implementations expose removeEntry; use getFileHandle + remove if available
+			if (typeof self.directoryHandle.removeEntry === 'function') {
+				self.directoryHandle.removeEntry(filename).then(function() {
+					// Refresh file list after deletion
+					return self.refreshFileList();
+				}).then(function() {
+					resolve();
+				}).catch(function(error) {
+					reject(error);
+				});
+			} else if (typeof self.directoryHandle.getFileHandle === 'function') {
+				// Workaround: overwrite by creating a handle and then trying to remove via the parent (not standard)
+				// Best-effort approach: set files array and call remove via the handle if available
+				self.directoryHandle.getFileHandle(filename).then(function(fileHandle) {
+					if (fileHandle && typeof fileHandle.remove === 'function') {
+						return fileHandle.remove();
+					}
+					// Otherwise, try using the directory handle's removeEntry via browser-specific API
+					if (typeof self.directoryHandle.remove === 'function') {
+						return self.directoryHandle.remove(filename);
+					}
+					// If not supported, reject
+					throw new Error('Directory remove not supported in this environment');
+				}).then(function() {
+					return self.refreshFileList();
+				}).then(function() {
+					resolve();
+				}).catch(function(error) {
+					reject(error);
+				});
+			} else {
+				reject(new Error('Directory remove not supported'));
+			}
+		});
+	},
 	
 	/**
 	 * Check if a file exists in the current directory
@@ -3747,6 +3797,13 @@ function importFromJSON(fileInput) {
 }
 
 function clearCanvas() {
+    // Show confirmation dialog before clearing
+    var confirmed = confirm(
+        'This will erase your work from the canvas.\nSave your sketch first if you want to keep it.');
+    if (!confirmed) {
+        return; // User cancelled, don't clear
+    }
+    
     // Clear all nodes and links
     nodes.length = 0;  // Clear nodes array
     links.length = 0;  // Clear links array
