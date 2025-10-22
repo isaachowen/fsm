@@ -157,15 +157,11 @@ a {
 	background: #f5f5f5;
 }
 
-#save-btn:hover:not(:disabled) {
-	background: #7a8854;
-}
-
 #save-as-btn:hover:not(:disabled) {
 	background: #556b2f;
 }
 
-#save-btn:disabled, #save-as-btn:disabled {
+#save-as-btn:disabled {
 	background: #cccccc;
 	cursor: not-allowed;
 }
@@ -341,7 +337,7 @@ if (typeof btoa == 'undefined') {
 	<!-- File Explorer box - left side below title -->
 	<div id="fileexplorerbox" style="
 		position: absolute;
-		top: 75px;
+		top: 280px;
 		left: 20px;
 		background: rgba(223, 223, 223, 0.9);
 		border-radius: 10px;
@@ -394,7 +390,7 @@ if (typeof btoa == 'undefined') {
 					No directory selected
 				</div>
 				<div id="directory-path" style="color: #666; font-family: monospace; font-size: 10px; word-break: break-all;">
-					Select a local directory in which to browse, create, save, and update sketches (JSON files with parsable structure).
+					Select a local directory to save your sketch, or browse and import your existing sketches (JSON).
 				</div>
 			</div>
 			
@@ -470,69 +466,6 @@ if (typeof btoa == 'undefined') {
 					</div>
 				</div>
 				
-				<!-- Save button directly below currently loaded -->
-				<div style="margin-bottom: 12px;">
-					<button id="save-btn" onclick="saveCurrentSketch()" style="
-						width: 100%;
-						background: #9aad6b;
-						color: white;
-						border: none;
-						padding: 8px 12px;
-						border-radius: 4px;
-						cursor: pointer;
-						font-size: 11px;
-						font-family: inherit;
-						font-weight: bold;
-					" disabled>
-						Save
-					</button>
-				</div>
-				
-				<!-- Filename input -->
-				<div style="margin-bottom: 8px;">
-					<label for="filenameInput" style="display: block; margin-bottom: 4px; font-size: 11px; color: #333; font-weight: bold;">Filename on Save As:</label>
-					<div style="display: flex; align-items: center; gap: 2px;">
-						<input type="text" id="filenameInput" placeholder="sketch_name" value=""
-							   style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 3px; font-size: 11px; box-sizing: border-box; font-family: inherit;">
-						<span style="font-size: 11px; color: #666; font-family: inherit;">.json</span>
-					</div>
-				</div>
-				
-				<!-- Save As button below filename input -->
-				<div style="margin-bottom: 12px;">
-					<button id="save-as-btn" onclick="saveAsSketch()" style="
-						width: 100%;
-						background: #6b8e23;
-						color: white;
-						border: none;
-						padding: 8px 12px;
-						border-radius: 4px;
-						cursor: pointer;
-						font-size: 11px;
-						font-family: inherit;
-					" disabled>
-						Save As...
-					</button>
-				</div>
-				
-				<!-- Clear Sketch button -->
-				<div style="margin-bottom: 10px;">
-					<button onclick="clearCanvas()" style="
-						width: 100%;
-						background: #a67c52;
-						color: white;
-						border: none;
-						padding: 8px 12px;
-						border-radius: 4px;
-						cursor: pointer;
-						font-size: 11px;
-						font-family: inherit;
-						transition: background-color 0.2s;
-					" onmouseover="this.style.background='#8b6640'" onmouseout="this.style.background='#a67c52'">
-						Clear Sketch
-					</button>
-				</div>
-				
 				<div id="current-file-indicator" style="
 					margin-top: 6px;
 					font-size: 10px;
@@ -552,6 +485,72 @@ if (typeof btoa == 'undefined') {
 				text-align: center;
 				display: none;
 			"></div>
+		</div>
+	</div>
+
+	<!-- Standalone Save Box - always visible -->
+	<div id="save-box" style="
+		position: absolute;
+		top: 75px;
+		left: 20px;
+		background: rgba(223, 223, 223, 0.9);
+		border-radius: 10px;
+		padding: 20px;
+		margin: 0;
+		text-align: left;
+		width: 220px;
+		font-size: 12px;
+		box-shadow: 0 2px 15px rgba(0,0,0,0.15);
+		z-index: 10;
+		border: 1px solid rgba(0,0,0,0.1);
+	">
+		<h3 style="margin: 0 0 12px 0; font-size: 14px; color: #333;">Save Sketch</h3>
+		
+		<!-- Filename input -->
+		<div style="margin-bottom: 12px;">
+			<label for="filenameInput" style="display: block; margin-bottom: 4px; font-size: 11px; color: #333; font-weight: bold;">Sketch file save path:</label>
+			<div style="display: flex; align-items: center; gap: 2px; font-size: 11px; font-family: inherit;">
+				<span id="directoryDisplay" style="color: #666;">Downloads</span>
+				<span style="color: #666;">/</span>
+				<input type="text" id="filenameInput" placeholder="sketch_name" value=""
+					   style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 3px; font-size: 11px; box-sizing: border-box; font-family: inherit; min-width: 80px;">
+				<span style="color: #666;">.json</span>
+			</div>
+		</div>
+		
+		<!-- Save button -->
+		<div style="margin-bottom: 12px;">
+			<button id="save-as-btn" onclick="saveAsSketch()" style="
+				width: 100%;
+				background: #6b8e23;
+				color: white;
+				border: none;
+				padding: 8px 12px;
+				border-radius: 4px;
+				cursor: pointer;
+				font-size: 11px;
+				font-family: inherit;
+			">
+				Save
+			</button>
+		</div>
+		
+		<!-- Clear Sketch button -->
+		<div style="margin-bottom: 0;">
+			<button onclick="clearCanvas()" style="
+				width: 100%;
+				background: #a67c52;
+				color: white;
+				border: none;
+				padding: 8px 12px;
+				border-radius: 4px;
+				cursor: pointer;
+				font-size: 11px;
+				font-family: inherit;
+				transition: background-color 0.2s;
+			" onmouseover="this.style.background='#8b6640'" onmouseout="this.style.background='#a67c52'">
+				Clear Sketch
+			</button>
 		</div>
 	</div>
 
@@ -732,6 +731,16 @@ function updateDirectoryDisplay(directoryName, path) {
 		}
 	}
 	
+	// Update the path display in the filename section
+	var directoryDisplayEl = document.getElementById('directoryDisplay');
+	if (directoryDisplayEl) {
+		if (directoryName) {
+			directoryDisplayEl.textContent = directoryName;
+		} else {
+			directoryDisplayEl.textContent = 'Downloads'; // Default fallback
+		}
+	}
+	
 	// Show/hide appropriate UI sections
 	var fileListContainer = document.getElementById('file-list-container');
 	var saveButtonsContainer = document.getElementById('save-buttons-container');
@@ -884,36 +893,25 @@ function loadSketchFile(filename) {
 }
 
 /**
- * Save current sketch (uses current filename or prompts for new name)
- */
-function saveCurrentSketch() {
-	if (typeof FileExplorerManager === 'undefined' || !FileExplorerManager.directoryHandle) {
-		showExplorerMessage('No directory selected', 'error');
-		return;
-	}
-	
-	// Determine filename to use
-	var filename = FileExplorerManager.currentFilename;
-	if (!filename) {
-		// No current file, use custom filename like Save As
-		filename = getCustomFilename();
-	}
-	
-	saveSketchToFile(filename);
-}
-
-/**
- * Save As - always prompts for filename using existing input
+ * Save As - uses directory if available, falls back to browser download
  */
 function saveAsSketch() {
-	if (typeof FileExplorerManager === 'undefined' || !FileExplorerManager.directoryHandle) {
-		showExplorerMessage('No directory selected', 'error');
-		return;
-	}
-	
 	// Use the custom filename from the input field
 	var filename = getCustomFilename();
-	saveSketchToFile(filename);
+	
+	// If directory is available, save to directory
+	if (typeof FileExplorerManager !== 'undefined' && FileExplorerManager.directoryHandle) {
+		saveSketchToFile(filename);
+	} else {
+		// Fall back to browser download to Downloads folder
+		console.log('No directory selected, using browser download to Downloads folder');
+		if (typeof downloadAsJSON === 'function') {
+			downloadAsJSON();
+		} else {
+			console.error('downloadAsJSON function not available');
+			alert('Save function not available. Please check the console for errors.');
+		}
+	}
 }
 
 /**
@@ -951,17 +949,11 @@ function saveSketchToFile(filename) {
  * Update save button states
  */
 function updateSaveButtonStates() {
-	var saveBtn = document.getElementById('save-btn');
 	var saveAsBtn = document.getElementById('save-as-btn');
 	
-	var hasDirectory = (typeof FileExplorerManager !== 'undefined' && FileExplorerManager.directoryHandle);
-	
-	if (saveBtn) {
-		saveBtn.disabled = !hasDirectory;
-	}
-	
+	// Save button is always enabled - will use directory or fall back to browser download
 	if (saveAsBtn) {
-		saveAsBtn.disabled = !hasDirectory;
+		saveAsBtn.disabled = false;
 	}
 }
 
@@ -996,6 +988,14 @@ function updateOpenedFilename(filename) {
 			openedEl.style.fontStyle = 'italic';
 			openedEl.style.color = '#666';
 		}
+	}
+	
+	// Update the filename input when a file is loaded
+	var filenameInput = document.getElementById('filenameInput');
+	if (filenameInput && filename) {
+		// Remove .json extension for display in input
+		var filenameWithoutExtension = filename.replace(/\.json$/, '');
+		filenameInput.value = filenameWithoutExtension;
 	}
 	
 	// Also update the header filename display (shown when collapsed)

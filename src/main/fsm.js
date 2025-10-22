@@ -1921,6 +1921,22 @@ window.onload = function() {
 	// Initialize File Explorer Manager
 	FileExplorerManager.init().then(function() {
 		console.log('📂 File Explorer system ready');
+		
+		// Update directory display if a stored directory was loaded
+		var currentDirectoryName = FileExplorerManager.getCurrentDirectoryName();
+		if (currentDirectoryName) {
+			console.log('📁 Updating display for loaded directory:', currentDirectoryName);
+			// Call the HTML update function to sync the display
+			if (typeof updateDirectoryDisplay === 'function') {
+				updateDirectoryDisplay(currentDirectoryName, 'Previously selected directory');
+			}
+			if (typeof updateFileListDisplay === 'function') {
+				updateFileListDisplay();
+			}
+			if (typeof updateSaveButtonStates === 'function') {
+				updateSaveButtonStates();
+			}
+		}
 	}).catch(function(error) {
 		console.error('File Explorer initialization error:', error);
 	});
