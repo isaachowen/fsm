@@ -363,7 +363,7 @@ if (typeof btoa == 'undefined') {
 			font-size: 14px;
 		">
 			<span>
-				Explorer
+				Sketch File Explorer
 				<span id="header-filename" style="
 					font-weight: normal;
 					font-size: 11px;
@@ -447,34 +447,7 @@ if (typeof btoa == 'undefined') {
 			<!-- Save buttons area -->
 			<div id="save-buttons-container" style="display: none; margin-top: 12px;">
 				<!-- Opened filename display -->
-				<div style="
-					margin-bottom: 8px;
-					padding: 6px 8px;
-					background: #f0f8ff;
-					border: 1px solid #b3d9ff;
-					border-radius: 4px;
-					font-size: 10px;
-				">
-					<div style="font-weight: bold; color: #0066cc; margin-bottom: 2px;">Currently Loaded:</div>
-					<div id="opened-filename" style="
-						color: #333;
-						font-family: monospace;
-						word-break: break-all;
-						font-style: italic;
-					">
-						No file loaded
-					</div>
-				</div>
-				
-				<div id="current-file-indicator" style="
-					margin-top: 6px;
-					font-size: 10px;
-					color: #666;
-					text-align: center;
-					font-style: italic;
-				">
-					No file open
-				</div>
+
 			</div>
 			
 			<!-- Error/status messages -->
@@ -504,11 +477,10 @@ if (typeof btoa == 'undefined') {
 		z-index: 10;
 		border: 1px solid rgba(0,0,0,0.1);
 	">
-		<h3 style="margin: 0 0 12px 0; font-size: 14px; color: #333;">Save Sketch</h3>
+		<h3 style="margin: 0 0 12px 0; font-size: 14px; color: #333;">Sketch file save path:</h3>
 		
 		<!-- Filename input -->
 		<div style="margin-bottom: 12px;">
-			<label for="filenameInput" style="display: block; margin-bottom: 4px; font-size: 11px; color: #333; font-weight: bold;">Sketch file save path:</label>
 			<div style="display: flex; align-items: center; gap: 2px; font-size: 11px; font-family: inherit;">
 				<span id="directoryDisplay" style="color: #666;">Downloads</span>
 				<span style="color: #666;">/</span>
@@ -549,7 +521,7 @@ if (typeof btoa == 'undefined') {
 				font-family: inherit;
 				transition: background-color 0.2s;
 			" onmouseover="this.style.background='#8b6640'" onmouseout="this.style.background='#a67c52'">
-				Clear Sketch
+				Clear Sketch from Canvas
 			</button>
 		</div>
 	</div>
@@ -874,7 +846,6 @@ function loadSketchFile(filename) {
 				FileExplorerManager.currentFilename = filename;
 				updateFileListDisplay();
 				updateSaveButtonStates();
-				updateCurrentFileIndicator(filename);
 				updateOpenedFilename(filename);
 				
 				hideExplorerMessage();
@@ -930,7 +901,7 @@ function saveSketchToFile(filename) {
 			FileExplorerManager.currentFilename = filename;
 			updateFileListDisplay();
 			updateSaveButtonStates();
-			updateCurrentFileIndicator(filename);
+			leIndicator(filename);
 			updateOpenedFilename(filename);
 			
 			hideExplorerMessage();
@@ -954,22 +925,6 @@ function updateSaveButtonStates() {
 	// Save button is always enabled - will use directory or fall back to browser download
 	if (saveAsBtn) {
 		saveAsBtn.disabled = false;
-	}
-}
-
-/**
- * Update current file indicator
- */
-function updateCurrentFileIndicator(filename) {
-	var indicator = document.getElementById('current-file-indicator');
-	if (indicator) {
-		if (filename) {
-			indicator.textContent = 'Current: ' + filename;
-			indicator.style.color = '#333';
-		} else {
-			indicator.textContent = 'No file open';
-			indicator.style.color = '#666';
-		}
 	}
 }
 
@@ -1002,7 +957,7 @@ function updateOpenedFilename(filename) {
 	var headerFilenameEl = document.getElementById('header-filename');
 	if (headerFilenameEl) {
 		if (filename) {
-			headerFilenameEl.textContent = '[working on ' + filename + ']';
+			headerFilenameEl.textContent = '[imported: ' + filename + ']';
 		} else {
 			headerFilenameEl.textContent = '';
 		}
