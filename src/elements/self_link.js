@@ -142,6 +142,10 @@ SelfLink.prototype.draw = function(c) {
 	 * Always draws as a circular arc (never straight lines).
 	 */
 	var stuff = this.getEndPointsAndArcParams();
+	
+	// Apply selection glow if this self-link is selected
+	drawSelectionGlow(c, selectedObject == this, false);
+	
 	// draw arc - shorten it before the arrow
 	c.beginPath();
 	var pixelOffset = this.arrowType === 'T' ? 3 : 5;
@@ -149,16 +153,21 @@ SelfLink.prototype.draw = function(c) {
 	var adjustedEndAngle = stuff.endAngle - arrowOffset; // Always subtract for self-links
 	c.arc(stuff.circleX, stuff.circleY, stuff.circleRadius, stuff.startAngle, adjustedEndAngle, false);
 	c.stroke();
-	// draw the text on the loop farthest from the node
-	var textX = stuff.circleX + stuff.circleRadius * Math.cos(this.anchorAngle);
-	var textY = stuff.circleY + stuff.circleRadius * Math.sin(this.anchorAngle);
-	drawText(c, this.text, textX, textY, this.anchorAngle, selectedObject == this);
+	
 	// draw the head of the arrow
 	if (this.arrowType === 'T') {
 		drawTArrow(c, stuff.endX, stuff.endY, stuff.endAngle + Math.PI * 0.4);
 	} else {
 		drawArrow(c, stuff.endX, stuff.endY, stuff.endAngle + Math.PI * 0.4);
 	}
+	
+	// Clear glow after drawing the self-link
+	clearSelectionGlow(c);
+	
+	// draw the text on the loop farthest from the node
+	var textX = stuff.circleX + stuff.circleRadius * Math.cos(this.anchorAngle);
+	var textY = stuff.circleY + stuff.circleRadius * Math.sin(this.anchorAngle);
+	drawText(c, this.text, textX, textY, this.anchorAngle, selectedObject == this);
 };
 
 SelfLink.prototype.containsPoint = function(x, y) {

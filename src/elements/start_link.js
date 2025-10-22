@@ -106,6 +106,9 @@ StartLink.prototype.draw = function(c) {
 	 */
 	var stuff = this.getEndPoints();
 
+	// Apply selection glow if this start link is selected
+	drawSelectionGlow(c, selectedObject == this, false);
+
 	// draw the line - shorten it before the arrow
 	var dx = stuff.endX - stuff.startX;
 	var dy = stuff.endY - stuff.startY;
@@ -119,16 +122,19 @@ StartLink.prototype.draw = function(c) {
 	c.lineTo(adjustedEndX, adjustedEndY);
 	c.stroke();
 
-	// draw the text at the end without the arrow
-	var textAngle = Math.atan2(stuff.startY - stuff.endY, stuff.startX - stuff.endX);
-	drawText(c, this.text, stuff.startX, stuff.startY, textAngle, selectedObject == this);
-
 	// draw the head of the arrow
 	if (this.arrowType === 'T') {
 		drawTArrow(c, stuff.endX, stuff.endY, Math.atan2(-this.deltaY, -this.deltaX));
 	} else {
 		drawArrow(c, stuff.endX, stuff.endY, Math.atan2(-this.deltaY, -this.deltaX));
 	}
+	
+	// Clear glow after drawing the start link
+	clearSelectionGlow(c);
+
+	// draw the text at the end without the arrow
+	var textAngle = Math.atan2(stuff.startY - stuff.endY, stuff.startX - stuff.endX);
+	drawText(c, this.text, stuff.startX, stuff.startY, textAngle, selectedObject == this);
 };
 
 StartLink.prototype.containsPoint = function(x, y) {

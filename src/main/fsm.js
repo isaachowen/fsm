@@ -117,6 +117,50 @@ function canvasHasFocus() {
 	return (document.activeElement || document.body) == document.body;
 }
 
+function drawSelectionGlow(context, isSelected, isMultiSelected) {
+	/**
+	 * drawSelectionGlow - Applies outer glow effect for selected objects
+	 * 
+	 * Called by:
+	 * - Node.prototype.draw() before drawing node shapes
+	 * - Link drawing functions before drawing edge paths
+	 * 
+	 * Purpose: Adds a vibrant blue glow around selected nodes and edges
+	 * while preserving their authentic colors. Creates professional selection
+	 * indication without color interference. Uses blue for all selection types.
+	 */
+	if (isSelected) {
+		context.shadowColor = 'rgba(0, 102, 204, 0.9)'; // Blue glow for primary selection
+		context.shadowBlur = 15; // Bigger glow radius
+		context.shadowOffsetX = 0;
+		context.shadowOffsetY = 0;
+	} else if (isMultiSelected) {
+		context.shadowColor = 'rgba(0, 102, 204, 0.8)'; // Blue glow for multi-selection
+		context.shadowBlur = 12; // Slightly smaller glow radius
+		context.shadowOffsetX = 0;
+		context.shadowOffsetY = 0;
+	} else {
+		// Clear shadow for non-selected objects
+		context.shadowColor = 'transparent';
+		context.shadowBlur = 0;
+	}
+}
+
+function clearSelectionGlow(context) {
+	/**
+	 * clearSelectionGlow - Removes glow effect after drawing
+	 * 
+	 * Called by:
+	 * - All drawing functions after rendering to prevent glow bleeding
+	 * 
+	 * Purpose: Ensures glow effect doesn't affect subsequent drawing operations
+	 */
+	context.shadowColor = 'transparent';
+	context.shadowBlur = 0;
+	context.shadowOffsetX = 0;
+	context.shadowOffsetY = 0;
+}
+
 function drawText(c, originalText, x, y, angleOrNull, isSelected) {
 	/**
 	 * drawText - Renders text with advanced positioning, angle rotation, and caret display
@@ -1298,9 +1342,9 @@ function moveSelectedNodesGroup(deltaX, deltaY) {
 	}
 }
 
-function generateLegendKey(color) {
+function generateLegendKey(color, type, arrowType) {
 	/**
-	 * generateLegendKey - Creates a unique string identifier for a color
+	 * generateLegendKey - Creates a unique string identifier for nodes and edges
 	 * 
 	 * Called by:
 	 * - updateLegendEntries() to create consistent keys for legend tracking
@@ -1310,37 +1354,67 @@ function generateLegendKey(color) {
 	 * - String return for color identifier
 	 * 
 	 * Purpose: Provides consistent key generation for legend entry identification.
-	 * Format: "color" (e.g., "yellow", "red")
+	 * Format: "node-color" (e.g., "node-yellow", "node-red") or 
+	 *         "edge-color-arrowtype" (e.g., "edge-gray-arrow", "edge-blue-T")
 	 */
-	return color;
+	if (type === 'edge') {
+		return 'edge-' + color + '-' + arrowType;
+	} else {
+		return 'node-' + color;
+	}
 }
 
 function updateLegendEntries() {
 	/**
-	 * updateLegendEntries - Scans all nodes and updates the legend data structure
+	 * updateLegendEntries - Scans all nodes and edges and updates the legend data structure
 	 * 
 	 * Called by:
-	 * - Node creation/deletion/modification events
-	 * - Initial setup and any operation that changes node composition
+	 * - Node/edge creation/deletion/modification events
+	 * - Initial setup and any operation that changes node or edge composition
 	 * 
 	 * Calls:
 	 * - generateLegendKey() to create consistent identifiers
-	 * - Node color properties for categorization
+	 * - Node and edge color/arrowType properties for categorization
 	 * 
-	 * Purpose: Maintains accurate legend state by scanning all existing nodes
-	 * and tracking unique colors with their counts.
-	 * Removes entries when no nodes of that color exist.
+	 * Purpose: Maintains accurate legend state by scanning all existing nodes and edges
+	 * and tracking unique types with their counts.
+	 * Removes entries when no nodes/edges of that type exist.
 	 */
 	var newEntries = {};
 	
 	// Scan all existing nodes
 	for (var i = 0; i < nodes.length; i++) {
 		var node = nodes[i];
-		var key = generateLegendKey(node.color);
+		var key = generateLegendKey(node.color, 'node');
 		
 		if (!newEntries[key]) {
 			newEntries[key] = {
+				type: 'node',
 				color: node.color,
+				description: '',
+				count: 0,
+				inputElement: null
+			};
+			
+			// Preserve existing description if it exists
+			if (legendEntries[key] && legendEntries[key].description) {
+				newEntries[key].description = legendEntries[key].description;
+			}
+		}
+		
+		newEntries[key].count++;
+	}
+	
+	// Scan all existing edges (links)
+	for (var i = 0; i < links.length; i++) {
+		var link = links[i];
+		var key = generateLegendKey(link.color, 'edge', link.arrowType);
+		
+		if (!newEntries[key]) {
+			newEntries[key] = {
+				type: 'edge',
+				color: link.color,
+				arrowType: link.arrowType,
 				description: '',
 				count: 0,
 				inputElement: null
@@ -1388,8 +1462,14 @@ function updateLegendHTML() {
 	// Clear existing inputs and create collapsible structure
 	legendContainer.innerHTML = '<p id="legend-header" onclick="toggleLegend()" style="margin: 0; font-weight: bold; cursor: pointer; user-select: none; display: flex; align-items: center; justify-content: space-between; font-size: 14px;"><span>Legend</span><span id="legend-toggle" style="font-size: 12px; font-weight: normal;">▼</span></p><div id="legend-content" style="transition: all 0.3s ease-in-out; margin-top: 10px;"></div>';
 	
-	// Create entries in consistent order (sort by key for predictability)
-	var sortedKeys = Object.keys(legendEntries).sort();
+	// Create entries in consistent order (nodes first, then edges)
+	var sortedKeys = Object.keys(legendEntries).sort(function(a, b) {
+		// Nodes come first, then edges
+		if (a.startsWith('node-') && b.startsWith('edge-')) return -1;
+		if (a.startsWith('edge-') && b.startsWith('node-')) return 1;
+		// Within the same category, sort alphabetically
+		return a.localeCompare(b);
+	});
 	
 	for (var i = 0; i < sortedKeys.length; i++) {
 		var key = sortedKeys[i];
@@ -1402,7 +1482,7 @@ function updateLegendHTML() {
 		row.style.marginBottom = '8px';
 		row.style.gap = '8px';
 		
-		// Create mini canvas for node visualization
+		// Create mini canvas for visualization
 		var miniCanvas = document.createElement('canvas');
 		miniCanvas.width = 30;
 		miniCanvas.height = 30;
@@ -1412,14 +1492,18 @@ function updateLegendHTML() {
 		miniCanvas.style.position = 'relative'; // Ensure canvas stays in document flow
 		miniCanvas.style.display = 'block'; // Explicit block display
 		
-		// Draw mini node
-		drawMiniNode(miniCanvas, entry.color);
+		// Draw mini visualization based on entry type
+		if (entry.type === 'edge') {
+			drawMiniEdge(miniCanvas, entry.color, entry.arrowType);
+		} else {
+			drawMiniNode(miniCanvas, entry.color);
+		}
 		
 		// Create text input
 		var input = document.createElement('input');
 		input.type = 'text';
 		input.value = entry.description;
-		input.placeholder = 'Describe this node type...';
+		input.placeholder = entry.type === 'edge' ? 'Describe this edge type...' : 'Describe this node type...';
 		input.style.flex = '1';
 		input.style.padding = '4px 6px';
 		input.style.border = '1px solid #ccc';
@@ -1520,6 +1604,61 @@ function drawMiniNode(miniCanvas, color) {
 	c.stroke();
 }
 
+function drawMiniEdge(miniCanvas, color, arrowType) {
+	/**
+	 * drawMiniEdge - Draws a miniature representation of an edge in the legend
+	 * 
+	 * Called by:
+	 * - updateLegendHTML() to create visual samples for each edge legend entry
+	 * 
+	 * Calls:
+	 * - Canvas 2D API functions for drawing
+	 * - getLinkColorHex() for consistent edge coloring
+	 * 
+	 * Purpose: Renders a small version of each unique edge type (color + arrowhead)
+	 * for visual reference in the legend.
+	 */
+	var c = miniCanvas.getContext('2d');
+	
+	c.clearRect(0, 0, miniCanvas.width, miniCanvas.height);
+	
+	// Draw a horizontal line from left to right
+	var startX = 5;
+	var endX = 25;
+	var y = 15;
+	
+	c.strokeStyle = getLinkColorHex(color);
+	c.lineWidth = 2;
+	
+	// Draw the line
+	c.beginPath();
+	c.moveTo(startX, y);
+	c.lineTo(endX, y);
+	c.stroke();
+	
+	// Draw the arrowhead
+	if (arrowType === 'T') {
+		// Draw T-shaped arrow
+		c.beginPath();
+		c.moveTo(endX, y - 4);
+		c.lineTo(endX, y + 4);
+		c.stroke();
+		c.beginPath();
+		c.moveTo(endX - 2, y);
+		c.lineTo(endX, y);
+		c.stroke();
+	} else {
+		// Draw traditional triangular arrow
+		c.fillStyle = getLinkColorHex(color);
+		c.beginPath();
+		c.moveTo(endX, y);
+		c.lineTo(endX - 6, y - 3);
+		c.lineTo(endX - 6, y + 3);
+		c.closePath();
+		c.fill();
+	}
+}
+
 
 
 function showLegendIfNeeded() {
@@ -1578,29 +1717,24 @@ function drawUsing(c) {
 		var isSelected = (node == selectedObject);
 		var isMultiSelected = (selectedNodes.indexOf(node) !== -1);
 		
-		if(isSelected) {
-			c.strokeStyle = '#ff9500';  // warm orange for selected
-			c.fillStyle = node.getSelectedColor();  // Use node's selected color
-			c.lineWidth = 2;  // Thinner border for multi-selected nodes (was 3)
-		} else if(isMultiSelected) {
-			c.strokeStyle = '#0066cc';  // blue for multi-selected nodes
-			c.fillStyle = node.getSelectedColor();  // Use node's selected color
-			c.lineWidth = 2;  // Thinner border for multi-selected nodes (was 3)
-		} else {
-			c.strokeStyle = '#9ac29a';  // darker engineering green accent
-			c.fillStyle = node.getBaseColor();      // Use node's base color
+		// Always use authentic colors - selection is now indicated by glow effect only
+		c.strokeStyle = '#9ac29a';  // darker engineering green accent
+		c.fillStyle = node.getBaseColor();      // Use node's authentic base color
+		
+		// Only change line width for multi-selected nodes (keep border consistent)
+		if(isMultiSelected && !isSelected) {
+			c.lineWidth = 2;  // Slightly thicker border for multi-selected nodes
 		}
+		
 		node.draw(c);
 	}
 	for(var i = 0; i < links.length; i++) {
 		c.lineWidth = 3;
-		if(links[i] == selectedObject) {
-			c.fillStyle = c.strokeStyle = '#ff9500';  // warm orange for selected
-		} else {
-			var linkColorHex = getLinkColorHex(links[i].color);
-			c.strokeStyle = linkColorHex;  // Use link's color
-			c.fillStyle = linkColorHex;    // Use link's color for arrows too
-		}
+		// Always use authentic colors - selection is now indicated by glow effect only
+		var linkColorHex = getLinkColorHex(links[i].color);
+		c.strokeStyle = linkColorHex;  // Use link's authentic color
+		c.fillStyle = linkColorHex;    // Use link's authentic color for arrows too
+		
 		links[i].draw(c);
 	}
 	if(currentLink != null) {
@@ -2040,6 +2174,9 @@ window.onload = function() {
 				
 				// HISTORY: Push state after link creation (immediate operation)
 				pushHistoryState({skipIfEqual: true});
+				
+				// Update legend after link creation
+				updateLegend();
 			}
 			currentLink = null;
 			draw();
@@ -2191,6 +2328,9 @@ document.onkeydown = function(e) {
 				
 				suppressTypingUntil = Date.now() + 300; // Suppress typing briefly
 				
+				// Update legend after link color change
+				updateLegend();
+				
 				// HISTORY: Push state after color change (immediate operation)
 				pushHistoryState({skipIfEqual: true});
 				
@@ -2205,6 +2345,9 @@ document.onkeydown = function(e) {
 				var oldType = selectedObject.arrowType;
 				selectedObject.arrowType = 'arrow';
 				console.log('Arrow type changed from', oldType, 'to', selectedObject.arrowType);
+				
+				// Update legend after arrow type change
+				updateLegend();
 				
 				// HISTORY: Push state after arrow type change (immediate operation)
 				pushHistoryState({skipIfEqual: true});
@@ -2222,6 +2365,9 @@ document.onkeydown = function(e) {
 				var oldType = selectedObject.arrowType;
 				selectedObject.arrowType = 'T';
 				console.log('Arrow type changed from', oldType, 'to', selectedObject.arrowType);
+				
+				// Update legend after arrow type change
+				updateLegend();
 				
 				// HISTORY: Push state after arrow type change (immediate operation)
 				pushHistoryState({skipIfEqual: true});

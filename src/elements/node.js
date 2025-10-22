@@ -50,11 +50,21 @@ Node.prototype.getSelectedColor = function() {
 };
 
 Node.prototype.draw = function(c) {
+	// Check both selection states
+	var isSelected = (selectedObject == this);
+	var isMultiSelected = (selectedNodes && selectedNodes.indexOf(this) !== -1 && !isSelected);
+	
+	// Apply selection glow if this node is selected or multi-selected
+	drawSelectionGlow(c, isSelected, isMultiSelected);
+	
 	// Set fill and stroke for the dot shape
 	c.beginPath();
 	this.drawDot(c);
 	c.fill();
 	c.stroke();
+	
+	// Clear glow after drawing the node shape
+	clearSelectionGlow(c);
 
 	// Draw the text
 	drawText(c, this.text, this.x, this.y, null, selectedObject == this);

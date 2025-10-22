@@ -164,6 +164,10 @@ Link.prototype.draw = function(c) {
 	 * Handles both curved arc geometry and straight line special cases.
 	 */
 	var stuff = this.getEndPointsAndArcParams();
+	
+	// Apply selection glow if this link is selected
+	drawSelectionGlow(c, selectedObject == this, false);
+	
 	// draw arc
 	c.beginPath();
 	if(stuff.hasCircle) {
@@ -194,6 +198,7 @@ Link.prototype.draw = function(c) {
 		c.lineTo(adjustedEndX, adjustedEndY);
 	}
 	c.stroke();
+	
 	// draw the head of the arrow
 	if(stuff.hasCircle) {
 		if (this.arrowType === 'T') {
@@ -208,6 +213,27 @@ Link.prototype.draw = function(c) {
 			drawArrow(c, stuff.endX, stuff.endY, Math.atan2(stuff.endY - stuff.startY, stuff.endX - stuff.startX));
 		}
 	}
+	
+	// Clear glow after drawing the link
+	clearSelectionGlow(c);
+	
+	// draw the text
+	if(stuff.hasCircle) {
+		var startAngle = stuff.startAngle;
+		var endAngle = stuff.endAngle;
+		if(endAngle < startAngle) {
+			endAngle += Math.PI * 2;
+		}
+		var textAngle = (startAngle + endAngle) / 2 + stuff.isReversed * Math.PI;
+		var textX = stuff.circleX + stuff.circleRadius * Math.cos(textAngle);
+		var textY = stuff.circleY + stuff.circleRadius * Math.sin(textAngle);
+		drawText(c, this.text, textX, textY, textAngle, selectedObject == this);
+	} else {
+		var textX = (stuff.startX + stuff.endX) / 2;
+		var textY = (stuff.startY + stuff.endY) / 2;
+		var textAngle = Math.atan2(stuff.endX - stuff.startX, stuff.startY - stuff.endY);
+		drawText(c, this.text, textX, textY, textAngle + this.lineAngleAdjust, selectedObject == this);
+    }
 	// draw the text
 	if(stuff.hasCircle) {
 		var startAngle = stuff.startAngle;
