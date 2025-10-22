@@ -171,46 +171,59 @@ Link.prototype.draw = function(c) {
 	// draw arc
 	c.beginPath();
 	if(stuff.hasCircle) {
-		// For curved lines, adjust the end angle to stop before the arrow
-		// Use shorter offset for T-arrows since they're stepped back further
-		var pixelOffset = this.arrowType === 'T' ? 3 : 5;
-		var arrowOffset = pixelOffset / stuff.circleRadius; // pixels converted to radians
-		
-		// Always subtract from endAngle to shorten the arc (regardless of direction)
-		var adjustedEndAngle;
-		if (stuff.isReversed) {
-			adjustedEndAngle = stuff.endAngle + arrowOffset; // For reversed arcs, add to shorten
+		// For curved lines, adjust the end angle to stop before the arrow (unless undirected)
+		if (this.arrowType === 'undirected') {
+			// No arrow, so draw the full arc to the node edge
+			c.arc(stuff.circleX, stuff.circleY, stuff.circleRadius, stuff.startAngle, stuff.endAngle, stuff.isReversed);
 		} else {
-			adjustedEndAngle = stuff.endAngle - arrowOffset; // For normal arcs, subtract to shorten
+			// Use shorter offset for T-arrows since they're stepped back further
+			var pixelOffset = this.arrowType === 'T' ? 3 : 5;
+			var arrowOffset = pixelOffset / stuff.circleRadius; // pixels converted to radians
+			
+			// Always subtract from endAngle to shorten the arc (regardless of direction)
+			var adjustedEndAngle;
+			if (stuff.isReversed) {
+				adjustedEndAngle = stuff.endAngle + arrowOffset; // For reversed arcs, add to shorten
+			} else {
+				adjustedEndAngle = stuff.endAngle - arrowOffset; // For normal arcs, subtract to shorten
+			}
+			
+			c.arc(stuff.circleX, stuff.circleY, stuff.circleRadius, stuff.startAngle, adjustedEndAngle, stuff.isReversed);
 		}
-		
-		c.arc(stuff.circleX, stuff.circleY, stuff.circleRadius, stuff.startAngle, adjustedEndAngle, stuff.isReversed);
 	} else {
-		// For straight lines, shorten the end point by moving it back along the line
-		var dx = stuff.endX - stuff.startX;
-		var dy = stuff.endY - stuff.startY;
-		var length = Math.sqrt(dx * dx + dy * dy);
-		var shortenBy = this.arrowType === 'T' ? 3 : 5; // pixels - shorter for T-arrows
-		var adjustedEndX = stuff.endX - (dx / length) * shortenBy;
-		var adjustedEndY = stuff.endY - (dy / length) * shortenBy;
-		
-		c.moveTo(stuff.startX, stuff.startY);
-		c.lineTo(adjustedEndX, adjustedEndY);
+		// For straight lines, shorten the end point by moving it back along the line (unless undirected)
+		if (this.arrowType === 'undirected') {
+			// No arrow, so draw the full line to the node edge
+			c.moveTo(stuff.startX, stuff.startY);
+			c.lineTo(stuff.endX, stuff.endY);
+		} else {
+			var dx = stuff.endX - stuff.startX;
+			var dy = stuff.endY - stuff.startY;
+			var length = Math.sqrt(dx * dx + dy * dy);
+			var shortenBy = this.arrowType === 'T' ? 3 : 5; // pixels - shorter for T-arrows
+			var adjustedEndX = stuff.endX - (dx / length) * shortenBy;
+			var adjustedEndY = stuff.endY - (dy / length) * shortenBy;
+			
+			c.moveTo(stuff.startX, stuff.startY);
+			c.lineTo(adjustedEndX, adjustedEndY);
+		}
 	}
 	c.stroke();
 	
-	// draw the head of the arrow
-	if(stuff.hasCircle) {
-		if (this.arrowType === 'T') {
-			drawTArrow(c, stuff.endX, stuff.endY, stuff.endAngle - stuff.reverseScale * (Math.PI / 2));
+	// draw the head of the arrow (skip for undirected)
+	if (this.arrowType !== 'undirected') {
+		if(stuff.hasCircle) {
+			if (this.arrowType === 'T') {
+				drawTArrow(c, stuff.endX, stuff.endY, stuff.endAngle - stuff.reverseScale * (Math.PI / 2));
+			} else {
+				drawArrow(c, stuff.endX, stuff.endY, stuff.endAngle - stuff.reverseScale * (Math.PI / 2));
+			}
 		} else {
-			drawArrow(c, stuff.endX, stuff.endY, stuff.endAngle - stuff.reverseScale * (Math.PI / 2));
-		}
-	} else {
-		if (this.arrowType === 'T') {
-			drawTArrow(c, stuff.endX, stuff.endY, Math.atan2(stuff.endY - stuff.startY, stuff.endX - stuff.startX));
-		} else {
-			drawArrow(c, stuff.endX, stuff.endY, Math.atan2(stuff.endY - stuff.startY, stuff.endX - stuff.startX));
+			if (this.arrowType === 'T') {
+				drawTArrow(c, stuff.endX, stuff.endY, Math.atan2(stuff.endY - stuff.startY, stuff.endX - stuff.startX));
+			} else {
+				drawArrow(c, stuff.endX, stuff.endY, Math.atan2(stuff.endY - stuff.startY, stuff.endX - stuff.startX));
+			}
 		}
 	}
 	

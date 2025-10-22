@@ -1647,6 +1647,9 @@ function drawMiniEdge(miniCanvas, color, arrowType) {
 		c.moveTo(endX - 2, y);
 		c.lineTo(endX, y);
 		c.stroke();
+	} else if (arrowType === 'undirected') {
+		// No arrowhead for undirected edges
+		// Just the line is sufficient
 	} else {
 		// Draw traditional triangular arrow
 		c.fillStyle = getLinkColorHex(color);
@@ -2380,6 +2383,26 @@ document.onkeydown = function(e) {
 			if(selectedObject != null && (selectedObject instanceof Link || selectedObject instanceof SelfLink || selectedObject instanceof StartLink)) {
 				var oldType = selectedObject.arrowType;
 				selectedObject.arrowType = 'T';
+				console.log('Arrow type changed from', oldType, 'to', selectedObject.arrowType);
+				
+				// Update legend after arrow type change
+				updateLegend();
+				
+				// HISTORY: Push state after arrow type change (immediate operation)
+				pushHistoryState({skipIfEqual: true});
+				
+				draw();
+			} else {
+				console.log('No link selected or wrong object type:', selectedObject);
+			}
+		}
+	} else if(key == 51) { // '3' key - set to undirected (no arrowhead)
+		// Only change arrow type when NOT in editing text mode
+		if(InteractionManager.getMode() !== 'editing_text') {
+			// Set arrow type to undirected for selected link
+			if(selectedObject != null && (selectedObject instanceof Link || selectedObject instanceof SelfLink || selectedObject instanceof StartLink)) {
+				var oldType = selectedObject.arrowType;
+				selectedObject.arrowType = 'undirected';
 				console.log('Arrow type changed from', oldType, 'to', selectedObject.arrowType);
 				
 				// Update legend after arrow type change

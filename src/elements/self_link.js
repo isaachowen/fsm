@@ -146,19 +146,26 @@ SelfLink.prototype.draw = function(c) {
 	// Apply selection glow if this self-link is selected
 	drawSelectionGlow(c, selectedObject == this, false);
 	
-	// draw arc - shorten it before the arrow
+	// draw arc - shorten it before the arrow (unless undirected)
 	c.beginPath();
-	var pixelOffset = this.arrowType === 'T' ? 3 : 5;
-	var arrowOffset = pixelOffset / stuff.circleRadius; // pixels converted to radians - shorter for T-arrows
-	var adjustedEndAngle = stuff.endAngle - arrowOffset; // Always subtract for self-links
-	c.arc(stuff.circleX, stuff.circleY, stuff.circleRadius, stuff.startAngle, adjustedEndAngle, false);
+	if (this.arrowType === 'undirected') {
+		// No arrow, so draw the full arc
+		c.arc(stuff.circleX, stuff.circleY, stuff.circleRadius, stuff.startAngle, stuff.endAngle, false);
+	} else {
+		var pixelOffset = this.arrowType === 'T' ? 3 : 5;
+		var arrowOffset = pixelOffset / stuff.circleRadius; // pixels converted to radians - shorter for T-arrows
+		var adjustedEndAngle = stuff.endAngle - arrowOffset; // Always subtract for self-links
+		c.arc(stuff.circleX, stuff.circleY, stuff.circleRadius, stuff.startAngle, adjustedEndAngle, false);
+	}
 	c.stroke();
 	
-	// draw the head of the arrow
-	if (this.arrowType === 'T') {
-		drawTArrow(c, stuff.endX, stuff.endY, stuff.endAngle + Math.PI * 0.4);
-	} else {
-		drawArrow(c, stuff.endX, stuff.endY, stuff.endAngle + Math.PI * 0.4);
+	// draw the head of the arrow (skip for undirected)
+	if (this.arrowType !== 'undirected') {
+		if (this.arrowType === 'T') {
+			drawTArrow(c, stuff.endX, stuff.endY, stuff.endAngle + Math.PI * 0.4);
+		} else {
+			drawArrow(c, stuff.endX, stuff.endY, stuff.endAngle + Math.PI * 0.4);
+		}
 	}
 	
 	// Clear glow after drawing the self-link

@@ -109,24 +109,32 @@ StartLink.prototype.draw = function(c) {
 	// Apply selection glow if this start link is selected
 	drawSelectionGlow(c, selectedObject == this, false);
 
-	// draw the line - shorten it before the arrow
+	// draw the line - shorten it before the arrow (unless undirected)
 	var dx = stuff.endX - stuff.startX;
 	var dy = stuff.endY - stuff.startY;
 	var length = Math.sqrt(dx * dx + dy * dy);
-	var shortenBy = this.arrowType === 'T' ? 3 : 5; // pixels - shorter for T-arrows
-	var adjustedEndX = stuff.endX - (dx / length) * shortenBy;
-	var adjustedEndY = stuff.endY - (dy / length) * shortenBy;
 	
 	c.beginPath();
 	c.moveTo(stuff.startX, stuff.startY);
-	c.lineTo(adjustedEndX, adjustedEndY);
+	
+	if (this.arrowType === 'undirected') {
+		// No arrow, so draw the full line to the node edge
+		c.lineTo(stuff.endX, stuff.endY);
+	} else {
+		var shortenBy = this.arrowType === 'T' ? 3 : 5; // pixels - shorter for T-arrows
+		var adjustedEndX = stuff.endX - (dx / length) * shortenBy;
+		var adjustedEndY = stuff.endY - (dy / length) * shortenBy;
+		c.lineTo(adjustedEndX, adjustedEndY);
+	}
 	c.stroke();
 
-	// draw the head of the arrow
-	if (this.arrowType === 'T') {
-		drawTArrow(c, stuff.endX, stuff.endY, Math.atan2(-this.deltaY, -this.deltaX));
-	} else {
-		drawArrow(c, stuff.endX, stuff.endY, Math.atan2(-this.deltaY, -this.deltaX));
+	// draw the head of the arrow (skip for undirected)
+	if (this.arrowType !== 'undirected') {
+		if (this.arrowType === 'T') {
+			drawTArrow(c, stuff.endX, stuff.endY, Math.atan2(-this.deltaY, -this.deltaX));
+		} else {
+			drawArrow(c, stuff.endX, stuff.endY, Math.atan2(-this.deltaY, -this.deltaX));
+		}
 	}
 	
 	// Clear glow after drawing the start link
