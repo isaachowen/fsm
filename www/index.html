@@ -323,7 +323,7 @@ if (typeof btoa == 'undefined') {
 			text-align: center;
 			font-family: inherit;
 		">
-			<div style="font-size: 24px; margin-bottom: 8px;">📁</div>
+			<div style="font-size: 24px; margin-bottom: 8px;">[Folder]</div>
 			<div style="font-size: 16px; font-weight: bold; color: #3490dc; margin-bottom: 4px;">Drop JSON File Here</div>
 			<div style="font-size: 12px; color: #666;">Release to load your sketch</div>
 		</div>
@@ -430,7 +430,7 @@ if (typeof btoa == 'undefined') {
 						cursor: pointer;
 						font-size: 10px;
 						font-family: inherit;
-					">🔄</button>
+					">Refresh</button>
 				</div>
 				
 				<div id="file-list" style="
@@ -695,7 +695,7 @@ function updateDirectoryDisplay(directoryName, path) {
 	
 	if (nameEl && pathEl) {
 		if (directoryName) {
-			nameEl.textContent = '📁 ' + directoryName;
+			nameEl.textContent = '[Directory]: ' + directoryName;
 			pathEl.textContent = path || 'Connected directory';
 		} else {
 			nameEl.textContent = 'No directory selected';
@@ -794,8 +794,8 @@ function updateFileListDisplay() {
 		html += '<div class="file-item' + (isSelected ? ' selected' : '') + '" onclick="selectFile(\'' + file.name + '\')">';
 		html += '  <span class="file-name">' + file.name + '</span>';
 		html += '  <div class="file-actions">';
-		html += '    <button class="file-action-btn" onclick="event.stopPropagation(); loadSketchFile(\'' + file.name + '\')" title="Load this file">📂</button>';
-		html += '    <button class="file-action-btn file-delete-btn" onclick="event.stopPropagation(); confirmDeleteSketchFile(\'' + file.name + '\')" title="Delete this file">🗑️</button>';
+		html += '    <button class="file-action-btn" onclick="event.stopPropagation(); loadSketchFile(\'' + file.name + '\')" title="Load this file">Import</button>';
+		html += '    <button class="file-action-btn file-delete-btn" onclick="event.stopPropagation(); confirmDeleteSketchFile(\'' + file.name + '\')" title="Delete this file">Del</button>';
 		html += '  </div>';
 		html += '</div>';
 	});
@@ -869,7 +869,7 @@ function loadSketchFile(filename) {
  */
 function confirmDeleteSketchFile(filename) {
     if (!filename) return;
-    var confirmed = confirm('⚠️ Delete Sketch File\n\nAre you sure you want to permanently delete "' + filename + '"?\n\nThis action cannot be undone and the file will be removed from your local directory.');
+    var confirmed = confirm('WARNING: Delete Sketch File\n\nAre you sure you want to permanently delete "' + filename + '"?\n\nThis action cannot be undone and the file will be removed from your local directory.');
     if (confirmed) {
         deleteSketchFile(filename);
     }
