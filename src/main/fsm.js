@@ -1948,10 +1948,10 @@ window.onload = function() {
 		console.log("canvas element in mousedown:", canvas);
 		var mouse = crossBrowserRelativeMousePos(e);
 		
-		// Check for middle-click panning
-		if (e.button === 1) { // Middle mouse button
+		// Check for middle-click panning OR Command+left click (Mac) OR Ctrl+left click (Windows/Linux)
+		if (e.button === 1 || (e.button === 0 && (e.metaKey || e.ctrlKey))) { // Middle mouse button OR Cmd/Ctrl+left click
 			startPanning(mouse.x, mouse.y);
-			return false; // Prevent default middle-click behavior
+			return false; // Prevent default behavior
 		}
 		
 		// Convert to world coordinates for object interaction
@@ -2146,8 +2146,8 @@ window.onload = function() {
 	};
 
 	canvas.onmouseup = function(e) {
-		// Handle middle-click panning end
-		if (e.button === 1 && viewport.isPanning) { // Middle mouse button
+		// Handle middle-click panning end OR Command+left click panning end
+		if ((e.button === 1 || (e.button === 0 && (e.metaKey || e.ctrlKey))) && viewport.isPanning) {
 			stopPanning();
 			return false;
 		}
