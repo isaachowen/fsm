@@ -643,6 +643,17 @@ window.InteractionManager = {
                (this._mode === 'multiselect' && selectedNodes.length > 0);
     },
     
+    canCopy: function() {
+        // Can copy in 'selection' mode with a Node, or in 'multiselect' mode with nodes
+        return (this._mode === 'selection' && this._selectedObject instanceof Node) ||
+               (this._mode === 'multiselect' && selectedNodes.length > 0);
+    },
+    
+    canPaste: function() {
+        // Can paste if clipboard has content and not in text editing mode
+        return !clipboard.isEmpty() && this._mode !== 'editing_text';
+    },
+    
     // Utility methods
     isObjectSelected: function(obj) {
         var result = this._selectedObject === obj;
@@ -820,6 +831,245 @@ var selectionBox = {
 };
 var selectedNodes = []; // Array of selected Node objects
 var isSelecting = false;
+
+// =============================================================================
+// CLIPBOARD SYSTEM - Copy/Paste for Nodes
+// =============================================================================
+
+var clipboard = {
+	nodes: [],      // Array of node data: { x, y, text, color, shape, ... }
+	links: [],      // Array of link data: { nodeAIndex, nodeBIndex, text, arrowType, color, ... }
+	selfLinks: [],  // Array of self-link data: { nodeIndex, anchorAngle, text, arrowType, color, ... }
+	startLinks: [], // Array of start-link data: { nodeIndex, deltaX, deltaY, text, ... }
+	isEmpty: function() {
+		return this.nodes.length === 0;
+	},
+	clear: function() {
+		this.nodes = [];
+		this.links = [];
+		this.selfLinks = [];
+		this.startLinks = [];
+	}
+};
+
+/**
+ * copyNodesToClipboard - Copies selected nodes and their internal connections to clipboard
+ * 
+ * @param {Array} nodesToCopy - Array of Node instances to copy
+ * 
+ * Called by:
+ * - document.onkeydown when Cmd+C / Ctrl+C is pressed
+ * 
+ * Purpose: Serializes selected nodes and their connecting edges to clipboard object.
+ * Only copies edges where both endpoints are in the selection (internal edges).
+ */
+function copyNodesToClipboard(nodesToCopy) {
+	// Clear previous clipboard contents
+	clipboard.clear();
+	
+	// Validate input
+	if (!nodesToCopy || nodesToCopy.length === 0) {
+		console.log('No nodes to copy');
+		return;
+	}
+	
+	console.log('📋 Copying', nodesToCopy.length, 'node(s) to clipboard');
+	
+	// Step 1: Copy node data and build index mapping
+	var nodeIndexMap = new Map(); // Maps original Node instance -> clipboard index
+	
+	for (var i = 0; i < nodesToCopy.length; i++) {
+		var node = nodesToCopy[i];
+		nodeIndexMap.set(node, i);
+		
+		// Copy node properties
+		clipboard.nodes.push({
+			x: node.x,
+			y: node.y,
+			text: node.text,
+			color: node.color,
+			shape: node.shape || 'circle' // Default shape if not set
+		});
+	}
+	
+	// Step 2: Copy links (only internal ones where both nodes are in selection)
+	for (var i = 0; i < links.length; i++) {
+		var link = links[i];
+		
+		// Check if it's a regular Link between two nodes
+		if (link.nodeA && link.nodeB) {
+			var nodeAIndex = nodeIndexMap.get(link.nodeA);
+			var nodeBIndex = nodeIndexMap.get(link.nodeB);
+			
+			// Only copy if both nodes are in the selection (internal edge)
+			if (nodeAIndex !== undefined && nodeBIndex !== undefined) {
+				clipboard.links.push({
+					nodeAIndex: nodeAIndex,
+					nodeBIndex: nodeBIndex,
+					text: link.text,
+					arrowType: link.arrowType || 'arrow',
+					color: link.color || 'gray',
+					parallelPart: link.parallelPart,
+					perpendicularPart: link.perpendicularPart,
+					lineAngleAdjust: link.lineAngleAdjust || 0
+				});
+			}
+		}
+		// Check if it's a SelfLink
+		else if (link.node && link.anchorAngle !== undefined) {
+			var nodeIndex = nodeIndexMap.get(link.node);
+			
+			if (nodeIndex !== undefined) {
+				clipboard.selfLinks.push({
+					nodeIndex: nodeIndex,
+					anchorAngle: link.anchorAngle,
+					text: link.text,
+					arrowType: link.arrowType || 'arrow',
+					color: link.color || 'gray'
+				});
+			}
+		}
+		// Check if it's a StartLink
+		else if (link.node && link.deltaX !== undefined && link.deltaY !== undefined) {
+			var nodeIndex = nodeIndexMap.get(link.node);
+			
+			if (nodeIndex !== undefined) {
+				clipboard.startLinks.push({
+					nodeIndex: nodeIndex,
+					deltaX: link.deltaX,
+					deltaY: link.deltaY,
+					text: link.text
+				});
+			}
+		}
+	}
+	
+	console.log('📋 Clipboard contents:', {
+		nodes: clipboard.nodes.length,
+		links: clipboard.links.length,
+		selfLinks: clipboard.selfLinks.length,
+		startLinks: clipboard.startLinks.length
+	});
+}
+
+/**
+ * pasteNodesFromClipboard - Creates new nodes from clipboard data with offset
+ * 
+ * Called by:
+ * - document.onkeydown when Cmd+V / Ctrl+V is pressed
+ * 
+ * Purpose: Reconstructs nodes and their internal connections from clipboard.
+ * Applies consistent (+100, +100) offset to all pasted nodes.
+ * Sets newly pasted nodes as the active selection.
+ */
+function pasteNodesFromClipboard() {
+	// Validate clipboard has content
+	if (clipboard.isEmpty()) {
+		console.log('Clipboard is empty, nothing to paste');
+		return;
+	}
+	
+	console.log('📋 Pasting', clipboard.nodes.length, 'node(s) from clipboard');
+	
+	var PASTE_OFFSET_X = 100;
+	var PASTE_OFFSET_Y = 100;
+	
+	// Step 1: Create new nodes with offset
+	var newNodes = [];
+	var clipboardIndexToNewNode = new Map(); // Maps clipboard index -> new Node instance
+	
+	for (var i = 0; i < clipboard.nodes.length; i++) {
+		var nodeData = clipboard.nodes[i];
+		
+		// Create new node with offset position
+		var newNode = new Node(
+			nodeData.x + PASTE_OFFSET_X,
+			nodeData.y + PASTE_OFFSET_Y,
+			nodeData.color
+		);
+		
+		// Copy properties
+		newNode.text = nodeData.text;
+		newNode.shape = nodeData.shape;
+		
+		// Add to global nodes array
+		nodes.push(newNode);
+		newNodes.push(newNode);
+		clipboardIndexToNewNode.set(i, newNode);
+	}
+	
+	// Step 2: Recreate links between new nodes
+	for (var i = 0; i < clipboard.links.length; i++) {
+		var linkData = clipboard.links[i];
+		var nodeA = clipboardIndexToNewNode.get(linkData.nodeAIndex);
+		var nodeB = clipboardIndexToNewNode.get(linkData.nodeBIndex);
+		
+		if (nodeA && nodeB) {
+			var newLink = new Link(nodeA, nodeB);
+			newLink.text = linkData.text;
+			newLink.arrowType = linkData.arrowType;
+			newLink.color = linkData.color;
+			newLink.parallelPart = linkData.parallelPart;
+			newLink.perpendicularPart = linkData.perpendicularPart;
+			newLink.lineAngleAdjust = linkData.lineAngleAdjust;
+			
+			links.push(newLink);
+		}
+	}
+	
+	// Step 3: Recreate self-links on new nodes
+	for (var i = 0; i < clipboard.selfLinks.length; i++) {
+		var selfLinkData = clipboard.selfLinks[i];
+		var node = clipboardIndexToNewNode.get(selfLinkData.nodeIndex);
+		
+		if (node) {
+			var newSelfLink = new SelfLink(node);
+			newSelfLink.anchorAngle = selfLinkData.anchorAngle;
+			newSelfLink.text = selfLinkData.text;
+			newSelfLink.arrowType = selfLinkData.arrowType;
+			newSelfLink.color = selfLinkData.color;
+			
+			links.push(newSelfLink);
+		}
+	}
+	
+	// Step 4: Recreate start-links on new nodes
+	for (var i = 0; i < clipboard.startLinks.length; i++) {
+		var startLinkData = clipboard.startLinks[i];
+		var node = clipboardIndexToNewNode.get(startLinkData.nodeIndex);
+		
+		if (node) {
+			var newStartLink = new StartLink(node);
+			newStartLink.deltaX = startLinkData.deltaX;
+			newStartLink.deltaY = startLinkData.deltaY;
+			newStartLink.text = startLinkData.text;
+			
+			links.push(newStartLink);
+		}
+	}
+	
+	// Step 5: Update selection to newly pasted nodes
+	if (newNodes.length === 1) {
+		// Single node: enter selection mode with that node
+		InteractionManager.enterSelectionMode(newNodes[0]);
+	} else if (newNodes.length > 1) {
+		// Multiple nodes: enter multiselect mode
+		selectedNodes = newNodes.slice(); // Copy array
+		InteractionManager.enterMultiselectMode();
+	}
+	
+	// Step 6: Record history if undo/redo is available
+	if (typeof canvasHistory !== 'undefined' && canvasHistory) {
+		canvasHistory.push(canvasHistory.serializeCurrentState(), {
+			coalesceKey: null // Don't coalesce paste operations
+		});
+	}
+	
+	// Redraw canvas to show new nodes
+	draw();
+	
+	console.log('✅ Paste complete:', newNodes.length, 'node(s) created');
+}
 
 // Viewport state for canvas panning and zooming
 var viewport = {
@@ -2291,7 +2541,51 @@ var suppressTypingUntil = 0; // Timestamp to suppress typing after node creation
 document.onkeydown = function(e) {
 	var key = crossBrowserKey(e);
 
-	// Handle undo/redo keyboard shortcuts first
+	// ====================================================================
+	// COPY/PASTE SHORTCUTS
+	// ====================================================================
+	
+	// Cmd+C / Ctrl+C - Copy
+	if ((e.metaKey || e.ctrlKey) && key == 67) {
+		if (InteractionManager.canCopy()) {
+			e.preventDefault(); // Prevent default browser copy behavior
+			
+			// Get nodes to copy based on current mode
+			var nodesToCopy = [];
+			
+			if (InteractionManager.getMode() === 'selection' && 
+			    InteractionManager.getSelected() instanceof Node) {
+				// Single node selection
+				nodesToCopy = [InteractionManager.getSelected()];
+			} else if (InteractionManager.getMode() === 'multiselect' && 
+			           selectedNodes.length > 0) {
+				// Multiple node selection
+				nodesToCopy = selectedNodes.slice(); // Make a copy of the array
+			}
+			
+			if (nodesToCopy.length > 0) {
+				copyNodesToClipboard(nodesToCopy);
+			}
+			return false;
+		}
+		// If canCopy() is false, let browser handle default copy (e.g., for text editing)
+	}
+	
+	// Cmd+V / Ctrl+V - Paste
+	if ((e.metaKey || e.ctrlKey) && key == 86) {
+		if (InteractionManager.canPaste()) {
+			e.preventDefault(); // Prevent default browser paste behavior
+			pasteNodesFromClipboard();
+			return false;
+		}
+		// If canPaste() is false, let browser handle default paste (e.g., for text editing)
+	}
+
+	// ====================================================================
+	// UNDO/REDO SHORTCUTS
+	// ====================================================================
+	
+	// Handle undo/redo keyboard shortcuts
 	if (canvasHistory && (e.metaKey || e.ctrlKey)) {
 		if (key == 90) { // Cmd+Z or Ctrl+Z
 			if (e.shiftKey) {
