@@ -1766,9 +1766,9 @@ function updateLegendHTML() {
 		
 		// Draw mini visualization based on entry type
 		if (entry.type === 'edge') {
-			drawMiniEdge(miniCanvas, entry.color, entry.arrowType);
+			drawMiniEdge(miniCanvas, entry.colorKey, entry.arrowType);
 		} else {
-			drawMiniNode(miniCanvas, entry.color);
+			drawMiniNode(miniCanvas, entry.colorKey);
 		}
 		
 		// Create text input
