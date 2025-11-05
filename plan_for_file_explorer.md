@@ -238,7 +238,7 @@ const FileExplorerManager = {
         <input type="file" id="jsonFileInput" accept=".json" onchange="importFromJSON(this)" style="display: none;">
     </div>
 
-    <button onclick="clearCanvas()" class="danger-button">Clear Sketch</button>
+    <button onclick="clearCanvas()" class="danger-button">New Sketch</button>
 </div>
 ```
 
