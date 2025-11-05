@@ -583,21 +583,22 @@ function renderKeyboardGuide() {
 	
 	var guide = generateKeyboardGuide();
 	var html = '';
+	var textColor = '#000'; // Black text with white outline for all keys
+	var textShadow = '0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff'; // White glow outline
 	
 	// Number row (123) for arrow types
 	html += '<div style="display: flex; gap: 2px; margin-bottom: 4px; justify-content: center;">';
-	html += '<div style="width: 28px; height: 28px; border: 1px solid #666; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #f0f0f0; color: #333; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1); position: relative;">1<div style="position: absolute; top: 2px; right: 2px; width: 0; height: 0; border-top: 4px solid transparent; border-bottom: 4px solid transparent; border-left: 6px solid #333;"></div></div>';
-	html += '<div style="width: 28px; height: 28px; border: 1px solid #666; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #f0f0f0; color: #333; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1); position: relative;">2<div style="position: absolute; top: 5px; right: 2px; width: 6px; height: 2px; background: #333;"></div><div style="position: absolute; top: 3px; right: 2px; width: 2px; height: 6px; background: #333;"></div></div>';
-	html += '<div style="width: 28px; height: 28px; border: 1px solid #666; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #f0f0f0; color: #333; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1); position: relative;">3<div style="position: absolute; top: 4px; right: 2px; width: 8px; height: 2px; background: #333;"></div></div>';
+	html += '<div style="width: 28px; height: 28px; border: 1px solid #666; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #f0f0f0; color: ' + textColor + '; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1); position: relative; text-shadow: ' + textShadow + ';">1<div style="position: absolute; top: 2px; right: 2px; width: 0; height: 0; border-top: 4px solid transparent; border-bottom: 4px solid transparent; border-left: 6px solid #333;"></div></div>';
+	html += '<div style="width: 28px; height: 28px; border: 1px solid #666; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #f0f0f0; color: ' + textColor + '; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1); position: relative; text-shadow: ' + textShadow + ';">2<div style="position: absolute; top: 5px; right: 2px; width: 6px; height: 2px; background: #333;"></div><div style="position: absolute; top: 3px; right: 2px; width: 2px; height: 6px; background: #333;"></div></div>';
+	html += '<div style="width: 28px; height: 28px; border: 1px solid #666; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #f0f0f0; color: ' + textColor + '; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1); position: relative; text-shadow: ' + textShadow + ';">3<div style="position: absolute; top: 4px; right: 2px; width: 8px; height: 2px; background: #333;"></div></div>';
 	html += '</div>';
 	
 	// Top row (ASDFG)
 	html += '<div style="display: flex; gap: 2px; margin-bottom: 2px; justify-content: center;">';
 	for (var i = 0; i < guide.line1.length; i++) {
 		var item = guide.line1[i];
-		var textColor = (item.colorKey === 'Z' || item.colorKey === 'D' || item.colorKey === 'B') ? '#fff' : '#333';
 		var borderColor = (item.colorKey === 'G') ? '#666' : '#999';
-		html += '<div style="width: 28px; height: 28px; border: 1px solid ' + borderColor + '; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: ' + item.color + '; color: ' + textColor + '; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">' + item.colorKey + '</div>';
+		html += '<div style="width: 28px; height: 28px; border: 1px solid ' + borderColor + '; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: ' + item.color + '; color: ' + textColor + '; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1); text-shadow: ' + textShadow + ';">' + item.colorKey + '</div>';
 	}
 	html += '</div>';
 	
@@ -605,8 +606,7 @@ function renderKeyboardGuide() {
 	html += '<div style="display: flex; gap: 2px; justify-content: center;">';
 	for (var i = 0; i < guide.line2.length; i++) {
 		var item = guide.line2[i];
-		var textColor = (item.colorKey === 'Z') ? '#fff' : '#333';
-		html += '<div style="width: 28px; height: 28px; border: 1px solid #999; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: ' + item.color + '; color: ' + textColor + '; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">' + item.colorKey + '</div>';
+		html += '<div style="width: 28px; height: 28px; border: 1px solid #999; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: ' + item.color + '; color: ' + textColor + '; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1); text-shadow: ' + textShadow + ';">' + item.colorKey + '</div>';
 	}
 	html += '</div>';
 	
