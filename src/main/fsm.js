@@ -1,16 +1,16 @@
 // Color Configuration - Single Source of Truth
 // Maps modifier key -> hex color code
 var COLOR_CONFIG = {
-	'A': '#ffff80',  // Yellow
-	'S': '#80ff80',  // Green
-	'D': '#8080ff',  // Blue
-	'F': '#ff80ff',  // Pink
-	'G': '#ffffff',  // White
-	'Z': '#000000',  // Black
-	'X': '#9ac29a',  // Gray
-	'C': '#ff8080',  // Red
+	'A': '#9ac29a',  // Gray
+	'S': '#000000',  // Black
+	'D': '#ffffff',  // White
+	'F': '#ffff80',  // Yellow
+	'G': '#8080ff',  // Blue
+	'Z': '#ff8080',  // Red
+	'X': '#c080ff',  // Purple
+	'C': '#80ff80',  // Green
 	'V': '#ffb380',  // Orange
-	'B': '#c080ff'   // Purple
+	'B': '#ff80ff'   // Pink
 };
 
 var greekLetterNames = [ 'Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Zeta', 'Eta', 'Theta', 'Iota', 'Kappa', 'Lambda', 'Mu', 'Nu', 'Xi', 'Omicron', 'Pi', 'Rho', 'Sigma', 'Tau', 'Upsilon', 'Phi', 'Chi', 'Psi', 'Omega' ];
@@ -1834,7 +1834,7 @@ function createLegendContainer() {
 	document.body.appendChild(legendContainer);
 }
 
-function drawMiniNode(miniCanvas, color) {
+function drawMiniNode(miniCanvas, colorKey) {
 	/**
 	 * drawMiniNode - Draws a miniature representation of a node in the legend
 	 * 
@@ -1843,7 +1843,7 @@ function drawMiniNode(miniCanvas, color) {
 	 * 
 	 * Calls:
 	 * - Canvas 2D API functions for drawing
-	 * - Node color methods for consistent coloring
+	 * - COLOR_CONFIG for consistent coloring
 	 * 
 	 * Purpose: Renders a small version of each unique node color for visual
 	 * reference in the legend, using the same drawing logic as full nodes.
@@ -1855,11 +1855,8 @@ function drawMiniNode(miniCanvas, color) {
 	
 	c.clearRect(0, 0, miniCanvas.width, miniCanvas.height);
 	
-	// Create temporary node for color methods
-	var tempNode = { color: color };
-	tempNode.getBaseColor = Node.prototype.getBaseColor;
-	
-	c.fillStyle = tempnode.getColor();
+	// Get color directly from COLOR_CONFIG
+	c.fillStyle = COLOR_CONFIG[colorKey] || '#ffff80';
 	c.strokeStyle = '#9ac29a';
 	c.lineWidth = 1;  // Thinner border to match main nodes
 	
@@ -1869,7 +1866,7 @@ function drawMiniNode(miniCanvas, color) {
 	c.stroke();
 }
 
-function drawMiniEdge(miniCanvas, color, arrowType) {
+function drawMiniEdge(miniCanvas, colorKey, arrowType) {
 	/**
 	 * drawMiniEdge - Draws a miniature representation of an edge in the legend
 	 * 
@@ -1892,7 +1889,7 @@ function drawMiniEdge(miniCanvas, color, arrowType) {
 	var endX = 25;
 	var y = 15;
 	
-	c.strokeStyle = getLinkColorHex(color);
+	c.strokeStyle = getLinkColorHex(colorKey);
 	c.lineWidth = 2;
 	
 	// Draw the line
@@ -1917,7 +1914,7 @@ function drawMiniEdge(miniCanvas, color, arrowType) {
 		// Just the line is sufficient
 	} else {
 		// Draw traditional triangular arrow
-		c.fillStyle = getLinkColorHex(color);
+		c.fillStyle = getLinkColorHex(colorKey);
 		c.beginPath();
 		c.moveTo(endX, y);
 		c.lineTo(endX - 6, y - 3);
@@ -1999,7 +1996,7 @@ function drawUsing(c) {
 	for(var i = 0; i < links.length; i++) {
 		c.lineWidth = 3;
 		// Always use authentic colors - selection is now indicated by glow effect only
-		var linkColorHex = getLinkColorHex(links[i].color);
+		var linkColorHex = getLinkColorHex(links[i].colorKey);
 		c.strokeStyle = linkColorHex;  // Use link's authentic color
 		c.fillStyle = linkColorHex;    // Use link's authentic color for arrows too
 		
@@ -2007,9 +2004,9 @@ function drawUsing(c) {
 	}
 	if(currentLink != null) {
 		c.lineWidth = 3;
-		var linkColorHex = getLinkColorHex(currentlink.colorKey || 'gray');
-		c.strokeStyle = linkColorHex;  // Use link's color or default gray
-		c.fillStyle = linkColorHex;    // Use link's color or default gray for arrows too
+		var linkColorHex = getLinkColorHex(currentLink.colorKey);
+		c.strokeStyle = linkColorHex;  // Use link's color or default 'A'
+		c.fillStyle = linkColorHex;    // Use link's color or default 'A' for arrows too
 		currentLink.draw(c);
 	}
 
@@ -2309,7 +2306,7 @@ window.onload = function() {
 			var needsLegendUpdate = false;
 			if(colorModifier != null && InteractionManager.canChangeNodeAppearance()) {
 				// Change existing node to specific color
-				InteractionManager.getSelected().color = getColorFromModifier(colorModifier);
+				InteractionManager.getSelected().colorKey = getColorFromModifier(colorModifier);
 				// Suppress typing briefly when changing colors too
 				suppressTypingUntil = Date.now() + 300;
 				needsLegendUpdate = true;
@@ -2632,11 +2629,11 @@ document.onkeydown = function(e) {
 			if(InteractionManager.canChangeNodeAppearance()) {
 				if(InteractionManager.getMode() === 'selection') {
 					// Single node selection
-					InteractionManager.getSelected().color = getColorFromModifier(colorModifier);
+					InteractionManager.getSelected().colorKey = getColorFromModifier(colorModifier);
 				} else if(InteractionManager.getMode() === 'multiselect') {
 					// Multiple node selection - apply to all selected nodes
 					for(var i = 0; i < selectedNodes.length; i++) {
-						selectedNodes[i].color = getColorFromModifier(colorModifier);
+						selectedNodes[i].colorKey = getColorFromModifier(colorModifier);
 					}
 				}
 				suppressTypingUntil = Date.now() + 300; // Suppress typing briefly
@@ -2650,9 +2647,9 @@ document.onkeydown = function(e) {
 			
 			// Link color change when a link is selected
 			if(selectedObject != null && (selectedObject instanceof Link || selectedObject instanceof SelfLink || selectedObject instanceof StartLink)) {
-				var oldColor = selectedObject.color;
-				selectedObject.color = getColorFromModifier(colorModifier);
-				console.log('Link color changed from', oldColor, 'to', selectedObject.color);
+				var oldColor = selectedObject.colorKey;
+				selectedObject.colorKey = getColorFromModifier(colorModifier);
+				console.log('Link color changed from', oldColor, 'to', selectedObject.colorKey);
 				
 				suppressTypingUntil = Date.now() + 300; // Suppress typing briefly
 				
@@ -2976,7 +2973,7 @@ function getLinkColorHex(colorModifier) {
 	if (COLOR_CONFIG[colorModifier]) {
 		return COLOR_CONFIG[colorModifier];
 	}
-	return '#9ac29a'; // Default to engineering green (X)
+        return COLOR_CONFIG['A'];  // Default to yellow (A)
 }
 
 function crossBrowserKey(e) {

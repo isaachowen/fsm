@@ -19,7 +19,7 @@ function StartLink(node, start) {
 	this.deltaY = 0;
 	this.text = '';
 	this.arrowType = 'arrow'; // 'arrow' for traditional triangle, 'T' for T-shaped
-	this.color = 'gray'; // Default link color (matches getColorFromModifier default for edges)
+	this.colorKey = 'A'; // Default yellow (matches COLOR_CONFIG default)
 
 	if(start) {
 		this.setAnchorPoint(start.x, start.y);
