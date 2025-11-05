@@ -10,7 +10,7 @@ function restoreBackup() {
 			var backupNode = backup.nodes[i];
 			var node = new Node(backupNode.x, backupNode.y, backupNode.colorKey);
 			node.text = backupNode.text;
-			// Handle backward compatibility - default to 'A' if no color specified
+			// Handle backward compatibility - default to 'A' if no colorKey specified
 			if (!node.colorKey) {
 				node.colorKey = 'A';
 			}
@@ -114,7 +114,7 @@ function saveBackup() {
 			'x': node.x,
 			'y': node.y,
 			'text': node.text,
-			'color': node.colorKey || 'A', // Include color property with fallback
+			'colorKey': node.colorKey || 'A', // Include colorKey property with fallback
 		};
 		backup.nodes.push(backupNode);
 	}
@@ -128,7 +128,7 @@ function saveBackup() {
 				'text': link.text,
 				'anchorAngle': link.anchorAngle,
 				'arrowType': link.arrowType || 'arrow',
-				'color': link.colorKey || 'A',
+				'colorKey': link.colorKey || 'A',
 			};
 		} else if(link instanceof StartLink) {
 			backupLink = {
@@ -138,7 +138,7 @@ function saveBackup() {
 				'deltaX': link.deltaX,
 				'deltaY': link.deltaY,
 				'arrowType': link.arrowType || 'arrow',
-				'color': link.colorKey || 'A',
+				'colorKey': link.colorKey || 'A',
 			};
 		} else if(link instanceof Link) {
 			backupLink = {
@@ -150,7 +150,7 @@ function saveBackup() {
 				'parallelPart': link.parallelPart,
 				'perpendicularPart': link.perpendicularPart,
 				'arrowType': link.arrowType || 'arrow',
-				'color': link.colorKey || 'A',
+				'colorKey': link.colorKey || 'A',
 			};
 		}
 		if(backupLink != null) {

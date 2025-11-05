@@ -1,16 +1,16 @@
 // Color Configuration - Single Source of Truth
 // Maps modifier key -> hex color code
 var COLOR_CONFIG = {
-	'A': '#9ac29a',  // Gray
-	'S': '#000000',  // Black
-	'D': '#ffffff',  // White
-	'F': '#ffff80',  // Yellow
-	'G': '#8080ff',  // Blue
-	'Z': '#ff8080',  // Red
-	'X': '#c080ff',  // Purple
-	'C': '#80ff80',  // Green
-	'V': '#ffb380',  // Orange
-	'B': '#ff80ff'   // Pink
+  'A': '#9ac29a',  // Graygreen
+  'S': '#cfcfcfff',   // Gray
+  'D': '#ffffff',  // White
+  'F': '#fff9b3',  // Yellow
+  'G': '#ffb380',  // Orange
+  'Z': '#000000',  // Black
+  'X': '#8080ff',  // Blue
+  'C': '#ff8080',  // Red
+  'V': '#c080ff',  // Purple
+  'B': '#80ff80',  // Green
 };
 
 // Global styling variables (non-modifier colors that affect UI chrome and accents)
@@ -908,7 +908,7 @@ function copyNodesToClipboard(nodesToCopy) {
 			x: node.x,
 			y: node.y,
 			text: node.text,
-			color: node.colorKey,
+			colorKey: node.colorKey,
 			shape: node.shape || 'circle' // Default shape if not set
 		});
 	}
@@ -929,7 +929,7 @@ function copyNodesToClipboard(nodesToCopy) {
 					nodeBIndex: nodeBIndex,
 					text: link.text,
 					arrowType: link.arrowType || 'arrow',
-					color: link.colorKey || 'A',
+					colorKey: link.colorKey || 'A',
 					parallelPart: link.parallelPart,
 					perpendicularPart: link.perpendicularPart,
 					lineAngleAdjust: link.lineAngleAdjust || 0
@@ -946,7 +946,7 @@ function copyNodesToClipboard(nodesToCopy) {
 					anchorAngle: link.anchorAngle,
 					text: link.text,
 					arrowType: link.arrowType || 'arrow',
-					color: link.colorKey || 'A'
+					colorKey: link.colorKey || 'A'
 				});
 			}
 		}
@@ -1250,7 +1250,7 @@ CanvasRecentHistoryManager.prototype.serializeCurrentState = function() {
 			x: node.x,
 			y: node.y,
 			text: node.text,
-			color: node.colorKey || 'A'
+			colorKey: node.colorKey || 'A'
 		});
 	}
 	
@@ -1348,6 +1348,7 @@ CanvasRecentHistoryManager.prototype.restoreState = function(state) {
 		if (link) {
 			link.text = linkData.text || '';
 			link.arrowType = linkData.arrowType || 'arrow';  // Restore arrow type
+			link.colorKey = linkData.color || 'A';  // Restore link color
 			links.push(link);
 		}
 	}
@@ -1661,7 +1662,7 @@ function updateLegendEntries() {
 		if (!newEntries[key]) {
 			newEntries[key] = {
 				type: 'node',
-				color: node.colorKey,
+				colorKey: node.colorKey,
 				description: '',
 				count: 0,
 				inputElement: null
@@ -1684,7 +1685,7 @@ function updateLegendEntries() {
 		if (!newEntries[key]) {
 			newEntries[key] = {
 				type: 'edge',
-				color: link.colorKey,
+				colorKey: link.colorKey,
 				arrowType: link.arrowType,
 				description: '',
 				count: 0,
@@ -3879,7 +3880,7 @@ function downloadAsJSON() {
 			x: node.x,
 			y: node.y, 
 			text: node.text,
-			color: node.colorKey || 'A'  // Include color property
+			colorKey: node.colorKey || 'A'  // Include color property
 		});
 	}
 	
@@ -3978,9 +3979,11 @@ function processJSONData(jsonData, filename) {
 	var nodeMap = new Map(); // Maps JSON ID to Node object
 	for (var i = 0; i < jsonData.nodes.length; i++) {
 		var nodeData = jsonData.nodes[i];
-		var node = new Node(nodeData.x, nodeData.y, nodeData.color);
+		// Prefer colorKey (new format); fall back to color for older files
+		var nodeColorKey = nodeData.colorKey; //(typeof nodeData.colorKey !== 'undefined') ? nodeData.colorKey : nodeData.color;
+		var node = new Node(nodeData.x, nodeData.y, nodeColorKey);
 		node.text = nodeData.text || '';
-		// Handle backward compatibility - default to yellow if no color specified
+		// Handle backward compatibility - default to 'A' if no color specified
 		if (!node.colorKey) {
 			node.colorKey = 'A';
 		}
@@ -4024,7 +4027,8 @@ function processJSONData(jsonData, filename) {
 		
 		link.text = linkData.text || '';
 		link.arrowType = linkData.arrowType || 'arrow'; // Restore arrow type with fallback
-		link.colorKey = linkData.color || 'A'; // Restore link color with fallback
+		// Prefer colorKey (new format); fall back to color for older files
+		link.colorKey = (typeof linkData.colorKey !== 'undefined') ? linkData.colorKey : linkData.color || 'A'; // Restore link color with fallback
 		links.push(link);
 	}
 	

@@ -1071,7 +1071,7 @@ function createJSONData() {
 			x: node.x,
 			y: node.y, 
 			text: node.text,
-			color: node.colorKey || 'A'
+			colorKey: node.colorKey || 'A'
 		});
 	}
 	
@@ -1082,7 +1082,7 @@ function createJSONData() {
 		var linkData = {
 			text: link.text,
 			arrowType: link.arrowType || 'arrow',  // Include arrow type
-			color: link.colorKey || 'A'            // Include link color
+			colorKey: link.colorKey || 'A'            // Include link colorKey
 		};
 		
 		// Handle different link types - simplified for this example
