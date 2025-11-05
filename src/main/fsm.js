@@ -1,3 +1,18 @@
+// Color Configuration - Single Source of Truth
+// Maps modifier key -> hex color code
+var COLOR_CONFIG = {
+	'A': '#ffff80',  // Yellow
+	'S': '#80ff80',  // Green
+	'D': '#8080ff',  // Blue
+	'F': '#ff80ff',  // Pink
+	'G': '#ffffff',  // White
+	'Z': '#000000',  // Black
+	'X': '#9ac29a',  // Gray
+	'C': '#ff8080',  // Red
+	'V': '#ffb380',  // Orange
+	'B': '#c080ff'   // Purple
+};
+
 var greekLetterNames = [ 'Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Zeta', 'Eta', 'Theta', 'Iota', 'Kappa', 'Lambda', 'Mu', 'Nu', 'Xi', 'Omicron', 'Pi', 'Rho', 'Sigma', 'Tau', 'Upsilon', 'Phi', 'Chi', 'Psi', 'Omega' ];
 
 function convertLatexShortcuts(text) {
@@ -887,7 +902,7 @@ function copyNodesToClipboard(nodesToCopy) {
 			x: node.x,
 			y: node.y,
 			text: node.text,
-			color: node.color,
+			color: node.colorKey,
 			shape: node.shape || 'circle' // Default shape if not set
 		});
 	}
@@ -908,7 +923,7 @@ function copyNodesToClipboard(nodesToCopy) {
 					nodeBIndex: nodeBIndex,
 					text: link.text,
 					arrowType: link.arrowType || 'arrow',
-					color: link.color || 'gray',
+					color: link.colorKey || 'gray',
 					parallelPart: link.parallelPart,
 					perpendicularPart: link.perpendicularPart,
 					lineAngleAdjust: link.lineAngleAdjust || 0
@@ -925,7 +940,7 @@ function copyNodesToClipboard(nodesToCopy) {
 					anchorAngle: link.anchorAngle,
 					text: link.text,
 					arrowType: link.arrowType || 'arrow',
-					color: link.color || 'gray'
+					color: link.colorKey || 'gray'
 				});
 			}
 		}
@@ -1008,7 +1023,7 @@ function pasteNodesFromClipboard() {
 			var newLink = new Link(nodeA, nodeB);
 			newLink.text = linkData.text;
 			newLink.arrowType = linkData.arrowType;
-			newLink.color = linkData.color;
+			newlink.colorKey = linkData.color;
 			newLink.parallelPart = linkData.parallelPart;
 			newLink.perpendicularPart = linkData.perpendicularPart;
 			newLink.lineAngleAdjust = linkData.lineAngleAdjust;
@@ -1027,7 +1042,7 @@ function pasteNodesFromClipboard() {
 			newSelfLink.anchorAngle = selfLinkData.anchorAngle;
 			newSelfLink.text = selfLinkData.text;
 			newSelfLink.arrowType = selfLinkData.arrowType;
-			newSelfLink.color = selfLinkData.color;
+			newSelflink.colorKey = selfLinkData.color;
 			
 			links.push(newSelfLink);
 		}
@@ -1229,7 +1244,7 @@ CanvasRecentHistoryManager.prototype.serializeCurrentState = function() {
 			x: node.x,
 			y: node.y,
 			text: node.text,
-			color: node.color || 'yellow'
+			color: node.colorKey || 'yellow'
 		});
 	}
 	
@@ -1635,12 +1650,12 @@ function updateLegendEntries() {
 	// Scan all existing nodes
 	for (var i = 0; i < nodes.length; i++) {
 		var node = nodes[i];
-		var key = generateLegendKey(node.color, 'node');
+		var key = generateLegendKey(node.colorKey, 'node');
 		
 		if (!newEntries[key]) {
 			newEntries[key] = {
 				type: 'node',
-				color: node.color,
+				color: node.colorKey,
 				description: '',
 				count: 0,
 				inputElement: null
@@ -1658,12 +1673,12 @@ function updateLegendEntries() {
 	// Scan all existing edges (links)
 	for (var i = 0; i < links.length; i++) {
 		var link = links[i];
-		var key = generateLegendKey(link.color, 'edge', link.arrowType);
+		var key = generateLegendKey(link.colorKey, 'edge', link.arrowType);
 		
 		if (!newEntries[key]) {
 			newEntries[key] = {
 				type: 'edge',
-				color: link.color,
+				color: link.colorKey,
 				arrowType: link.arrowType,
 				description: '',
 				count: 0,
@@ -1844,7 +1859,7 @@ function drawMiniNode(miniCanvas, color) {
 	var tempNode = { color: color };
 	tempNode.getBaseColor = Node.prototype.getBaseColor;
 	
-	c.fillStyle = tempNode.getBaseColor();
+	c.fillStyle = tempnode.getColor();
 	c.strokeStyle = '#9ac29a';
 	c.lineWidth = 1;  // Thinner border to match main nodes
 	
@@ -1972,7 +1987,7 @@ function drawUsing(c) {
 		
 		// Always use authentic colors - selection is now indicated by glow effect only
 		c.strokeStyle = '#9ac29a';  // darker engineering green accent
-		c.fillStyle = node.getBaseColor();      // Use node's authentic base color
+		c.fillStyle = node.getColor();      // Use node's authentic base color
 		
 		// Only change line width for multi-selected nodes (keep border consistent)
 		if(isMultiSelected && !isSelected) {
@@ -1992,7 +2007,7 @@ function drawUsing(c) {
 	}
 	if(currentLink != null) {
 		c.lineWidth = 3;
-		var linkColorHex = getLinkColorHex(currentLink.color || 'gray');
+		var linkColorHex = getLinkColorHex(currentlink.colorKey || 'gray');
 		c.strokeStyle = linkColorHex;  // Use link's color or default gray
 		c.fillStyle = linkColorHex;    // Use link's color or default gray for arrows too
 		currentLink.draw(c);
@@ -2922,7 +2937,7 @@ document.onkeypress = function(e) {
 
 function getColorFromModifier(modifier) {
 	/**
-	 * getColorFromModifier - Maps letter modifier keys to node color names
+	 * getColorFromModifier - Returns the modifier key if valid, for use as colorKey identifier
 	 * 
 	 * Called by:
 	 * - Keyboard event handlers when letter keys are pressed with selected node
@@ -2930,57 +2945,38 @@ function getColorFromModifier(modifier) {
 	 * - Node appearance customization systems
 	 * 
 	 * Calls:
-	 * - switch statement for modifier-to-color mapping
+	 * - COLOR_CONFIG lookup to validate modifier key
 	 * - No external function calls
 	 * 
-	 * Purpose: Translates keyboard input (letter keys A,S,D,F,G,Z,X,C,V,B) into corresponding
-	 * node color strings. Enables quick color changes via keyboard shortcuts.
-	 * Returns color names that correspond to Node color property values.
+	 * Purpose: Validates keyboard input (letter keys A,S,D,F,G,Z,X,C,V,B) and returns
+	 * the modifier key itself as the identifier. Enables quick color changes via keyboard shortcuts.
+	 * Returns modifier keys that correspond to Node colorKey property values.
 	 */
-	switch(modifier) {
-		case 'A': return 'yellow';  // A for default yellow
-		case 'S': return 'green';   // S for green  
-		case 'D': return 'blue';    // D for blue
-		case 'F': return 'pink';    // F for pink
-		case 'G': return 'white';   // G for white
-		case 'Z': return 'black';   // Z for black
-		case 'X': return 'gray';    // X for gray
-		case 'C': return 'red';     // C for red
-		case 'V': return 'orange';  // V for orange
-		case 'B': return 'purple';  // B for purple
-		default: return 'yellow';   // Default fallback
-	}
+	// Just return the modifier key - it's already the identifier
+	// Return 'A' (yellow) as default if invalid key
+	return COLOR_CONFIG[modifier] ? modifier : 'A';
 }
 
-function getLinkColorHex(colorName) {
+function getLinkColorHex(colorModifier) {
 	/**
-	 * getLinkColorHex - Converts color name to hex code for link rendering
+	 * getLinkColorHex - Converts color modifier key to hex code for link rendering
 	 * 
 	 * Called by:
 	 * - drawUsing() when setting stroke/fill styles for links
 	 * - Any function that needs hex color codes for link visualization
 	 * 
 	 * Calls:
-	 * - switch statement for color name to hex mapping
+	 * - COLOR_CONFIG lookup for modifier key to hex mapping
 	 * - No external function calls
 	 * 
-	 * Purpose: Translates human-readable color names (from getColorFromModifier)
+	 * Purpose: Translates modifier keys (from getColorFromModifier)
 	 * into hex color codes that canvas context can use for strokeStyle/fillStyle.
 	 * Provides consistent color mapping between nodes and links.
 	 */
-	switch(colorName) {
-		case 'yellow': return '#ffff80';  // Light yellow
-		case 'green': return '#80ff80';   // Light green
-		case 'blue': return '#8080ff';    // Light blue
-		case 'pink': return '#ff80ff';    // Light pink
-		case 'white': return '#ffffff';   // White
-		case 'black': return '#000000';   // Black
-		case 'gray': return '#9ac29a';    // Default engineering green (matches original link color)
-		case 'red': return '#ff8080';     // Light red
-		case 'orange': return '#ffb380';  // Light orange
-		case 'purple': return '#c080ff';  // Light purple
-		default: return '#9ac29a';        // Default to engineering green
+	if (COLOR_CONFIG[colorModifier]) {
+		return COLOR_CONFIG[colorModifier];
 	}
+	return '#9ac29a'; // Default to engineering green (X)
 }
 
 function crossBrowserKey(e) {
@@ -3876,7 +3872,7 @@ function downloadAsJSON() {
 			x: node.x,
 			y: node.y, 
 			text: node.text,
-			color: node.color || 'yellow'  // Include color property
+			color: node.colorKey || 'yellow'  // Include color property
 		});
 	}
 	
@@ -3978,8 +3974,8 @@ function processJSONData(jsonData, filename) {
 		var node = new Node(nodeData.x, nodeData.y, nodeData.color);
 		node.text = nodeData.text || '';
 		// Handle backward compatibility - default to yellow if no color specified
-		if (!node.color) {
-			node.color = 'yellow';
+		if (!node.colorKey) {
+			node.colorKey = 'yellow';
 		}
 		nodes.push(node);
 		nodeMap.set(nodeData.id, node);
@@ -4021,7 +4017,7 @@ function processJSONData(jsonData, filename) {
 		
 		link.text = linkData.text || '';
 		link.arrowType = linkData.arrowType || 'arrow'; // Restore arrow type with fallback
-		link.color = linkData.color || 'gray'; // Restore link color with fallback
+		link.colorKey = linkData.color || 'gray'; // Restore link color with fallback
 		links.push(link);
 	}
 	

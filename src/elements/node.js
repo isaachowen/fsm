@@ -1,10 +1,10 @@
-function Node(x, y, color) {
+function Node(x, y, colorKey) {
 	this.x = x;
 	this.y = y;
 	this.mouseOffsetX = 0;
 	this.mouseOffsetY = 0;
 	this.text = '';
-	this.color = color || 'yellow'; // Default to yellow for backward compatibility
+	this.colorKey = colorKey || 'A'; // Default to 'A' (yellow)
 }
 
 Node.prototype.setMouseStart = function(x, y) {
@@ -17,36 +17,12 @@ Node.prototype.setAnchorPoint = function(x, y) {
 	this.y = y + this.mouseOffsetY;
 };
 
-Node.prototype.getBaseColor = function() {
-	switch(this.color) {
-		case 'green': return '#c8e6c9';    // Soft mint green
-		case 'blue': return '#bbdefb';     // Light sky blue
-		case 'pink': return '#f8bbd9';     // Soft rose pink
-		case 'purple': return '#e1bee7';   // Light lavender
-		case 'orange': return '#ffe0b2';   // Warm peach
-		case 'white': return '#ffffff';    // Pure white
-		case 'black': return '#000000';    // True black
-		case 'gray': return '#e8e8e8';     // Very light gray
-		case 'red': return '#ffcccb';      // Light coral red
-		case 'yellow':
-		default: return '#fff2a8';         // Yellow post-it (existing)
+Node.prototype.getColor = function() {
+	// Access global COLOR_CONFIG from fsm.js
+	if (typeof COLOR_CONFIG !== 'undefined' && COLOR_CONFIG[this.colorKey]) {
+		return COLOR_CONFIG[this.colorKey];
 	}
-};
-
-Node.prototype.getSelectedColor = function() {
-	switch(this.color) {
-		case 'green': return '#a5d6a7';    // Darker green for selection
-		case 'blue': return '#90caf9';     // Darker blue for selection
-		case 'pink': return '#f48fb1';     // Darker pink for selection
-		case 'purple': return '#ce93d8';   // Darker purple for selection
-		case 'orange': return '#ffcc80';   // Darker orange for selection
-		case 'white': return '#f0f0f0';    // Light gray for white selection
-		case 'black': return '#333333';    // Dark gray for black selection
-		case 'gray': return '#d0d0d0';     // Darker gray for gray selection
-		case 'red': return '#ff9999';      // Darker coral for red selection
-		case 'yellow':
-		default: return '#ffcc66';         // Existing yellow selection color
-	}
+	return '#ffff80'; // Fallback to yellow (A)
 };
 
 Node.prototype.draw = function(c) {

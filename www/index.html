@@ -542,38 +542,7 @@ if (typeof btoa == 'undefined') {
 			<div class="keyboard-guide" style="margin: 15px 0; text-align: center; padding: 12px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">
 				<p style="margin: 0 0 10px 0; font-size: 12px; font-weight: bold;">Keyboard Modifiers (under selection mode):</p>
 				<div class="keyboard-layout" style="display: inline-block; font-family: 'Courier New', monospace; font-size: 11px; line-height: 1;">
-					<!-- Number row (123) for arrow types -->
-					<div style="display: flex; gap: 2px; margin-bottom: 4px; justify-content: center;">
-						<div style="width: 28px; height: 28px; border: 1px solid #666; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #f0f0f0; color: #333; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1); position: relative;">
-							1
-							<div style="position: absolute; top: 2px; right: 2px; width: 0; height: 0; border-top: 4px solid transparent; border-bottom: 4px solid transparent; border-left: 6px solid #333;"></div>
-						</div>
-						<div style="width: 28px; height: 28px; border: 1px solid #666; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #f0f0f0; color: #333; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1); position: relative;">
-							2
-							<div style="position: absolute; top: 5px; right: 2px; width: 6px; height: 2px; background: #333;"></div>
-							<div style="position: absolute; top: 3px; right: 2px; width: 2px; height: 6px; background: #333;"></div>
-						</div>
-						<div style="width: 28px; height: 28px; border: 1px solid #666; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #f0f0f0; color: #333; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1); position: relative;">
-							3
-							<div style="position: absolute; top: 4px; right: 2px; width: 8px; height: 2px; background: #333;"></div>
-						</div>
-					</div>
-					<!-- Top row (ASDFG) -->
-					<div style="display: flex; gap: 2px; margin-bottom: 2px; justify-content: center;">
-						<div style="width: 28px; height: 28px; border: 1px solid #999; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #ffff80; color: #333; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">A</div>
-						<div style="width: 28px; height: 28px; border: 1px solid #999; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #80ff80; color: #333; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">S</div>
-						<div style="width: 28px; height: 28px; border: 1px solid #999; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #8080ff; color: #333; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">D</div>
-						<div style="width: 28px; height: 28px; border: 1px solid #999; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #ff80ff; color: #333; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">F</div>
-						<div style="width: 28px; height: 28px; border: 1px solid #999; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #ffffff; color: #333; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1); border-color: #666;">G</div>
-					</div>
-					<!-- Bottom row (ZXCVB) -->
-					<div style="display: flex; gap: 2px; justify-content: center;">
-						<div style="width: 28px; height: 28px; border: 1px solid #999; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #000000; color: #fff; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">Z</div>
-						<div style="width: 28px; height: 28px; border: 1px solid #999; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #9ac29a; color: #333; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">X</div>
-						<div style="width: 28px; height: 28px; border: 1px solid #999; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #ff8080; color: #333; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">C</div>
-						<div style="width: 28px; height: 28px; border: 1px solid #999; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #ffb380; color: #333; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">V</div>
-						<div style="width: 28px; height: 28px; border: 1px solid #999; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #c080ff; color: #333; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">B</div>
-					</div>
+					<!-- Will be populated dynamically by renderKeyboardGuide() -->
 				</div>
 			</div>
 			
@@ -586,6 +555,64 @@ if (typeof btoa == 'undefined') {
 		</div>
 	</div>
 	<script>
+// Generate keyboard guide from COLOR_CONFIG
+function generateKeyboardGuide() {
+	var guideLine1 = [
+		{ colorKey: 'A', color: COLOR_CONFIG['A'] },
+		{ colorKey: 'S', color: COLOR_CONFIG['S'] },
+		{ colorKey: 'D', color: COLOR_CONFIG['D'] },
+		{ colorKey: 'F', color: COLOR_CONFIG['F'] },
+		{ colorKey: 'G', color: COLOR_CONFIG['G'] }
+	];
+	
+	var guideLine2 = [
+		{ colorKey: 'Z', color: COLOR_CONFIG['Z'] },
+		{ colorKey: 'X', color: COLOR_CONFIG['X'] },
+		{ colorKey: 'C', color: COLOR_CONFIG['C'] },
+		{ colorKey: 'V', color: COLOR_CONFIG['V'] },
+		{ colorKey: 'B', color: COLOR_CONFIG['B'] }
+	];
+	
+	return { line1: guideLine1, line2: guideLine2 };
+}
+
+// Render keyboard guide dynamically
+function renderKeyboardGuide() {
+	var container = document.querySelector('.keyboard-layout');
+	if (!container) return;
+	
+	var guide = generateKeyboardGuide();
+	var html = '';
+	
+	// Number row (123) for arrow types
+	html += '<div style="display: flex; gap: 2px; margin-bottom: 4px; justify-content: center;">';
+	html += '<div style="width: 28px; height: 28px; border: 1px solid #666; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #f0f0f0; color: #333; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1); position: relative;">1<div style="position: absolute; top: 2px; right: 2px; width: 0; height: 0; border-top: 4px solid transparent; border-bottom: 4px solid transparent; border-left: 6px solid #333;"></div></div>';
+	html += '<div style="width: 28px; height: 28px; border: 1px solid #666; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #f0f0f0; color: #333; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1); position: relative;">2<div style="position: absolute; top: 5px; right: 2px; width: 6px; height: 2px; background: #333;"></div><div style="position: absolute; top: 3px; right: 2px; width: 2px; height: 6px; background: #333;"></div></div>';
+	html += '<div style="width: 28px; height: 28px; border: 1px solid #666; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #f0f0f0; color: #333; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1); position: relative;">3<div style="position: absolute; top: 4px; right: 2px; width: 8px; height: 2px; background: #333;"></div></div>';
+	html += '</div>';
+	
+	// Top row (ASDFG)
+	html += '<div style="display: flex; gap: 2px; margin-bottom: 2px; justify-content: center;">';
+	for (var i = 0; i < guide.line1.length; i++) {
+		var item = guide.line1[i];
+		var textColor = (item.colorKey === 'Z' || item.colorKey === 'D' || item.colorKey === 'B') ? '#fff' : '#333';
+		var borderColor = (item.colorKey === 'G') ? '#666' : '#999';
+		html += '<div style="width: 28px; height: 28px; border: 1px solid ' + borderColor + '; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: ' + item.color + '; color: ' + textColor + '; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">' + item.colorKey + '</div>';
+	}
+	html += '</div>';
+	
+	// Bottom row (ZXCVB)
+	html += '<div style="display: flex; gap: 2px; justify-content: center;">';
+	for (var i = 0; i < guide.line2.length; i++) {
+		var item = guide.line2[i];
+		var textColor = (item.colorKey === 'Z') ? '#fff' : '#333';
+		html += '<div style="width: 28px; height: 28px; border: 1px solid #999; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: ' + item.color + '; color: ' + textColor + '; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">' + item.colorKey + '</div>';
+	}
+	html += '</div>';
+	
+	container.innerHTML = html;
+}
+
 // Toggle guide box visibility
 
 // Populate guide content
@@ -622,8 +649,11 @@ function populateGuide() {
 	guideContent.innerHTML = html;
 }
 
-// Call populateGuide when the page loads
-document.addEventListener('DOMContentLoaded', populateGuide);
+// Call populateGuide and renderKeyboardGuide when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+	populateGuide();
+	renderKeyboardGuide();
+});
 
 // =============================================================================
 // FILE EXPLORER UI FUNCTIONS
@@ -1041,7 +1071,7 @@ function createJSONData() {
 			x: node.x,
 			y: node.y, 
 			text: node.text,
-			color: node.color || 'yellow'
+			color: node.colorKey || 'yellow'
 		});
 	}
 	
@@ -1052,7 +1082,7 @@ function createJSONData() {
 		var linkData = {
 			text: link.text,
 			arrowType: link.arrowType || 'arrow',  // Include arrow type
-			color: link.color || 'gray'            // Include link color
+			color: link.colorKey || 'gray'            // Include link color
 		};
 		
 		// Handle different link types - simplified for this example
