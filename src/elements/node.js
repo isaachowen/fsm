@@ -22,7 +22,7 @@ Node.prototype.getColor = function() {
 	if (typeof COLOR_CONFIG !== 'undefined' && COLOR_CONFIG[this.colorKey]) {
 		return COLOR_CONFIG[this.colorKey];
 	}
-	return '#ffff80'; // Fallback to yellow (A)
+	return COLOR_CONFIG['A']; // Fallback to yellow (A)
 };
 
 Node.prototype.draw = function(c) {

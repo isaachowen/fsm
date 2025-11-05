@@ -13,6 +13,12 @@ var COLOR_CONFIG = {
 	'B': '#ff80ff'   // Pink
 };
 
+// Global styling variables (non-modifier colors that affect UI chrome and accents)
+var GLOBAL_STYLE = {
+    nodeBorderColor: '#9ac29a',
+    canvasBackgroundColor: '#f5f3e8'
+};
+
 var greekLetterNames = [ 'Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Zeta', 'Eta', 'Theta', 'Iota', 'Kappa', 'Lambda', 'Mu', 'Nu', 'Xi', 'Omicron', 'Pi', 'Rho', 'Sigma', 'Tau', 'Upsilon', 'Phi', 'Chi', 'Psi', 'Omega' ];
 
 function convertLatexShortcuts(text) {
@@ -1856,8 +1862,8 @@ function drawMiniNode(miniCanvas, colorKey) {
 	c.clearRect(0, 0, miniCanvas.width, miniCanvas.height);
 	
 	// Get color directly from COLOR_CONFIG
-	c.fillStyle = COLOR_CONFIG[colorKey] || '#ffff80';
-	c.strokeStyle = '#9ac29a';
+	c.fillStyle = COLOR_CONFIG[colorKey] || COLOR_CONFIG['A'];
+	c.strokeStyle = GLOBAL_STYLE.nodeBorderColor;
 	c.lineWidth = 1;  // Thinner border to match main nodes
 	
 	c.beginPath();
@@ -1983,7 +1989,7 @@ function drawUsing(c) {
 		var isMultiSelected = (selectedNodes.indexOf(node) !== -1);
 		
 		// Always use authentic colors - selection is now indicated by glow effect only
-		c.strokeStyle = '#9ac29a';  // darker engineering green accent
+		c.strokeStyle = GLOBAL_STYLE.nodeBorderColor;  // node border color
 		c.fillStyle = node.getColor();      // Use node's authentic base color
 		
 		// Only change line width for multi-selected nodes (keep border consistent)
@@ -2124,6 +2130,10 @@ window.onload = function() {
 	console.log("window.onload is running!");
 	canvas = document.getElementById('canvas');
 	console.log("canvas element:", canvas);
+	
+	// Apply canvas background color from GLOBAL_STYLE
+	canvas.style.background = GLOBAL_STYLE.canvasBackgroundColor;
+	
 	restoreBackup();
 	updateLegend(); // Update legend after restore
 	
