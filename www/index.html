@@ -1071,7 +1071,7 @@ function createJSONData() {
 			x: node.x,
 			y: node.y, 
 			text: node.text,
-			color: node.colorKey || 'yellow'
+			color: node.colorKey || 'A'
 		});
 	}
 	
@@ -1082,7 +1082,7 @@ function createJSONData() {
 		var linkData = {
 			text: link.text,
 			arrowType: link.arrowType || 'arrow',  // Include arrow type
-			color: link.colorKey || 'gray'            // Include link color
+			color: link.colorKey || 'A'            // Include link color
 		};
 		
 		// Handle different link types - simplified for this example
@@ -1140,6 +1140,20 @@ document.addEventListener('DOMContentLoaded', function() {
 		console.log('📂 File Explorer UI initialized');
 	} else {
 		console.log('⚠️ File System Access API not supported - File Explorer hidden');
+	}
+	
+	// Debug localStorage backup
+	console.log('🔍 Checking localStorage backup...');
+	if (localStorage && localStorage['fsm']) {
+		try {
+			var backup = JSON.parse(localStorage['fsm']);
+			console.log('📦 Backup found:', backup.nodes.length, 'nodes,', backup.links.length, 'links');
+			console.log('📦 Backup data:', backup);
+		} catch (e) {
+			console.error('❌ Failed to parse backup:', e);
+		}
+	} else {
+		console.log('⚠️ No backup found in localStorage');
 	}
 });
 	</script>

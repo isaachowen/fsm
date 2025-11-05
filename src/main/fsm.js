@@ -929,7 +929,7 @@ function copyNodesToClipboard(nodesToCopy) {
 					nodeBIndex: nodeBIndex,
 					text: link.text,
 					arrowType: link.arrowType || 'arrow',
-					color: link.colorKey || 'gray',
+					color: link.colorKey || 'A',
 					parallelPart: link.parallelPart,
 					perpendicularPart: link.perpendicularPart,
 					lineAngleAdjust: link.lineAngleAdjust || 0
@@ -946,7 +946,7 @@ function copyNodesToClipboard(nodesToCopy) {
 					anchorAngle: link.anchorAngle,
 					text: link.text,
 					arrowType: link.arrowType || 'arrow',
-					color: link.colorKey || 'gray'
+					color: link.colorKey || 'A'
 				});
 			}
 		}
@@ -1250,7 +1250,7 @@ CanvasRecentHistoryManager.prototype.serializeCurrentState = function() {
 			x: node.x,
 			y: node.y,
 			text: node.text,
-			color: node.colorKey || 'yellow'
+			color: node.colorKey || 'A'
 		});
 	}
 	
@@ -1310,7 +1310,7 @@ CanvasRecentHistoryManager.prototype.restoreState = function(state) {
 	var nodeMap = new Map(); // Maps state ID to Node object
 	for (var i = 0; i < state.nodes.length; i++) {
 		var nodeData = state.nodes[i];
-		var node = new Node(nodeData.x, nodeData.y, nodeData.color || 'yellow');
+		var node = new Node(nodeData.x, nodeData.y, nodeData.color || 'A');
 		node.text = nodeData.text || '';
 		nodes.push(node);
 		nodeMap.set(nodeData.id, node);
@@ -3879,7 +3879,7 @@ function downloadAsJSON() {
 			x: node.x,
 			y: node.y, 
 			text: node.text,
-			color: node.colorKey || 'yellow'  // Include color property
+			color: node.colorKey || 'A'  // Include color property
 		});
 	}
 	
@@ -3982,7 +3982,7 @@ function processJSONData(jsonData, filename) {
 		node.text = nodeData.text || '';
 		// Handle backward compatibility - default to yellow if no color specified
 		if (!node.colorKey) {
-			node.colorKey = 'yellow';
+			node.colorKey = 'A';
 		}
 		nodes.push(node);
 		nodeMap.set(nodeData.id, node);
@@ -4024,7 +4024,7 @@ function processJSONData(jsonData, filename) {
 		
 		link.text = linkData.text || '';
 		link.arrowType = linkData.arrowType || 'arrow'; // Restore arrow type with fallback
-		link.colorKey = linkData.color || 'gray'; // Restore link color with fallback
+		link.colorKey = linkData.color || 'A'; // Restore link color with fallback
 		links.push(link);
 	}
 	
