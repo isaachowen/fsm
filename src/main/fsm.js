@@ -1871,6 +1871,20 @@ function drawMiniNode(miniCanvas, colorKey) {
 	c.arc(centerX, centerY, miniRadius, 0, 2 * Math.PI, false);
 	c.fill();
 	c.stroke();
+	
+	// Draw the colorKey letter with white outline and black fill (matching main text rendering)
+	c.font = 'bold 11px Arial';
+	c.textAlign = 'center';
+	c.textBaseline = 'middle';
+	
+	// Draw white outline first
+	c.strokeStyle = '#ffffff';
+	c.lineWidth = 3;
+	c.strokeText(colorKey, centerX, centerY);
+	
+	// Then draw black text on top
+	c.fillStyle = '#000000';
+	c.fillText(colorKey, centerX, centerY);
 }
 
 function drawMiniEdge(miniCanvas, colorKey, arrowType) {
@@ -1929,6 +1943,23 @@ function drawMiniEdge(miniCanvas, colorKey, arrowType) {
 		c.closePath();
 		c.fill();
 	}
+	
+	// Draw the colorKey letter at the center of the canvas
+	var centerX = 15;
+	var centerY = 6; // Position above the line
+	
+	c.font = 'bold 10px Arial';
+	c.textAlign = 'center';
+	c.textBaseline = 'middle';
+	
+	// Draw white outline first
+	c.strokeStyle = '#ffffff';
+	c.lineWidth = 2.5;
+	c.strokeText(colorKey, centerX, centerY);
+	
+	// Then draw black text on top
+	c.fillStyle = '#000000';
+	c.fillText(colorKey, centerX, centerY);
 }
 
 
