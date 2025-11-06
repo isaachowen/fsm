@@ -295,7 +295,7 @@ if (typeof btoa == 'undefined') {
 
 	</script>
 </head><body>
-	<h1>Network Sketchpad</h1>
+	<!-- Removed Network Sketchpad header to hide top-left box -->
 	<canvas id="canvas" width="800" height="600">
 		<span class="error">Your browser does not support<br>the HTML5 &lt;canvas&gt; element</span>
 	</canvas>
@@ -334,10 +334,10 @@ if (typeof btoa == 'undefined') {
 		<!-- All functionality moved to File Explorer -->
 	</div>
 
-	<!-- File Explorer box - left side below title -->
+	<!-- File Explorer box - top left (moved from below title) -->
 	<div id="fileexplorerbox" style="
 		position: absolute;
-		top: 280px;
+		top: 20px;
 		left: 20px;
 		background: rgba(223, 223, 223, 0.9);
 		border-radius: 10px;
@@ -529,7 +529,7 @@ if (typeof btoa == 'undefined') {
 	<!-- Info/help box - bottom left -->
 	<div id="guibox">
 		<p id="controls-header" onclick="toggleControls()" style="margin: 0; font-weight: bold; cursor: pointer; user-select: none; display: flex; align-items: center; justify-content: space-between;">
-			<span>Info</span>
+			<span>Guide + Color Palette</span>
 			<span id="controls-toggle" style="font-size: 14px; font-weight: normal;">►</span>
 		</p>
 		<div id="controls-content" style="transition: all 0.3s ease-in-out; margin-top: 12px; display: none">
@@ -737,6 +737,40 @@ function toggleFileExplorer() {
 			toggle.textContent = '►';
 			localStorage.setItem('fileExplorerExpanded', 'false');
 		}
+		// Update save box position after toggle
+		updateSaveBoxPosition();
+	}
+}
+
+/**
+ * Update save box position based on file explorer state
+ */
+function updateSaveBoxPosition() {
+	var explorerBox = document.getElementById('fileexplorerbox');
+	var saveBox = document.getElementById('save-box');
+	var content = document.getElementById('explorer-content');
+	
+	if (!explorerBox || !saveBox) return;
+	
+	// Check if explorer is visible and expanded
+	var isExplorerVisible = explorerBox.style.display !== 'none';
+	var isExplorerExpanded = content && content.style.display !== 'none';
+	
+	if (isExplorerVisible && isExplorerExpanded) {
+		// Calculate position: explorer top + explorer height + gap
+		var explorerRect = explorerBox.getBoundingClientRect();
+		var gap = 10; // Gap between boxes
+		var newTop = explorerBox.offsetTop + explorerBox.offsetHeight + gap;
+		saveBox.style.top = newTop + 'px';
+	} else if (isExplorerVisible && !isExplorerExpanded) {
+		// Explorer collapsed - position below collapsed height
+		var explorerRect = explorerBox.getBoundingClientRect();
+		var gap = 10;
+		var newTop = explorerBox.offsetTop + explorerBox.offsetHeight + gap;
+		saveBox.style.top = newTop + 'px';
+	} else {
+		// Explorer hidden - use default position
+		saveBox.style.top = '75px';
 	}
 }
 
@@ -757,6 +791,8 @@ function initializeFileExplorerState() {
 			content.style.display = 'block';
 			toggle.textContent = '▼';
 		}
+		// Update save box position after initializing state
+		updateSaveBoxPosition();
 	}
 }
 
@@ -768,6 +804,8 @@ function showFileExplorer() {
 	if (explorerBox) {
 		explorerBox.style.display = 'block';
 		initializeFileExplorerState();
+		// Update save box position when showing explorer
+		setTimeout(updateSaveBoxPosition, 0);
 	}
 }
 
@@ -778,6 +816,8 @@ function hideFileExplorer() {
 	var explorerBox = document.getElementById('fileexplorerbox');
 	if (explorerBox) {
 		explorerBox.style.display = 'none';
+		// Reset save box position when hiding explorer
+		updateSaveBoxPosition();
 	}
 }
 
@@ -873,6 +913,7 @@ function updateFileListDisplay() {
 	
 	if (typeof FileExplorerManager === 'undefined' || !FileExplorerManager.files) {
 		fileList.innerHTML = '<div style="padding: 20px; text-align: center; color: #666; font-size: 11px;">No files to display</div>';
+		updateSaveBoxPosition();
 		return;
 	}
 	
@@ -880,6 +921,7 @@ function updateFileListDisplay() {
 	
 	if (files.length === 0) {
 		fileList.innerHTML = '<div style="padding: 20px; text-align: center; color: #666; font-size: 11px;">No .json files found</div>';
+		updateSaveBoxPosition();
 		return;
 	}
 	
@@ -896,6 +938,9 @@ function updateFileListDisplay() {
 	});
 	
 	fileList.innerHTML = html;
+	
+	// Update save box position after file list changes (height may change)
+	setTimeout(updateSaveBoxPosition, 0);
 }
 
 /**
@@ -1202,6 +1247,8 @@ document.addEventListener('DOMContentLoaded', function() {
 		console.log('📂 File Explorer UI initialized');
 	} else {
 		console.log('⚠️ File System Access API not supported - File Explorer hidden');
+		// Still update save box position even if explorer is hidden
+		updateSaveBoxPosition();
 	}
 	
 	// Debug localStorage backup
