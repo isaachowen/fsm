@@ -555,6 +555,66 @@ if (typeof btoa == 'undefined') {
 		</div>
 	</div>
 	<script>
+// Hidden color picker input for customizing colors
+var colorPickerInput = null;
+var currentColorKey = null; // Track which color key is being edited
+
+function initializeColorPicker() {
+	// Create hidden color picker input
+	colorPickerInput = document.createElement('input');
+	colorPickerInput.type = 'color';
+	colorPickerInput.id = 'color-picker-input';
+	colorPickerInput.style.position = 'absolute';
+	colorPickerInput.style.opacity = '0';
+	colorPickerInput.style.pointerEvents = 'none';
+	colorPickerInput.style.width = '0';
+	colorPickerInput.style.height = '0';
+	document.body.appendChild(colorPickerInput);
+	
+	// Handle color selection
+	colorPickerInput.addEventListener('change', function() {
+		if (currentColorKey && typeof updateColorConfig === 'function') {
+			var newColor = colorPickerInput.value;
+			console.log('🎨 Color selected:', currentColorKey, '->', newColor);
+			updateColorConfig(currentColorKey, newColor);
+		}
+		currentColorKey = null;
+	});
+	
+	// Handle cancel
+	colorPickerInput.addEventListener('blur', function() {
+		currentColorKey = null;
+	});
+}
+
+function openColorPicker(colorKey) {
+	if (!colorPickerInput) {
+		initializeColorPicker();
+	}
+	
+	console.log('🎨 Opening color picker for key:', colorKey);
+	currentColorKey = colorKey;
+	
+	// Set current color in picker
+	if (typeof COLOR_CONFIG !== 'undefined' && COLOR_CONFIG[colorKey]) {
+		colorPickerInput.value = COLOR_CONFIG[colorKey];
+	}
+	
+	// Trigger color picker
+	colorPickerInput.click();
+}
+
+function resetColor(colorKey, event) {
+	if (event) {
+		event.stopPropagation(); // Prevent opening color picker
+	}
+	
+	console.log('🔄 Resetting color:', colorKey);
+	if (typeof resetColorToDefault === 'function') {
+		resetColorToDefault(colorKey);
+	}
+}
+
 // Generate keyboard guide from COLOR_CONFIG
 function generateKeyboardGuide() {
 	var guideLine1 = [
@@ -586,27 +646,27 @@ function renderKeyboardGuide() {
 	var textColor = '#000'; // Black text with white outline for all keys
 	var textShadow = '0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff'; // White glow outline
 	
-	// Number row (123) for arrow types
+	// Number row (123) for arrow types - not clickable
 	html += '<div style="display: flex; gap: 2px; margin-bottom: 4px; justify-content: center;">';
 	html += '<div style="width: 28px; height: 28px; border: 1px solid #666; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #f0f0f0; color: ' + textColor + '; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1); position: relative; text-shadow: ' + textShadow + ';">1<div style="position: absolute; top: 2px; right: 2px; width: 0; height: 0; border-top: 4px solid transparent; border-bottom: 4px solid transparent; border-left: 6px solid #333;"></div></div>';
 	html += '<div style="width: 28px; height: 28px; border: 1px solid #666; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #f0f0f0; color: ' + textColor + '; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1); position: relative; text-shadow: ' + textShadow + ';">2<div style="position: absolute; top: 5px; right: 2px; width: 6px; height: 2px; background: #333;"></div><div style="position: absolute; top: 3px; right: 2px; width: 2px; height: 6px; background: #333;"></div></div>';
 	html += '<div style="width: 28px; height: 28px; border: 1px solid #666; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: #f0f0f0; color: ' + textColor + '; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1); position: relative; text-shadow: ' + textShadow + ';">3<div style="position: absolute; top: 4px; right: 2px; width: 8px; height: 2px; background: #333;"></div></div>';
 	html += '</div>';
 	
-	// Top row (ASDFG)
+	// Top row (ASDFG) - clickable
 	html += '<div style="display: flex; gap: 2px; margin-bottom: 2px; justify-content: center;">';
 	for (var i = 0; i < guide.line1.length; i++) {
 		var item = guide.line1[i];
-		var borderColor = (item.colorKey === 'G') ? '#666' : '#999';
-		html += '<div style="width: 28px; height: 28px; border: 1px solid ' + borderColor + '; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: ' + item.color + '; color: ' + textColor + '; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1); text-shadow: ' + textShadow + ';">' + item.colorKey + '</div>';
+		var borderColor = '#999';
+		html += '<div onclick="openColorPicker(\'' + item.colorKey + '\')" oncontextmenu="resetColor(\'' + item.colorKey + '\', event); return false;" title="Click to change color, right-click to reset" style="width: 28px; height: 28px; border: 1px solid ' + borderColor + '; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: ' + item.color + '; color: ' + textColor + '; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1); text-shadow: ' + textShadow + '; cursor: pointer; transition: transform 0.1s; position: relative;" onmouseover="this.style.transform=\'scale(1.1)\'" onmouseout="this.style.transform=\'scale(1)\'">' + item.colorKey + '</div>';
 	}
 	html += '</div>';
 	
-	// Bottom row (ZXCVB)
+	// Bottom row (ZXCVB) - clickable
 	html += '<div style="display: flex; gap: 2px; justify-content: center;">';
 	for (var i = 0; i < guide.line2.length; i++) {
 		var item = guide.line2[i];
-		html += '<div style="width: 28px; height: 28px; border: 1px solid #999; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: ' + item.color + '; color: ' + textColor + '; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1); text-shadow: ' + textShadow + ';">' + item.colorKey + '</div>';
+		html += '<div onclick="openColorPicker(\'' + item.colorKey + '\')" oncontextmenu="resetColor(\'' + item.colorKey + '\', event); return false;" title="Click to change color, right-click to reset" style="width: 28px; height: 28px; border: 1px solid #999; border-radius: 3px; display: flex; align-items: center; justify-content: center; background: ' + item.color + '; color: ' + textColor + '; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1); text-shadow: ' + textShadow + '; cursor: pointer; transition: transform 0.1s; position: relative;" onmouseover="this.style.transform=\'scale(1.1)\'" onmouseout="this.style.transform=\'scale(1)\'">' + item.colorKey + '</div>';
 	}
 	html += '</div>';
 	
@@ -653,6 +713,7 @@ function populateGuide() {
 document.addEventListener('DOMContentLoaded', function() {
 	populateGuide();
 	renderKeyboardGuide();
+	initializeColorPicker(); // Initialize color picker for customizable colors
 });
 
 // =============================================================================
@@ -1121,6 +1182,7 @@ function createJSONData() {
 	return {
 		version: '1.0',
 		created: new Date().toISOString(),
+		COLOR_CONFIG: typeof COLOR_CONFIG !== 'undefined' ? COLOR_CONFIG : {},  // Include color palette
 		canvas: {
 			width: typeof canvas !== 'undefined' ? canvas.width : 800,
 			height: typeof canvas !== 'undefined' ? canvas.height : 600

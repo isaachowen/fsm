@@ -1,5 +1,20 @@
+// Default Color Registry - Reference for "Reset to Default"
+var DEFAULT_COLORS = {
+  'A': '#9ac29a',  // Graygreen
+  'S': '#cfcfcfff',   // Gray
+  'D': '#ffffff',  // White
+  'F': '#fff9b3',  // Yellow
+  'G': '#ffb380',  // Orange
+  'Z': '#000000',  // Black
+  'X': '#8080ff',  // Blue
+  'C': '#ff8080',  // Red
+  'V': '#c080ff',  // Purple
+  'B': '#80ff80',  // Green
+};
+
 // Color Configuration - Single Source of Truth
 // Maps modifier key -> hex color code
+// This is the active working palette that can be customized
 var COLOR_CONFIG = {
   'A': '#9ac29a',  // Graygreen
   'S': '#cfcfcfff',   // Gray
@@ -1232,6 +1247,7 @@ CanvasRecentHistoryManager.prototype.serializeCurrentState = function() {
 	// Reuse existing backup serialization logic from save.js
 	var state = {
 		// timestamp: Date.now(), // REMOVED: Timestamp prevents deduplication
+		COLOR_CONFIG: {},  // Include color palette in history
 		nodes: [],
 		links: [],
 		viewport: {
@@ -1241,6 +1257,11 @@ CanvasRecentHistoryManager.prototype.serializeCurrentState = function() {
 		},
 		legend: {}
 	};
+	
+	// Copy COLOR_CONFIG
+	for (var key in COLOR_CONFIG) {
+		state.COLOR_CONFIG[key] = COLOR_CONFIG[key];
+	}
 	
 	// Serialize nodes (content only, no selection state)
 	for (var i = 0; i < nodes.length; i++) {
@@ -1295,6 +1316,19 @@ CanvasRecentHistoryManager.prototype.serializeCurrentState = function() {
 
 CanvasRecentHistoryManager.prototype.restoreState = function(state) {
 	if (!state) return;
+	
+	// Restore COLOR_CONFIG if present in state
+	if (state.COLOR_CONFIG) {
+		for (var key in state.COLOR_CONFIG) {
+			if (DEFAULT_COLORS[key]) {  // Only restore valid color keys
+				COLOR_CONFIG[key] = state.COLOR_CONFIG[key];
+			}
+		}
+		// Update keyboard guide to show restored colors
+		if (typeof renderKeyboardGuide === 'function') {
+			renderKeyboardGuide();
+		}
+	}
 	
 	// Preserve current selection state (don't restore selections from history)
 	var currentSelected = InteractionManager.getSelected();
@@ -3018,6 +3052,96 @@ function getLinkColorHex(colorModifier) {
         return COLOR_CONFIG['A'];  // Default to yellow (A)
 }
 
+function updateColorConfig(key, newHexColor) {
+	/**
+	 * updateColorConfig - Updates a color in COLOR_CONFIG and recolors all matching elements
+	 * 
+	 * Called by:
+	 * - Color picker UI when user selects a new color
+	 * - Color customization handlers
+	 * 
+	 * Calls:
+	 * - updateLegend() to refresh legend with new colors
+	 * - draw() to redraw canvas with new colors
+	 * - pushHistoryState() to enable undo/redo
+	 * 
+	 * Purpose: Central function for updating colors in the palette. Updates COLOR_CONFIG
+	 * and immediately redraws all nodes/edges using that color key. Nodes and links already
+	 * store colorKey, so they automatically use the updated COLOR_CONFIG value.
+	 */
+	console.log('🎨 Updating color config:', key, 'to', newHexColor);
+	
+	// Update the config
+	COLOR_CONFIG[key] = newHexColor;
+	
+	// All nodes and links already store colorKey, so they will automatically
+	// use the updated COLOR_CONFIG when drawn
+	
+	// Update legend to show new colors
+	updateLegend();
+	
+	// Update the keyboard guide in the UI
+	if (typeof renderKeyboardGuide === 'function') {
+		renderKeyboardGuide();
+	}
+	
+	// Redraw canvas with new colors
+	draw();
+	
+	// Push to history for undo/redo
+	pushHistoryState({ coalesceKey: 'color-change-' + key });
+	
+	console.log('✅ Color updated successfully');
+}
+
+function resetColorToDefault(key) {
+	/**
+	 * resetColorToDefault - Resets a color key to its default value
+	 * 
+	 * Called by:
+	 * - "Reset to Default" UI buttons
+	 * - Color customization reset handlers
+	 * 
+	 * Calls:
+	 * - updateColorConfig() to apply the default color
+	 * - DEFAULT_COLORS lookup for original color values
+	 * 
+	 * Purpose: Restores a color key to its original default value from DEFAULT_COLORS.
+	 * Uses updateColorConfig to ensure proper updates across all systems.
+	 */
+	if (DEFAULT_COLORS[key]) {
+		console.log('🔄 Resetting color', key, 'to default:', DEFAULT_COLORS[key]);
+		updateColorConfig(key, DEFAULT_COLORS[key]);
+	}
+}
+
+function resetAllColorsToDefault() {
+	/**
+	 * resetAllColorsToDefault - Resets all colors to their default values
+	 * 
+	 * Called by:
+	 * - "Reset All to Default" UI button (optional)
+	 * - Bulk color reset operations
+	 * 
+	 * Calls:
+	 * - updateColorConfig() for each color key
+	 * - DEFAULT_COLORS for original values
+	 * 
+	 * Purpose: Convenience function to reset entire palette to defaults.
+	 */
+	console.log('🔄 Resetting all colors to default');
+	for (var key in DEFAULT_COLORS) {
+		COLOR_CONFIG[key] = DEFAULT_COLORS[key];
+	}
+	
+	updateLegend();
+	if (typeof renderKeyboardGuide === 'function') {
+		renderKeyboardGuide();
+	}
+	draw();
+	pushHistoryState({ coalesceKey: 'reset-all-colors' });
+}
+
 function crossBrowserKey(e) {
 	/**
 	 * crossBrowserKey - Gets key code in a cross-browser compatible way
@@ -3959,6 +4083,7 @@ function downloadAsJSON() {
 	var jsonData = {
 		version: '1.0',
 		created: new Date().toISOString(),
+		COLOR_CONFIG: COLOR_CONFIG,  // Include current color palette
 		canvas: {
 			width: canvas.width,
 			height: canvas.height
@@ -3998,6 +4123,30 @@ function processJSONData(jsonData, filename) {
 	// Basic validation
 	if (!jsonData.nodes || !jsonData.links) {
 		throw new Error('Invalid JSON structure: missing nodes or links array');
+	}
+	
+	// Restore COLOR_CONFIG if present in the file, otherwise use defaults
+	if (jsonData.COLOR_CONFIG) {
+		console.log('📋 Restoring COLOR_CONFIG from imported file');
+		// Copy all color values from imported config
+		for (var key in jsonData.COLOR_CONFIG) {
+			if (DEFAULT_COLORS[key]) {  // Only accept valid color keys
+				COLOR_CONFIG[key] = jsonData.COLOR_CONFIG[key];
+			}
+		}
+		// Update keyboard guide to show imported colors
+		if (typeof renderKeyboardGuide === 'function') {
+			renderKeyboardGuide();
+		}
+	} else {
+		console.log('⚠️ No COLOR_CONFIG in imported file, using defaults');
+		// Reset to defaults for files without COLOR_CONFIG
+		for (var key in DEFAULT_COLORS) {
+			COLOR_CONFIG[key] = DEFAULT_COLORS[key];
+		}
+		if (typeof renderKeyboardGuide === 'function') {
+			renderKeyboardGuide();
+		}
 	}
 	
 	// Clear current state
