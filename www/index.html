@@ -153,6 +153,26 @@ a {
 	background: #7a8854;
 }
 
+/* Directory selector button hover */
+#select-directory-btn:hover {
+	background: #7a8854;
+}
+
+/* Imported file indicator */
+#imported-file-indicator {
+	animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+	from { opacity: 0; }
+	to { opacity: 1; }
+}
+
+/* File list empty state */
+#file-list-empty-state {
+	font-style: italic;
+}
+
 #refresh-files-btn:hover {
 	background: #f5f5f5;
 }
@@ -213,18 +233,6 @@ a {
 
 .file-action-btn:hover {
 	background: #f0f0f0;
-}
-
-/* File explorer header toggle styling */
-#explorer-header:hover {
-	background-color: rgba(0, 0, 0, 0.05);
-	border-radius: 4px;
-	padding: 2px 4px;
-	margin: -2px -4px 6px -4px;
-}
-
-#explorer-toggle {
-	transition: transform 0.2s ease-in-out;
 }
 
 /* Controls toggle styling */
@@ -329,13 +337,8 @@ if (typeof btoa == 'undefined') {
 		</div>
 	</div>
 	
-	<!-- Action buttons box - top left (now empty, could be removed or used for other features) -->
-	<div id="actionbuttonbox" style="display: none;">
-		<!-- All functionality moved to File Explorer -->
-	</div>
-
-	<!-- File Explorer box - top left (moved from below title) -->
-	<div id="fileexplorerbox" style="
+	<!-- Directory Selector Box (Box 1) - Simple directory selection -->
+	<div id="directory-selector-box" style="
 		position: absolute;
 		top: 20px;
 		left: 20px;
@@ -349,119 +352,29 @@ if (typeof btoa == 'undefined') {
 		box-shadow: 0 2px 15px rgba(0,0,0,0.15);
 		border: 1px solid rgba(0,0,0,0.1);
 		z-index: 9;
-		display: none;
+		display: block;
 	">
-		<!-- Header with toggle -->
-		<p id="explorer-header" onclick="toggleFileExplorer()" style="
-			margin: 0; 
-			font-weight: bold; 
-			cursor: pointer; 
-			user-select: none; 
-			display: flex; 
-			align-items: center; 
-			justify-content: space-between; 
-			font-size: 14px;
+		<button id="select-directory-btn" onclick="chooseSketchDirectory()" style="
+			width: 100%;
+			background: #9aad6b;
+			color: white;
+			border: none;
+			padding: 10px 16px;
+			border-radius: 5px;
+			cursor: pointer;
+			font-size: 12px;
+			font-family: inherit;
+			transition: background-color 0.2s;
+			text-align: left;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
 		">
-			<span>
-				Sketch File Explorer
-				<span id="header-filename" style="
-					font-weight: normal;
-					font-size: 11px;
-					color: #666;
-					font-style: italic;
-					margin-left: 8px;
-				"></span>
-			</span>
-			<span id="explorer-toggle" style="font-size: 12px; font-weight: normal;">▼</span>
-		</p>
-		
-		<!-- Content area -->
-		<div id="explorer-content" style="transition: all 0.3s ease-in-out; margin-top: 10px;">
-			<!-- Directory status -->
-			<div id="directory-status" style="
-				margin-bottom: 12px;
-				padding: 8px;
-				background: #f9f9f9;
-				border: 1px solid #ddd;
-				border-radius: 4px;
-				font-size: 11px;
-			">
-				<div id="directory-name" style="font-weight: bold; color: #333; margin-bottom: 4px;">
-					No directory selected
-				</div>
-				<div id="directory-path" style="color: #666; font-family: monospace; font-size: 10px; word-break: break-all;">
-					Select a local directory to save your sketch, or browse and import your existing sketches (JSON).
-				</div>
-			</div>
-			
-			<!-- Directory selection button -->
-			<button id="choose-directory-btn" onclick="chooseSketchDirectory()" style="
-				width: 100%;
-				background: #9aad6b;
-				color: white;
-				border: none;
-				padding: 10px 16px;
-				border-radius: 5px;
-				cursor: pointer;
-				font-size: 12px;
-				font-family: inherit;
-				transition: background-color 0.2s;
-				margin-bottom: 12px;
-			">
-				Select Directory
-			</button>
-			
-			<!-- File list area -->
-			<div id="file-list-container" style="display: none;">
-				<div style="
-					display: flex;
-					justify-content: space-between;
-					align-items: center;
-					margin-bottom: 8px;
-					padding-bottom: 6px;
-					border-bottom: 1px solid #ddd;
-				">
-					<span style="font-weight: bold; font-size: 11px; color: #333;">Files</span>
-					<button id="refresh-files-btn" onclick="refreshFileList()" style="
-						background: none;
-						border: 1px solid #ccc;
-						padding: 4px 8px;
-						border-radius: 3px;
-						cursor: pointer;
-						font-size: 10px;
-						font-family: inherit;
-					">Refresh</button>
-				</div>
-				
-				<div id="file-list" style="
-					max-height: 200px;
-					overflow-y: auto;
-					border: 1px solid #ddd;
-					border-radius: 4px;
-					background: white;
-				">
-					<!-- File entries will be populated by JavaScript -->
-				</div>
-			</div>
-			
-			<!-- Save buttons area -->
-			<div id="save-buttons-container" style="display: none; margin-top: 12px;">
-				<!-- Opened filename display -->
-
-			</div>
-			
-			<!-- Error/status messages -->
-			<div id="explorer-messages" style="
-				margin-top: 8px;
-				font-size: 10px;
-				color: #d32f2f;
-				text-align: center;
-				display: none;
-			"></div>
-		</div>
+			Select Directory
+		</button>
 	</div>
 
-	<!-- Standalone Save Box - always visible -->
+	<!-- Save Box (Box 2) - File saving interface -->
 	<div id="save-box" style="
 		position: absolute;
 		top: 75px;
@@ -477,13 +390,26 @@ if (typeof btoa == 'undefined') {
 		z-index: 10;
 		border: 1px solid rgba(0,0,0,0.1);
 	">
+		<!-- Imported file indicator -->
+		<div id="imported-file-indicator" style="
+			margin: 0 0 12px 0;
+			padding: 8px;
+			background: #f0f8ff;
+			border: 1px solid #b3d9ff;
+			border-radius: 4px;
+			font-size: 11px;
+			color: #0066cc;
+			text-align: center;
+			display: none;
+		">
+			<span id="imported-filename-text"></span>
+		</div>
+		
 		<h3 style="margin: 0 0 12px 0; font-size: 14px; color: #333;">Sketch file save path:</h3>
 		
 		<!-- Filename input -->
 		<div style="margin-bottom: 12px;">
 			<div style="display: flex; align-items: center; gap: 2px; font-size: 11px; font-family: inherit;">
-				<span id="directoryDisplay" style="color: #666;">Downloads</span>
-				<span style="color: #666;">/</span>
 				<input type="text" id="filenameInput" placeholder="sketch_name" value=""
 					   style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 3px; font-size: 11px; box-sizing: border-box; font-family: inherit; min-width: 80px;">
 				<span style="color: #666;">.json</span>
@@ -509,7 +435,7 @@ if (typeof btoa == 'undefined') {
 		
 		<!-- Clear Sketch button -->
 		<div style="margin-bottom: 0;">
-			<button onclick="clearCanvas()" style="
+			<button onclick="handleNewSketch()" style="
 				width: 100%;
 				background: #a67c52;
 				color: white;
@@ -524,6 +450,73 @@ if (typeof btoa == 'undefined') {
 				New Sketch
 			</button>
 		</div>
+	</div>
+
+	<!-- File List Box (Box 3) - Browse and manage sketch files -->
+	<div id="file-list-box" style="
+		position: absolute;
+		top: 420px;
+		left: 20px;
+		background: rgba(223, 223, 223, 0.9);
+		border-radius: 10px;
+		padding: 15px;
+		min-width: 250px;
+		max-width: 350px;
+		font-size: 12px;
+		font-family: 'Lucida Grande', 'Segoe UI', sans-serif;
+		box-shadow: 0 2px 15px rgba(0,0,0,0.15);
+		border: 1px solid rgba(0,0,0,0.1);
+		z-index: 9;
+		display: block;
+	">
+		<!-- Header with refresh button -->
+		<div style="
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 8px;
+			padding-bottom: 6px;
+			border-bottom: 1px solid #ddd;
+		">
+			<span style="font-weight: bold; font-size: 11px; color: #333;">Files</span>
+			<button id="refresh-files-btn" onclick="refreshFileList()" style="
+				background: none;
+				border: 1px solid #ccc;
+				padding: 4px 8px;
+				border-radius: 3px;
+				cursor: pointer;
+				font-size: 10px;
+				font-family: inherit;
+			">Refresh</button>
+		</div>
+		
+		<!-- File list container -->
+		<div id="file-list" style="
+			max-height: 200px;
+			overflow-y: auto;
+			border: 1px solid #ddd;
+			border-radius: 4px;
+			background: white;
+		">
+			<div id="file-list-empty-state" style="
+				padding: 20px;
+				text-align: center;
+				color: #666;
+				font-size: 11px;
+				font-style: italic;
+			">
+				Select a directory to browse files
+			</div>
+		</div>
+		
+		<!-- Error/status messages -->
+		<div id="explorer-messages" style="
+			margin-top: 8px;
+			font-size: 10px;
+			color: #d32f2f;
+			text-align: center;
+			display: none;
+		"></div>
 	</div>
 
 	<!-- Info/help box - bottom left -->
@@ -721,144 +714,49 @@ document.addEventListener('DOMContentLoaded', function() {
 // =============================================================================
 
 /**
- * Toggle file explorer visibility
+ * Update positions of all three boxes dynamically
  */
-function toggleFileExplorer() {
-	var content = document.getElementById('explorer-content');
-	var toggle = document.getElementById('explorer-toggle');
-	
-	if (content && toggle) {
-		if (content.style.display === 'none') {
-			content.style.display = 'block';
-			toggle.textContent = '▼';
-			localStorage.setItem('fileExplorerExpanded', 'true');
-		} else {
-			content.style.display = 'none';
-			toggle.textContent = '►';
-			localStorage.setItem('fileExplorerExpanded', 'false');
-		}
-		// Update save box position after toggle
-		updateSaveBoxPosition();
-	}
-}
-
-/**
- * Update save box position based on file explorer state
- */
-function updateSaveBoxPosition() {
-	var explorerBox = document.getElementById('fileexplorerbox');
+function updateBoxPositions() {
+	var dirSelectorBox = document.getElementById('directory-selector-box');
 	var saveBox = document.getElementById('save-box');
-	var content = document.getElementById('explorer-content');
+	var fileListBox = document.getElementById('file-list-box');
 	
-	if (!explorerBox || !saveBox) return;
+	if (!dirSelectorBox || !saveBox || !fileListBox) return;
 	
-	// Check if explorer is visible and expanded
-	var isExplorerVisible = explorerBox.style.display !== 'none';
-	var isExplorerExpanded = content && content.style.display !== 'none';
+	var gap = 10; // Gap between boxes
+	var startTop = 20; // Initial top position
 	
-	if (isExplorerVisible && isExplorerExpanded) {
-		// Calculate position: explorer top + explorer height + gap
-		var explorerRect = explorerBox.getBoundingClientRect();
-		var gap = 10; // Gap between boxes
-		var newTop = explorerBox.offsetTop + explorerBox.offsetHeight + gap;
-		saveBox.style.top = newTop + 'px';
-	} else if (isExplorerVisible && !isExplorerExpanded) {
-		// Explorer collapsed - position below collapsed height
-		var explorerRect = explorerBox.getBoundingClientRect();
-		var gap = 10;
-		var newTop = explorerBox.offsetTop + explorerBox.offsetHeight + gap;
-		saveBox.style.top = newTop + 'px';
-	} else {
-		// Explorer hidden - use default position
-		saveBox.style.top = '75px';
-	}
+	// Box 1: Directory Selector - always at top
+	dirSelectorBox.style.top = startTop + 'px';
+	
+	// Box 2: Save Box - below directory selector
+	var saveBoxTop = startTop + dirSelectorBox.offsetHeight + gap;
+	saveBox.style.top = saveBoxTop + 'px';
+	
+	// Box 3: File List - below save box
+	var fileListTop = saveBoxTop + saveBox.offsetHeight + gap;
+	fileListBox.style.top = fileListTop + 'px';
 }
 
-/**
- * Initialize file explorer state from localStorage
- */
-function initializeFileExplorerState() {
-	var isExpanded = localStorage.getItem('fileExplorerExpanded');
-	var content = document.getElementById('explorer-content');
-	var toggle = document.getElementById('explorer-toggle');
-	
-	if (content && toggle) {
-		// Default to expanded if no preference saved, or if preference is explicitly 'true'
-		if (isExpanded === 'false') {
-			content.style.display = 'none';
-			toggle.textContent = '►';
-		} else {
-			content.style.display = 'block';
-			toggle.textContent = '▼';
-		}
-		// Update save box position after initializing state
-		updateSaveBoxPosition();
-	}
-}
-
-/**
- * Show file explorer box
- */
-function showFileExplorer() {
-	var explorerBox = document.getElementById('fileexplorerbox');
-	if (explorerBox) {
-		explorerBox.style.display = 'block';
-		initializeFileExplorerState();
-		// Update save box position when showing explorer
-		setTimeout(updateSaveBoxPosition, 0);
-	}
-}
-
-/**
- * Hide file explorer box
- */
-function hideFileExplorer() {
-	var explorerBox = document.getElementById('fileexplorerbox');
-	if (explorerBox) {
-		explorerBox.style.display = 'none';
-		// Reset save box position when hiding explorer
-		updateSaveBoxPosition();
-	}
+// Legacy function name for backward compatibility
+function updateSaveBoxPosition() {
+	updateBoxPositions();
 }
 
 /**
  * Update directory status display
  */
 function updateDirectoryDisplay(directoryName, path) {
-	var nameEl = document.getElementById('directory-name');
-	var pathEl = document.getElementById('directory-path');
+	var selectDirBtn = document.getElementById('select-directory-btn');
 	
-	if (nameEl && pathEl) {
-		if (directoryName) {
-			nameEl.textContent = '[Directory]: ' + directoryName;
-			pathEl.textContent = path || 'Connected directory';
+	if (selectDirBtn) {
+		if (directoryName && path) {
+			// Show directory name with trailing slash
+			selectDirBtn.textContent = '/.../' + directoryName + '/';
+			selectDirBtn.title = path; // Tooltip for additional context
 		} else {
-			nameEl.textContent = 'No directory selected';
-			pathEl.textContent = 'Select a directory to browse and save sketches';
-		}
-	}
-	
-	// Update the path display in the filename section
-	var directoryDisplayEl = document.getElementById('directoryDisplay');
-	if (directoryDisplayEl) {
-		if (directoryName) {
-			directoryDisplayEl.textContent = directoryName;
-		} else {
-			directoryDisplayEl.textContent = 'Downloads'; // Default fallback
-		}
-	}
-	
-	// Show/hide appropriate UI sections
-	var fileListContainer = document.getElementById('file-list-container');
-	var saveButtonsContainer = document.getElementById('save-buttons-container');
-	
-	if (fileListContainer && saveButtonsContainer) {
-		if (directoryName) {
-			fileListContainer.style.display = 'block';
-			saveButtonsContainer.style.display = 'block';
-		} else {
-			fileListContainer.style.display = 'none';
-			saveButtonsContainer.style.display = 'none';
+			selectDirBtn.textContent = 'Select Directory';
+			selectDirBtn.title = '';
 		}
 	}
 }
@@ -872,7 +770,9 @@ function chooseSketchDirectory() {
 		
 		FileExplorerManager.chooseDirectory().then(function() {
 			var directoryName = FileExplorerManager.getCurrentDirectoryName();
-			updateDirectoryDisplay(directoryName, 'Selected directory');
+			// Build a path-like display with tilde prefix
+			var displayPath = '~/.../' + directoryName;
+			updateDirectoryDisplay(directoryName, displayPath);
 			updateFileListDisplay();
 			updateSaveButtonStates();
 			hideExplorerMessage();
@@ -909,22 +809,28 @@ function refreshFileList() {
  */
 function updateFileListDisplay() {
 	var fileList = document.getElementById('file-list');
+	var emptyState = document.getElementById('file-list-empty-state');
+	
 	if (!fileList) return;
 	
 	if (typeof FileExplorerManager === 'undefined' || !FileExplorerManager.files) {
-		fileList.innerHTML = '<div style="padding: 20px; text-align: center; color: #666; font-size: 11px;">No files to display</div>';
-		updateSaveBoxPosition();
+		// Show empty state
+		if (emptyState) {
+			emptyState.style.display = 'block';
+		}
+		fileList.innerHTML = '<div id="file-list-empty-state" style="padding: 20px; text-align: center; color: #666; font-size: 11px; font-style: italic;">Select a directory to browse files</div>';
 		return;
 	}
 	
 	var files = FileExplorerManager.files;
 	
 	if (files.length === 0) {
-		fileList.innerHTML = '<div style="padding: 20px; text-align: center; color: #666; font-size: 11px;">No .json files found</div>';
-		updateSaveBoxPosition();
+		// Show "no files" message
+		fileList.innerHTML = '<div style="padding: 20px; text-align: center; color: #666; font-size: 11px; font-style: italic;">No .json files found</div>';
 		return;
 	}
 	
+	// Hide empty state and build file list HTML
 	var html = '';
 	files.forEach(function(file, index) {
 		var isSelected = FileExplorerManager.currentFilename === file.name;
@@ -938,9 +844,6 @@ function updateFileListDisplay() {
 	});
 	
 	fileList.innerHTML = html;
-	
-	// Update save box position after file list changes (height may change)
-	setTimeout(updateSaveBoxPosition, 0);
 }
 
 /**
@@ -987,7 +890,14 @@ function loadSketchFile(filename) {
 				FileExplorerManager.currentFilename = filename;
 				updateFileListDisplay();
 				updateSaveButtonStates();
-				updateOpenedFilename(filename);
+				updateImportedFilenameDisplay(filename);
+				
+				// Update filename input
+				var filenameInput = document.getElementById('filenameInput');
+				if (filenameInput && filename) {
+					var filenameWithoutExtension = filename.replace(/\.json$/, '');
+					filenameInput.value = filenameWithoutExtension;
+				}
 				
 				hideExplorerMessage();
 				console.log('✅ Successfully loaded:', filename);
@@ -1089,6 +999,47 @@ function saveSketchToFile(filename) {
 }
 
 /**
+ * Update imported filename display indicator
+ */
+function updateImportedFilenameDisplay(filename) {
+	var indicator = document.getElementById('imported-file-indicator');
+	var filenameText = document.getElementById('imported-filename-text');
+	
+	if (!indicator || !filenameText) return;
+	
+	if (filename) {
+		filenameText.textContent = 'Imported: ' + filename;
+		indicator.style.display = 'block';
+	} else {
+		indicator.style.display = 'none';
+		filenameText.textContent = '';
+	}
+}
+
+/**
+ * Handle New Sketch button - clears canvas and resets file tracking
+ */
+function handleNewSketch() {
+	// Call the original clearCanvas function if it exists
+	if (typeof clearCanvas === 'function') {
+		clearCanvas();
+	}
+	
+	// Clear imported filename display
+	updateImportedFilenameDisplay(null);
+	
+	// Clear file tracking
+	if (typeof FileExplorerManager !== 'undefined') {
+		FileExplorerManager.currentFilename = null;
+	}
+	
+	// Update file list to remove selection
+	updateFileListDisplay();
+	
+	console.log('🆕 New sketch created');
+}
+
+/**
  * Update save button states
  */
 function updateSaveButtonStates() {
@@ -1097,42 +1048,6 @@ function updateSaveButtonStates() {
 	// Save button is always enabled - will use directory or fall back to browser download
 	if (saveAsBtn) {
 		saveAsBtn.disabled = false;
-	}
-}
-
-/**
- * Update opened filename display
- */
-function updateOpenedFilename(filename) {
-	var openedEl = document.getElementById('opened-filename');
-	if (openedEl) {
-		if (filename) {
-			openedEl.textContent = filename;
-			openedEl.style.fontStyle = 'normal';
-			openedEl.style.color = '#333';
-		} else {
-			openedEl.textContent = 'No file loaded';
-			openedEl.style.fontStyle = 'italic';
-			openedEl.style.color = '#666';
-		}
-	}
-	
-	// Update the filename input when a file is loaded
-	var filenameInput = document.getElementById('filenameInput');
-	if (filenameInput && filename) {
-		// Remove .json extension for display in input
-		var filenameWithoutExtension = filename.replace(/\.json$/, '');
-		filenameInput.value = filenameWithoutExtension;
-	}
-	
-	// Also update the header filename display (shown when collapsed)
-	var headerFilenameEl = document.getElementById('header-filename');
-	if (headerFilenameEl) {
-		if (filename) {
-			headerFilenameEl.textContent = '[imported: ' + filename + ']';
-		} else {
-			headerFilenameEl.textContent = '';
-		}
 	}
 }
 
@@ -1242,13 +1157,20 @@ function createJSONData() {
 document.addEventListener('DOMContentLoaded', function() {
 	// Check if File System Access API is supported and show/hide explorer accordingly
 	if ('showDirectoryPicker' in window) {
-		showFileExplorer();
+		// Show all boxes
+		var dirSelectorBox = document.getElementById('directory-selector-box');
+		var fileListBox = document.getElementById('file-list-box');
+		
+		if (dirSelectorBox) dirSelectorBox.style.display = 'block';
+		if (fileListBox) fileListBox.style.display = 'block';
+		
+		// Set initial positions
+		setTimeout(updateBoxPositions, 0);
+		
 		updateSaveButtonStates();
-		console.log('📂 File Explorer UI initialized');
+		console.log('📂 File Explorer UI initialized (3-box layout)');
 	} else {
 		console.log('⚠️ File System Access API not supported - File Explorer hidden');
-		// Still update save box position even if explorer is hidden
-		updateSaveBoxPosition();
 	}
 	
 	// Debug localStorage backup

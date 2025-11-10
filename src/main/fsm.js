@@ -2269,7 +2269,7 @@ window.onload = function() {
 			console.log('📁 Updating display for loaded directory:', currentDirectoryName);
 			// Call the HTML update function to sync the display
 			if (typeof updateDirectoryDisplay === 'function') {
-				updateDirectoryDisplay(currentDirectoryName, 'Previously selected directory');
+				updateDirectoryDisplay(currentDirectoryName, 'Select a directory to read and save sketches');
 			}
 			if (typeof updateFileListDisplay === 'function') {
 				updateFileListDisplay();
