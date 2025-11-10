@@ -345,8 +345,6 @@ if (typeof btoa == 'undefined') {
 		background: rgba(223, 223, 223, 0.9);
 		border-radius: 10px;
 		padding: 15px;
-		min-width: 250px;
-		max-width: 350px;
 		font-size: 12px;
 		font-family: 'Lucida Grande', 'Segoe UI', sans-serif;
 		box-shadow: 0 2px 15px rgba(0,0,0,0.15);
@@ -355,7 +353,6 @@ if (typeof btoa == 'undefined') {
 		display: block;
 	">
 		<button id="select-directory-btn" onclick="chooseSketchDirectory()" style="
-			width: 100%;
 			background: #9aad6b;
 			color: white;
 			border: none;
@@ -366,8 +363,6 @@ if (typeof btoa == 'undefined') {
 			font-family: inherit;
 			transition: background-color 0.2s;
 			text-align: left;
-			overflow: hidden;
-			text-overflow: ellipsis;
 			white-space: nowrap;
 		">
 			Select Directory
@@ -377,14 +372,14 @@ if (typeof btoa == 'undefined') {
 	<!-- Save Box (Box 2) - File saving interface with collapsible state -->
 	<div id="save-box" style="
 		position: absolute;
-		top: 75px;
-		left: 20px;
+		top: 20px;
+		left: 200px;
 		background: rgba(223, 223, 223, 0.9);
 		border-radius: 10px;
 		padding: 20px;
 		margin: 0;
 		text-align: left;
-		width: 220px;
+		width: auto;
 		font-size: 12px;
 		box-shadow: 0 2px 15px rgba(0,0,0,0.15);
 		z-index: 10;
@@ -472,7 +467,7 @@ if (typeof btoa == 'undefined') {
 			
 			<!-- File list container -->
 			<div id="file-list" style="
-				max-height: 200px;
+				max-height: 800px;
 				overflow-y: auto;
 				border: 1px solid #ddd;
 				border-radius: 4px;
@@ -518,8 +513,8 @@ if (typeof btoa == 'undefined') {
 	<!-- Save button - positioned to the right of save-box -->
 	<div id="save-button-container" style="
 		position: absolute;
-		top: 75px;
-		left: 280px;
+		top: 20px;
+		left: 460px;
 		z-index: 10;
 	">
 		<button id="save-as-btn" onclick="saveAsSketch()" style="
@@ -743,17 +738,22 @@ function updateBoxPositions() {
 	
 	var gap = 10; // Gap between boxes
 	var startTop = 20; // Initial top position
+	var startLeft = 20; // Initial left position
 	
-	// Box 1: Directory Selector - always at top
+	// Box 1: Directory Selector - always at top left
 	dirSelectorBox.style.top = startTop + 'px';
+	dirSelectorBox.style.left = startLeft + 'px';
 	
-	// Box 2: Save Box (with integrated file list) - below directory selector
-	var saveBoxTop = startTop + dirSelectorBox.offsetHeight + gap;
-	saveBox.style.top = saveBoxTop + 'px';
+	// Box 2: Save Box (with integrated file list) - to the right of directory selector
+	var saveBoxLeft = startLeft + dirSelectorBox.offsetWidth + gap;
+	saveBox.style.top = startTop + 'px';
+	saveBox.style.left = saveBoxLeft + 'px';
 	
-	// Save button - align with save box top
+	// Save button - to the right of save box
 	if (saveButtonContainer) {
-		saveButtonContainer.style.top = saveBoxTop + 'px';
+		var saveButtonLeft = saveBoxLeft + saveBox.offsetWidth + gap;
+		saveButtonContainer.style.top = startTop + 'px';
+		saveButtonContainer.style.left = saveButtonLeft + 'px';
 	}
 }
 
@@ -778,6 +778,9 @@ function updateDirectoryDisplay(directoryName, path) {
 			selectDirBtn.title = '';
 		}
 	}
+	
+	// Update box positions after directory button width changes
+	setTimeout(updateBoxPositions, 0);
 }
 
 /**
@@ -1071,8 +1074,9 @@ function saveSketchToFile(filename) {
 function toggleSaveBox() {
 	var collapsedView = document.getElementById('save-box-collapsed');
 	var expandedView = document.getElementById('save-box-expanded');
+	var saveBox = document.getElementById('save-box');
 	
-	if (!collapsedView || !expandedView) return;
+	if (!collapsedView || !expandedView || !saveBox) return;
 	
 	var isCollapsed = collapsedView.style.display !== 'none';
 	
@@ -1080,11 +1084,13 @@ function toggleSaveBox() {
 		// Expand
 		collapsedView.style.display = 'none';
 		expandedView.style.display = 'block';
+		saveBox.style.width = '320px'; // Fixed width when expanded
 		console.log('📂 Save box expanded');
 	} else {
 		// Collapse
 		collapsedView.style.display = 'flex';
 		expandedView.style.display = 'none';
+		saveBox.style.width = 'auto'; // Auto width when collapsed (fits content)
 		console.log('📁 Save box collapsed');
 	}
 	
