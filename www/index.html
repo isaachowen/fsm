@@ -374,7 +374,7 @@ if (typeof btoa == 'undefined') {
 		</button>
 	</div>
 
-	<!-- Save Box (Box 2) - File saving interface -->
+	<!-- Save Box (Box 2) - File saving interface with collapsible state -->
 	<div id="save-box" style="
 		position: absolute;
 		top: 75px;
@@ -390,133 +390,151 @@ if (typeof btoa == 'undefined') {
 		z-index: 10;
 		border: 1px solid rgba(0,0,0,0.1);
 	">
-		<!-- Imported file indicator -->
-		<div id="imported-file-indicator" style="
-			margin: 0 0 12px 0;
-			padding: 8px;
-			background: #f0f8ff;
-			border: 1px solid #b3d9ff;
-			border-radius: 4px;
-			font-size: 11px;
-			color: #0066cc;
-			text-align: center;
-			display: none;
-		">
-			<span id="imported-filename-text"></span>
-		</div>
-		
-		<h3 style="margin: 0 0 12px 0; font-size: 14px; color: #333;">Active sketch:</h3>
-		
-		<!-- Filename input -->
-		<div style="margin-bottom: 12px;">
-			<div style="display: flex; align-items: center; gap: 2px; font-size: 11px; font-family: inherit;">
-				<input type="text" id="filenameInput" placeholder="sketch_name" value=""
-					   style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 3px; font-size: 11px; box-sizing: border-box; font-family: inherit; min-width: 80px;">
-				<span style="color: #666;">.json</span>
-			</div>
-		</div>
-		
-		<!-- Save button -->
-		<div style="margin-bottom: 12px;">
-			<button id="save-as-btn" onclick="saveAsSketch()" style="
-				width: 100%;
-				background: #6b8e23;
-				color: white;
-				border: none;
-				padding: 8px 12px;
-				border-radius: 4px;
-				cursor: pointer;
-				font-size: 11px;
-				font-family: inherit;
-			">
-				Save
-			</button>
-		</div>
-		
-		<!-- Clear Sketch button -->
-		<div style="margin-bottom: 0;">
-			<button onclick="handleNewSketch()" style="
-				width: 100%;
-				background: #a67c52;
-				color: white;
-				border: none;
-				padding: 8px 12px;
-				border-radius: 4px;
-				cursor: pointer;
-				font-size: 11px;
-				font-family: inherit;
-				transition: background-color 0.2s;
-			" onmouseover="this.style.background='#8b6640'" onmouseout="this.style.background='#a67c52'">
-				New
-			</button>
-		</div>
-	</div>
-
-	<!-- File List Box (Box 3) - Browse and manage sketch files -->
-	<div id="file-list-box" style="
-		position: absolute;
-		top: 420px;
-		left: 20px;
-		background: rgba(223, 223, 223, 0.9);
-		border-radius: 10px;
-		padding: 15px;
-		min-width: 250px;
-		max-width: 350px;
-		font-size: 12px;
-		font-family: 'Lucida Grande', 'Segoe UI', sans-serif;
-		box-shadow: 0 2px 15px rgba(0,0,0,0.15);
-		border: 1px solid rgba(0,0,0,0.1);
-		z-index: 9;
-		display: block;
-	">
-		<!-- Header with refresh button -->
-		<div style="
-			display: flex;
-			justify-content: space-between;
-			align-items: center;
-			margin-bottom: 8px;
-			padding-bottom: 6px;
-			border-bottom: 1px solid #ddd;
-		">
-			<span style="font-weight: bold; font-size: 11px; color: #333;">Files</span>
-			<button id="refresh-files-btn" onclick="refreshFileList()" style="
+		<!-- Collapsed state view (default) -->
+		<div id="save-box-collapsed" style="display: flex; align-items: center; justify-content: space-between;">
+			<span id="collapsed-filename" style="font-size: 12px; color: #333;">sketch1.json</span>
+			<button id="toggle-save-box-btn" onclick="toggleSaveBox(); event.stopPropagation();" style="
 				background: none;
-				border: 1px solid #ccc;
-				padding: 4px 8px;
+				border: 1px solid #999;
+				padding: 2px 6px;
 				border-radius: 3px;
 				cursor: pointer;
 				font-size: 10px;
-				font-family: inherit;
-			">Refresh</button>
-		</div>
-		
-		<!-- File list container -->
-		<div id="file-list" style="
-			max-height: 200px;
-			overflow-y: auto;
-			border: 1px solid #ddd;
-			border-radius: 4px;
-			background: white;
-		">
-			<div id="file-list-empty-state" style="
-				padding: 20px;
-				text-align: center;
 				color: #666;
-				font-size: 11px;
-				font-style: italic;
-			">
-				Select a directory to browse files
-			</div>
+				transition: background-color 0.2s;
+			" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'">▼</button>
 		</div>
 		
-		<!-- Error/status messages -->
-		<div id="explorer-messages" style="
-			margin-top: 8px;
-			font-size: 10px;
-			color: #d32f2f;
-			text-align: center;
-			display: none;
-		"></div>
+		<!-- Expanded state view -->
+		<div id="save-box-expanded" style="display: none;">
+			<!-- Collapse button at top -->
+			<div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
+				<button id="collapse-save-box-btn" onclick="toggleSaveBox()" style="
+					background: none;
+					border: 1px solid #999;
+					padding: 2px 6px;
+					border-radius: 3px;
+					cursor: pointer;
+					font-size: 10px;
+					color: #666;
+					transition: background-color 0.2s;
+				" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'">▲</button>
+			</div>
+			
+			<!-- Imported file indicator -->
+			<div id="imported-file-indicator" style="
+				margin: 0 0 12px 0;
+				padding: 8px;
+				background: #f0f8ff;
+				border: 1px solid #b3d9ff;
+				border-radius: 4px;
+				font-size: 11px;
+				color: #0066cc;
+				text-align: center;
+				display: none;
+			">
+				<span id="imported-filename-text"></span>
+			</div>
+			
+			<h3 style="margin: 0 0 12px 0; font-size: 14px; color: #333;">Active sketch:</h3>
+			
+			<!-- Filename input -->
+			<div style="margin-bottom: 12px;">
+				<div style="display: flex; align-items: center; gap: 2px; font-size: 11px; font-family: inherit;">
+					<input type="text" id="filenameInput" placeholder="sketch_name" value="sketch1"
+						   oninput="syncCollapsedFilename()"
+						   style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 3px; font-size: 11px; box-sizing: border-box; font-family: inherit; min-width: 80px;">
+					<span style="color: #666;">.json</span>
+				</div>
+			</div>
+			
+			<!-- File list section -->
+			<!-- Header with refresh button -->
+			<div style="
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				margin-bottom: 8px;
+				padding-bottom: 6px;
+				border-bottom: 1px solid #ddd;
+			">
+				<span style="font-weight: bold; font-size: 11px; color: #333;">Files</span>
+				<button id="refresh-files-btn" onclick="refreshFileList()" style="
+					background: none;
+					border: 1px solid #ccc;
+					padding: 4px 8px;
+					border-radius: 3px;
+					cursor: pointer;
+					font-size: 10px;
+					font-family: inherit;
+				">Refresh</button>
+			</div>
+			
+			<!-- File list container -->
+			<div id="file-list" style="
+				max-height: 200px;
+				overflow-y: auto;
+				border: 1px solid #ddd;
+				border-radius: 4px;
+				background: white;
+			">
+				<!-- New button as first item in list -->
+				<div onclick="handleNewSketch()" style="
+					padding: 8px 10px;
+					border-bottom: 1px solid #ddd;
+					cursor: pointer;
+					background: #a67c52;
+					color: white;
+					font-size: 11px;
+					font-weight: bold;
+					text-align: center;
+					transition: background-color 0.2s;
+				" onmouseover="this.style.background='#8b6640'" onmouseout="this.style.background='#a67c52'">
+					New
+				</div>
+				
+				<div id="file-list-empty-state" style="
+					padding: 20px;
+					text-align: center;
+					color: #666;
+					font-size: 11px;
+					font-style: italic;
+				">
+					Select a directory to browse files
+				</div>
+			</div>
+			
+			<!-- Error/status messages -->
+			<div id="explorer-messages" style="
+				margin-top: 8px;
+				font-size: 10px;
+				color: #d32f2f;
+				text-align: center;
+				display: none;
+			"></div>
+		</div>
+	</div>
+
+	<!-- Save button - positioned to the right of save-box -->
+	<div id="save-button-container" style="
+		position: absolute;
+		top: 75px;
+		left: 280px;
+		z-index: 10;
+	">
+		<button id="save-as-btn" onclick="saveAsSketch()" style="
+			background: #6b8e23;
+			color: white;
+			border: none;
+			padding: 8px 16px;
+			border-radius: 4px;
+			cursor: pointer;
+			font-size: 11px;
+			font-family: inherit;
+			box-shadow: 0 2px 15px rgba(0,0,0,0.15);
+		">
+			Save
+		</button>
 	</div>
 
 	<!-- Info/help box - bottom left -->
@@ -714,14 +732,14 @@ document.addEventListener('DOMContentLoaded', function() {
 // =============================================================================
 
 /**
- * Update positions of all three boxes dynamically
+ * Update positions of all boxes dynamically
  */
 function updateBoxPositions() {
 	var dirSelectorBox = document.getElementById('directory-selector-box');
 	var saveBox = document.getElementById('save-box');
-	var fileListBox = document.getElementById('file-list-box');
+	var saveButtonContainer = document.getElementById('save-button-container');
 	
-	if (!dirSelectorBox || !saveBox || !fileListBox) return;
+	if (!dirSelectorBox || !saveBox) return;
 	
 	var gap = 10; // Gap between boxes
 	var startTop = 20; // Initial top position
@@ -729,13 +747,14 @@ function updateBoxPositions() {
 	// Box 1: Directory Selector - always at top
 	dirSelectorBox.style.top = startTop + 'px';
 	
-	// Box 2: Save Box - below directory selector
+	// Box 2: Save Box (with integrated file list) - below directory selector
 	var saveBoxTop = startTop + dirSelectorBox.offsetHeight + gap;
 	saveBox.style.top = saveBoxTop + 'px';
 	
-	// Box 3: File List - below save box
-	var fileListTop = saveBoxTop + saveBox.offsetHeight + gap;
-	fileListBox.style.top = fileListTop + 'px';
+	// Save button - align with save box top
+	if (saveButtonContainer) {
+		saveButtonContainer.style.top = saveBoxTop + 'px';
+	}
 }
 
 // Legacy function name for backward compatibility
@@ -813,25 +832,26 @@ function updateFileListDisplay() {
 	
 	if (!fileList) return;
 	
+	// Start with the New button (always present)
+	var html = '<div onclick="handleNewSketch()" style="padding: 8px 10px; border-bottom: 1px solid #ddd; cursor: pointer; background: #a67c52; color: white; font-size: 11px; font-weight: bold; text-align: center; transition: background-color 0.2s;" onmouseover="this.style.background=\'#8b6640\'" onmouseout="this.style.background=\'#a67c52\'">New</div>';
+	
 	if (typeof FileExplorerManager === 'undefined' || !FileExplorerManager.files) {
-		// Show empty state
-		if (emptyState) {
-			emptyState.style.display = 'block';
-		}
-		fileList.innerHTML = '<div id="file-list-empty-state" style="padding: 20px; text-align: center; color: #666; font-size: 11px; font-style: italic;">Select a directory to browse files</div>';
+		// Show empty state after New button
+		html += '<div id="file-list-empty-state" style="padding: 20px; text-align: center; color: #666; font-size: 11px; font-style: italic;">Select a directory to browse files</div>';
+		fileList.innerHTML = html;
 		return;
 	}
 	
 	var files = FileExplorerManager.files;
 	
 	if (files.length === 0) {
-		// Show "no files" message
-		fileList.innerHTML = '<div style="padding: 20px; text-align: center; color: #666; font-size: 11px; font-style: italic;">No .json files found</div>';
+		// Show "no files" message after New button
+		html += '<div style="padding: 20px; text-align: center; color: #666; font-size: 11px; font-style: italic;">No .json files found</div>';
+		fileList.innerHTML = html;
 		return;
 	}
 	
-	// Hide empty state and build file list HTML
-	var html = '';
+	// Add file items after New button
 	files.forEach(function(file, index) {
 		var isSelected = FileExplorerManager.currentFilename === file.name;
 		html += '<div class="file-item' + (isSelected ? ' selected' : '') + '" onclick="selectFile(\'' + file.name + '\')">';
@@ -897,6 +917,15 @@ function loadSketchFile(filename) {
 				if (filenameInput && filename) {
 					var filenameWithoutExtension = filename.replace(/\.json$/, '');
 					filenameInput.value = filenameWithoutExtension;
+				}
+				
+				// Update collapsed view
+				updateCollapsedFilename(filename);
+				
+				// Save to localStorage for persistence
+				if (localStorage) {
+					localStorage['fsm_current_filename'] = filename;
+					localStorage['fsm_is_imported'] = 'true';
 				}
 				
 				hideExplorerMessage();
@@ -1037,6 +1066,69 @@ function saveSketchToFile(filename) {
 }
 
 /**
+ * Toggle save box between collapsed and expanded states
+ */
+function toggleSaveBox() {
+	var collapsedView = document.getElementById('save-box-collapsed');
+	var expandedView = document.getElementById('save-box-expanded');
+	
+	if (!collapsedView || !expandedView) return;
+	
+	var isCollapsed = collapsedView.style.display !== 'none';
+	
+	if (isCollapsed) {
+		// Expand
+		collapsedView.style.display = 'none';
+		expandedView.style.display = 'block';
+		console.log('📂 Save box expanded');
+	} else {
+		// Collapse
+		collapsedView.style.display = 'flex';
+		expandedView.style.display = 'none';
+		console.log('📁 Save box collapsed');
+	}
+	
+	// Update box positions after state change
+	setTimeout(updateBoxPositions, 0);
+}
+
+/**
+ * Update collapsed filename display
+ */
+function updateCollapsedFilename(filename) {
+	var collapsedFilename = document.getElementById('collapsed-filename');
+	if (collapsedFilename) {
+		if (filename) {
+			collapsedFilename.textContent = filename;
+		} else {
+			// If no filename provided, read from input
+			var filenameInput = document.getElementById('filenameInput');
+			var inputValue = filenameInput ? filenameInput.value.trim() : '';
+			collapsedFilename.textContent = (inputValue || 'sketch1') + '.json';
+		}
+	}
+}
+
+/**
+ * Sync collapsed filename with input field (called on input change)
+ */
+function syncCollapsedFilename() {
+	var filenameInput = document.getElementById('filenameInput');
+	var collapsedFilename = document.getElementById('collapsed-filename');
+	
+	if (filenameInput && collapsedFilename) {
+		var value = filenameInput.value.trim();
+		var fullFilename = (value || 'sketch1') + '.json';
+		collapsedFilename.textContent = fullFilename;
+		
+		// Save to localStorage for persistence
+		if (localStorage) {
+			localStorage['fsm_current_filename'] = fullFilename;
+		}
+	}
+}
+
+/**
  * Update imported filename display indicator
  */
 function updateImportedFilenameDisplay(filename) {
@@ -1048,9 +1140,26 @@ function updateImportedFilenameDisplay(filename) {
 	if (filename) {
 		filenameText.textContent = 'Imported: ' + filename;
 		indicator.style.display = 'block';
+		
+		// Update collapsed view
+		updateCollapsedFilename(filename);
+		
+		// Save to localStorage for persistence
+		if (localStorage) {
+			localStorage['fsm_current_filename'] = filename;
+			localStorage['fsm_is_imported'] = 'true';
+		}
 	} else {
 		indicator.style.display = 'none';
 		filenameText.textContent = '';
+		
+		// Reset to default
+		updateCollapsedFilename(null);
+		
+		// Clear imported flag
+		if (localStorage) {
+			localStorage['fsm_is_imported'] = 'false';
+		}
 	}
 }
 
@@ -1071,10 +1180,75 @@ function handleNewSketch() {
 		FileExplorerManager.currentFilename = null;
 	}
 	
+	// Reset filename input to default
+	var filenameInput = document.getElementById('filenameInput');
+	if (filenameInput) {
+		filenameInput.value = 'sketch1';
+	}
+	
+	// Update collapsed view (will show sketch1.json)
+	updateCollapsedFilename(null);
+	
+	// Save default to localStorage
+	if (localStorage) {
+		localStorage['fsm_current_filename'] = 'sketch1.json';
+		localStorage['fsm_is_imported'] = 'false';
+	}
+	
 	// Update file list to remove selection
 	updateFileListDisplay();
 	
 	console.log('🆕 New sketch created');
+}
+
+/**
+ * Restore file explorer state from localStorage on page load
+ */
+function restoreFileExplorerState() {
+	if (!localStorage) return;
+	
+	var filenameToRestore = null;
+	var isImported = false;
+	
+	// Try to get filename from our dedicated storage first
+	if (localStorage['fsm_current_filename']) {
+		filenameToRestore = localStorage['fsm_current_filename'];
+		isImported = localStorage['fsm_is_imported'] === 'true';
+	} 
+	// Fallback to extracting from main backup
+	else if (localStorage['fsm']) {
+		try {
+			var backup = JSON.parse(localStorage['fsm']);
+			if (backup.filename) {
+				filenameToRestore = backup.filename;
+				isImported = true; // If it's in the backup, it was likely imported
+			}
+		} catch (e) {
+			console.warn('Could not parse localStorage backup for filename restoration');
+		}
+	}
+	
+	// Restore the UI if we found a filename
+	if (filenameToRestore) {
+		console.log('🔄 Restoring filename:', filenameToRestore);
+		
+		// Update filename input (remove .json extension)
+		var filenameInput = document.getElementById('filenameInput');
+		if (filenameInput) {
+			var filenameWithoutExtension = filenameToRestore.replace(/\.json$/, '');
+			filenameInput.value = filenameWithoutExtension;
+		}
+		
+		// Update collapsed view
+		updateCollapsedFilename(filenameToRestore);
+		
+		// Show imported indicator if it was imported
+		if (isImported) {
+			updateImportedFilenameDisplay(filenameToRestore);
+		}
+	} else {
+		console.log('📝 No filename to restore, using default');
+	}
 }
 
 /**
@@ -1195,18 +1369,20 @@ function createJSONData() {
 document.addEventListener('DOMContentLoaded', function() {
 	// Check if File System Access API is supported and show/hide explorer accordingly
 	if ('showDirectoryPicker' in window) {
-		// Show all boxes
+		// Show directory selector box
 		var dirSelectorBox = document.getElementById('directory-selector-box');
-		var fileListBox = document.getElementById('file-list-box');
 		
 		if (dirSelectorBox) dirSelectorBox.style.display = 'block';
-		if (fileListBox) fileListBox.style.display = 'block';
 		
 		// Set initial positions
 		setTimeout(updateBoxPositions, 0);
 		
 		updateSaveButtonStates();
-		console.log('📂 File Explorer UI initialized (3-box layout)');
+		
+		// Restore filename state from localStorage
+		restoreFileExplorerState();
+		
+		console.log('📂 File Explorer UI initialized (2-box layout with integrated file list)');
 	} else {
 		console.log('⚠️ File System Access API not supported - File Explorer hidden');
 	}
