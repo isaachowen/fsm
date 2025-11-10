@@ -49,33 +49,41 @@ function restoreBackup() {
 		localStorage['fsm'] = '';
 	}
 	
-	// Restore filename if saved
-	if (backup.filename !== undefined) {
-		var input = document.getElementById('filenameInput');
-		if (input) {
-			input.value = backup.filename;
-			// Update title after restoring filename
-			if (typeof updateDocumentTitle === 'function') {
-				updateDocumentTitle();
+	// Restore filename if saved (with safe access)
+	try {
+		if (backup && backup.filename !== undefined) {
+			var input = document.getElementById('filenameInput');
+			if (input) {
+				input.value = backup.filename;
+				// Update title after restoring filename
+				if (typeof updateDocumentTitle === 'function') {
+					updateDocumentTitle();
+				}
 			}
 		}
+	} catch(e) {
+		console.warn('Could not restore filename from backup:', e);
 	}
 
-	// Restore legend descriptions if available
-	if (backup.legend && typeof legendEntries !== 'undefined') {
-		// Pre-populate legendEntries with saved descriptions before updating the legend
-		for (var key in backup.legend) {
-			if (backup.legend.hasOwnProperty(key)) {
-				if (!legendEntries[key]) {
-					legendEntries[key] = {};
+	// Restore legend descriptions if available (with safe access)
+	try {
+		if (backup && backup.legend && typeof legendEntries !== 'undefined') {
+			// Pre-populate legendEntries with saved descriptions before updating the legend
+			for (var key in backup.legend) {
+				if (backup.legend.hasOwnProperty(key)) {
+					if (!legendEntries[key]) {
+						legendEntries[key] = {};
+					}
+					legendEntries[key].description = backup.legend[key];
 				}
-				legendEntries[key].description = backup.legend[key];
+			}
+			// Trigger legend update to refresh display with restored descriptions
+			if (typeof updateLegendEntries === 'function') {
+				updateLegendEntries();
 			}
 		}
-		// Trigger legend update to refresh display with restored descriptions
-		if (typeof updateLegendEntries === 'function') {
-			updateLegendEntries();
-		}
+	} catch(e) {
+		console.warn('Could not restore legend from backup:', e);
 	}
 
 	// Clear any selection state when restoring
