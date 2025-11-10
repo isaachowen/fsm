@@ -405,7 +405,7 @@ if (typeof btoa == 'undefined') {
 			<span id="imported-filename-text"></span>
 		</div>
 		
-		<h3 style="margin: 0 0 12px 0; font-size: 14px; color: #333;">Sketch file save path:</h3>
+		<h3 style="margin: 0 0 12px 0; font-size: 14px; color: #333;">Active sketch:</h3>
 		
 		<!-- Filename input -->
 		<div style="margin-bottom: 12px;">
@@ -429,7 +429,7 @@ if (typeof btoa == 'undefined') {
 				font-size: 11px;
 				font-family: inherit;
 			">
-				Save Sketch to Local Directory
+				Save
 			</button>
 		</div>
 		
@@ -447,7 +447,7 @@ if (typeof btoa == 'undefined') {
 				font-family: inherit;
 				transition: background-color 0.2s;
 			" onmouseover="this.style.background='#8b6640'" onmouseout="this.style.background='#a67c52'">
-				New Sketch
+				New
 			</button>
 		</div>
 	</div>
@@ -967,6 +967,44 @@ function saveAsSketch() {
 		}
 	}
 }
+
+
+/**
+ * Update opened filename display
+ */
+function updateOpenedFilename(filename) {
+	var openedEl = document.getElementById('opened-filename');
+	if (openedEl) {
+		if (filename) {
+			openedEl.textContent = filename;
+			openedEl.style.fontStyle = 'normal';
+			openedEl.style.color = '#333';
+		} else {
+			openedEl.textContent = 'No file loaded';
+			openedEl.style.fontStyle = 'italic';
+			openedEl.style.color = '#666';
+		}
+	}
+
+	// Update the filename input when a file is loaded
+	var filenameInput = document.getElementById('filenameInput');
+	if (filenameInput && filename) {
+		// Remove .json extension for display in input
+		var filenameWithoutExtension = filename.replace(/\.json$/, '');
+		filenameInput.value = filenameWithoutExtension;
+	}
+
+	// Also update the header filename display (shown when collapsed)
+	var headerFilenameEl = document.getElementById('header-filename');
+	if (headerFilenameEl) {
+		if (filename) {
+			headerFilenameEl.textContent = '[imported: ' + filename + ']';
+		} else {
+			headerFilenameEl.textContent = '';
+		}
+	}
+}
+
 
 /**
  * Save sketch to specified file
