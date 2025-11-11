@@ -1791,8 +1791,8 @@ function updateLegendHTML() {
 		
 		// Create mini canvas for visualization
 		var miniCanvas = document.createElement('canvas');
-		miniCanvas.width = 30;
-		miniCanvas.height = 30;
+		miniCanvas.width = 40;
+		miniCanvas.height = 40;
 		miniCanvas.style.border = '1px solid #ccc';
 		miniCanvas.style.borderRadius = '4px';
 		miniCanvas.style.flexShrink = '0';
@@ -1812,10 +1812,10 @@ function updateLegendHTML() {
 		input.value = entry.description;
 		input.placeholder = entry.type === 'edge' ? 'Describe this edge type...' : 'Describe this node type...';
 		input.style.flex = '1';
-		input.style.padding = '4px 6px';
+		input.style.padding = '6px 8px';
 		input.style.border = '1px solid #ccc';
 		input.style.borderRadius = '3px';
-		input.style.fontSize = '12px';
+		input.style.fontSize = '14px';
 		input.style.fontFamily = 'inherit';
 		
 		// Store reference and setup event handler
@@ -1863,10 +1863,10 @@ function createLegendContainer() {
 	legendContainer.style.left = '20px';
 	legendContainer.style.background = 'rgba(223, 223, 223, 0.9)';
 	legendContainer.style.borderRadius = '10px';
-	legendContainer.style.padding = '15px';
-	legendContainer.style.minWidth = '200px';
-	legendContainer.style.maxWidth = '300px';
-	legendContainer.style.fontSize = '12px';
+	legendContainer.style.padding = '20px';
+	legendContainer.style.minWidth = '250px';
+	legendContainer.style.maxWidth = '400px';
+	legendContainer.style.fontSize = '14px';
 	legendContainer.style.fontFamily = "'Lucida Grande', 'Segoe UI', sans-serif";
 	legendContainer.style.boxShadow = '0 2px 15px rgba(0,0,0,0.15)';
 	legendContainer.style.border = '1px solid rgba(0,0,0,0.1)';
@@ -1891,16 +1891,16 @@ function drawMiniNode(miniCanvas, colorKey) {
 	 * reference in the legend, using the same drawing logic as full nodes.
 	 */
 	var c = miniCanvas.getContext('2d');
-	var centerX = 15;
-	var centerY = 15;
-	var miniRadius = 12;
+	var centerX = 20;
+	var centerY = 20;
+	var miniRadius = 16;
 	
 	c.clearRect(0, 0, miniCanvas.width, miniCanvas.height);
 	
 	// Get color directly from COLOR_CONFIG
 	c.fillStyle = COLOR_CONFIG[colorKey] || COLOR_CONFIG['A'];
 	c.strokeStyle = GLOBAL_STYLE.nodeBorderColor;
-	c.lineWidth = 1;  // Thinner border to match main nodes
+	c.lineWidth = 1.5;  // Slightly thicker border for larger size
 	
 	c.beginPath();
 	c.arc(centerX, centerY, miniRadius, 0, 2 * Math.PI, false);
@@ -1908,13 +1908,13 @@ function drawMiniNode(miniCanvas, colorKey) {
 	c.stroke();
 	
 	// Draw the colorKey letter with white outline and black fill (matching main text rendering)
-	c.font = 'bold 11px Arial';
+	c.font = 'bold 14px Arial';
 	c.textAlign = 'center';
 	c.textBaseline = 'middle';
 	
 	// Draw white outline first
 	c.strokeStyle = '#ffffff';
-	c.lineWidth = 3;
+	c.lineWidth = 3.5;
 	c.strokeText(colorKey, centerX, centerY);
 	
 	// Then draw black text on top
@@ -1940,13 +1940,13 @@ function drawMiniEdge(miniCanvas, colorKey, arrowType) {
 	
 	c.clearRect(0, 0, miniCanvas.width, miniCanvas.height);
 	
-	// Draw a horizontal line from left to right
-	var startX = 5;
-	var endX = 25;
-	var y = 15;
+	// Draw a horizontal line from left to right (proportionally larger)
+	var startX = 6;
+	var endX = 34;
+	var y = 20;
 	
 	c.strokeStyle = getLinkColorHex(colorKey);
-	c.lineWidth = 2;
+	c.lineWidth = 2.5;
 	
 	// Draw the line
 	c.beginPath();
@@ -1956,40 +1956,40 @@ function drawMiniEdge(miniCanvas, colorKey, arrowType) {
 	
 	// Draw the arrowhead
 	if (arrowType === 'T') {
-		// Draw T-shaped arrow
+		// Draw T-shaped arrow (proportionally larger)
 		c.beginPath();
-		c.moveTo(endX, y - 4);
-		c.lineTo(endX, y + 4);
+		c.moveTo(endX, y - 5);
+		c.lineTo(endX, y + 5);
 		c.stroke();
 		c.beginPath();
-		c.moveTo(endX - 2, y);
+		c.moveTo(endX - 3, y);
 		c.lineTo(endX, y);
 		c.stroke();
 	} else if (arrowType === 'undirected') {
 		// No arrowhead for undirected edges
 		// Just the line is sufficient
 	} else {
-		// Draw traditional triangular arrow
+		// Draw traditional triangular arrow (proportionally larger)
 		c.fillStyle = getLinkColorHex(colorKey);
 		c.beginPath();
 		c.moveTo(endX, y);
-		c.lineTo(endX - 6, y - 3);
-		c.lineTo(endX - 6, y + 3);
+		c.lineTo(endX - 8, y - 4);
+		c.lineTo(endX - 8, y + 4);
 		c.closePath();
 		c.fill();
 	}
 	
 	// Draw the colorKey letter at the center of the canvas
-	var centerX = 15;
-	var centerY = 6; // Position above the line
+	var centerX = 20;
+	var centerY = 8; // Position above the line
 	
-	c.font = 'bold 10px Arial';
+	c.font = 'bold 13px Arial';
 	c.textAlign = 'center';
 	c.textBaseline = 'middle';
 	
 	// Draw white outline first
 	c.strokeStyle = '#ffffff';
-	c.lineWidth = 2.5;
+	c.lineWidth = 3.5;
 	c.strokeText(colorKey, centerX, centerY);
 	
 	// Then draw black text on top
