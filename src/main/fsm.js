@@ -1280,7 +1280,8 @@ CanvasRecentHistoryManager.prototype.serializeCurrentState = function() {
 		var link = links[i];
 		var linkData = { 
 			text: link.text,
-			arrowType: link.arrowType || 'arrow'  // Include arrow type
+			arrowType: link.arrowType || 'arrow',  // Include arrow type
+			colorKey: link.colorKey || 'A'  // Include link colorKey
 		};
 		
 		if (link instanceof SelfLink) {
@@ -1344,7 +1345,7 @@ CanvasRecentHistoryManager.prototype.restoreState = function(state) {
 	var nodeMap = new Map(); // Maps state ID to Node object
 	for (var i = 0; i < state.nodes.length; i++) {
 		var nodeData = state.nodes[i];
-		var node = new Node(nodeData.x, nodeData.y, nodeData.color || 'A');
+		var node = new Node(nodeData.x, nodeData.y, nodeData.colorKey || 'A');
 		node.text = nodeData.text || '';
 		nodes.push(node);
 		nodeMap.set(nodeData.id, node);
@@ -1382,7 +1383,7 @@ CanvasRecentHistoryManager.prototype.restoreState = function(state) {
 		if (link) {
 			link.text = linkData.text || '';
 			link.arrowType = linkData.arrowType || 'arrow';  // Restore arrow type
-			link.colorKey = linkData.color || 'A';  // Restore link color
+			link.colorKey = linkData.colorKey || 'A';  // Restore link color
 			links.push(link);
 		}
 	}

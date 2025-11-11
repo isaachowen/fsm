@@ -509,6 +509,21 @@ if (typeof btoa == 'undefined') {
 		Save
 	</div>
 
+	<!-- Save state indicator - positioned to the right of save button -->
+	<div id="save-indicator" style="
+		position: absolute;
+		top: 20px;
+		left: 520px;
+		font-size: 16px;
+		font-family: 'Lucida Grande', 'Segoe UI', sans-serif;
+		z-index: 10;
+		color: #666;
+		white-space: nowrap;
+		padding: 15px 0;
+	">
+		No file loaded
+	</div>
+
 	<!-- Info/help box - bottom left -->
 	<div id="guibox">
 		<p id="controls-header" onclick="toggleControls()" style="margin: 0; font-weight: bold; cursor: pointer; user-select: none; display: flex; align-items: center; justify-content: space-between;">
@@ -752,6 +767,14 @@ function updateBoxPositions() {
 			var saveButtonLeft = saveBoxLeft + activeBox.offsetWidth + gap;
 			saveButton.style.top = startTop + 'px';
 			saveButton.style.left = saveButtonLeft + 'px';
+			
+			// Save indicator - to the right of save button
+			var saveIndicator = document.getElementById('save-indicator');
+			if (saveIndicator) {
+				var saveIndicatorLeft = saveButtonLeft + saveButton.offsetWidth + gap;
+				saveIndicator.style.top = startTop + 'px';
+				saveIndicator.style.left = saveIndicatorLeft + 'px';
+			}
 		}
 	}
 }
@@ -930,6 +953,9 @@ function loadSketchFile(filename) {
 					localStorage['fsm_is_imported'] = 'true';
 				}
 				
+				// Update saved state after successful load
+				updateLastSavedState();
+				
 				hideExplorerMessage();
 				console.log('✅ Successfully loaded:', filename);
 			} else {
@@ -1054,6 +1080,9 @@ function saveSketchToFile(filename) {
 			updateFileListDisplay();
 			updateSaveButtonStates();
 			updateOpenedFilename(filename);
+			
+			// Update saved state after successful save
+			updateLastSavedState();
 			
 			hideExplorerMessage();
 			console.log('✅ Successfully saved:', filename);
@@ -1246,6 +1275,9 @@ function restoreFileExplorerState() {
 			FileExplorerManager.currentFilename = filenameToRestore;
 			console.log('✅ Set FileExplorerManager.currentFilename to:', filenameToRestore);
 		}
+		
+		// Update saved state indicator after restoring
+		updateLastSavedState();
 	} else {
 		console.log('📝 No filename to restore, using default');
 	}
@@ -1363,6 +1395,42 @@ function createJSONData() {
 		links: jsonLinks,
 		legend: jsonLegend
 	};
+}
+
+// State tracking for unsaved changes indicator
+var lastSavedState = null;
+
+function updateLastSavedState() {
+	var currentData = createJSONData();
+	delete currentData.created; // Ignore timestamp in comparison
+	lastSavedState = JSON.stringify(currentData);
+	updateSaveIndicator();
+}
+
+function hasUnsavedChanges() {
+	if (!lastSavedState) return false;
+	var currentData = createJSONData();
+	delete currentData.created;
+	return JSON.stringify(currentData) !== lastSavedState;
+}
+
+function updateSaveIndicator() {
+	var indicator = document.getElementById('save-indicator');
+	if (!indicator) return;
+	
+	if (!lastSavedState) {
+		indicator.textContent = 'No file loaded';
+		indicator.style.color = '#666';
+		indicator.style.fontWeight = 'normal';
+	} else if (hasUnsavedChanges()) {
+		indicator.textContent = 'Unsaved changes';
+		indicator.style.color = '#2196F3'; // Blue
+		indicator.style.fontWeight = 'normal';
+	} else {
+		indicator.textContent = 'Saved, up to date';
+		indicator.style.color = '#000'; // Black
+		indicator.style.fontWeight = 'normal';
+	}
 }
 
 // Initialize file explorer when DOM is ready

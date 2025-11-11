@@ -6,6 +6,11 @@ function restoreBackup() {
 	try {
 		var backup = JSON.parse(localStorage['fsm']);
 
+		// Restore COLOR_CONFIG if available
+		if (backup.COLOR_CONFIG && typeof COLOR_CONFIG !== 'undefined') {
+			COLOR_CONFIG = backup.COLOR_CONFIG;
+		}
+
 		for(var i = 0; i < backup.nodes.length; i++) {
 			var backupNode = backup.nodes[i];
 			var node = new Node(backupNode.x, backupNode.y, backupNode.colorKey);
@@ -115,6 +120,7 @@ function saveBackup() {
 		'links': [],
 		'filename': currentFilename,
 		'legend': backupLegend,
+		'COLOR_CONFIG': typeof COLOR_CONFIG !== 'undefined' ? COLOR_CONFIG : {},
 	};
 	for(var i = 0; i < nodes.length; i++) {
 		var node = nodes[i];
@@ -167,4 +173,9 @@ function saveBackup() {
 	}
 
 	localStorage['fsm'] = JSON.stringify(backup);
+	
+	// Check for unsaved changes after each backup
+	if (typeof updateSaveIndicator === 'function') {
+		updateSaveIndicator();
+	}
 }
