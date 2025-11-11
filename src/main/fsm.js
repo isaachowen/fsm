@@ -2211,6 +2211,27 @@ window.onload = function() {
 	
 	draw();
 
+	// Close expanded save/file list when clicking on the canvas background
+	// This mirrors the behavior of clicking the arrow at the top of the box.
+	if (canvas) {
+		canvas.addEventListener('mousedown', function(e) {
+			try {
+				var expanded = document.getElementById('save-box-expanded');
+				if (expanded && expanded.style.display !== 'none') {
+					// Only collapse when clicking directly on the canvas (not UI overlays)
+					if (e.target === canvas) {
+						// toggleSaveBox is defined in index.html and will swap collapsed/expanded states
+						if (typeof toggleSaveBox === 'function') {
+							toggleSaveBox();
+						}
+					}
+				}
+			} catch (err) {
+				console.warn('Error handling canvas click for collapsing save box:', err);
+			}
+		});
+	}
+
 	// Canvas resize handling - moved from index.html
 	function resizeCanvas() {
 		if (canvas) {
