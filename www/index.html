@@ -327,7 +327,7 @@ if (typeof btoa == 'undefined') {
 		background: rgba(223, 223, 223, 0.9);
 		border-radius: 10px;
 		padding: 15px;
-		font-size: 12px;
+		font-size: 16px;
 		font-family: 'Lucida Grande', 'Segoe UI', sans-serif;
 		box-shadow: 0 2px 15px rgba(0,0,0,0.15);
 		border: 1px solid rgba(0,0,0,0.1);
@@ -340,14 +340,52 @@ if (typeof btoa == 'undefined') {
 		Select Directory
 	</div>
 
+	<!-- Separator slash between boxes -->
+	<div id="box-separator" style="
+		position: absolute;
+		top: 20px;
+		left: 180px;
+		font-size: 24px;
+		font-weight: bold;
+		color: #666;
+		z-index: 9;
+		display: flex;
+		align-items: center;
+		height: 51px;
+		pointer-events: none;
+	">/</div>
+
 	<!-- Save Box (Box 2) - File saving interface with collapsible state -->
-	<div id="save-box" style="
+	<!-- Collapsed state view (default) -->
+	<div id="save-box" onclick="toggleSaveBox()" style="
 		position: absolute;
 		top: 20px;
 		left: 200px;
 		background: rgba(223, 223, 223, 0.9);
 		border-radius: 10px;
-		padding: 20px;
+		padding: 15px;
+		margin: 0;
+		text-align: center;
+		width: auto;
+		font-size: 16px;
+		font-weight: bold;
+		box-shadow: 0 2px 15px rgba(0,0,0,0.15);
+		z-index: 10;
+		border: 1px solid rgba(0,0,0,0.1);
+		cursor: pointer;
+		transition: background-color 0.2s;
+	" onmouseover="this.style.background='rgba(200, 200, 200, 0.9)'" onmouseout="this.style.background='rgba(223, 223, 223, 0.9)'">
+		<span id="collapsed-filename" style="font-size: 16px; color: #333;">sketch1.json</span>
+	</div>
+	
+	<!-- Expanded state view -->
+	<div id="save-box-expanded" style="
+		position: absolute;
+		top: 20px;
+		left: 200px;
+		background: rgba(223, 223, 223, 0.9);
+		border-radius: 10px;
+		padding: 15px;
 		margin: 0;
 		text-align: left;
 		width: auto;
@@ -355,26 +393,10 @@ if (typeof btoa == 'undefined') {
 		box-shadow: 0 2px 15px rgba(0,0,0,0.15);
 		z-index: 10;
 		border: 1px solid rgba(0,0,0,0.1);
+		display: none;
 	">
-		<!-- Collapsed state view (default) -->
-		<div id="save-box-collapsed" style="display: flex; align-items: center; justify-content: space-between;">
-			<span id="collapsed-filename" style="font-size: 12px; color: #333;">sketch1.json</span>
-			<button id="toggle-save-box-btn" onclick="toggleSaveBox(); event.stopPropagation();" style="
-				background: none;
-				border: 1px solid #999;
-				padding: 2px 6px;
-				border-radius: 3px;
-				cursor: pointer;
-				font-size: 10px;
-				color: #666;
-				transition: background-color 0.2s;
-			" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'">▼</button>
-		</div>
-		
-		<!-- Expanded state view -->
-		<div id="save-box-expanded" style="display: none;">
 			<!-- Collapse button at top -->
-			<div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
+			<div style="margin-bottom: 10px;">
 				<button id="collapse-save-box-btn" onclick="toggleSaveBox()" style="
 					background: none;
 					border: 1px solid #999;
@@ -384,6 +406,8 @@ if (typeof btoa == 'undefined') {
 					font-size: 10px;
 					color: #666;
 					transition: background-color 0.2s;
+					width: 100%;
+					box-sizing: border-box;
 				" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'">▲</button>
 			</div>
 			
@@ -685,12 +709,14 @@ document.addEventListener('DOMContentLoaded', function() {
  */
 function updateBoxPositions() {
 	var dirSelectorBox = document.getElementById('directory-selector-box');
+	var separator = document.getElementById('box-separator');
 	var saveBox = document.getElementById('save-box');
+	var saveBoxExpanded = document.getElementById('save-box-expanded');
 	var saveButtonContainer = document.getElementById('save-button-container');
 	
-	if (!dirSelectorBox || !saveBox) return;
+	if (!dirSelectorBox) return;
 	
-	var gap = 10; // Gap between boxes
+	var gap = 10; // Gap between boxes and separator
 	var startTop = 20; // Initial top position
 	var startLeft = 20; // Initial left position
 	
@@ -698,16 +724,36 @@ function updateBoxPositions() {
 	dirSelectorBox.style.top = startTop + 'px';
 	dirSelectorBox.style.left = startLeft + 'px';
 	
-	// Box 2: Save Box (with integrated file list) - to the right of directory selector
-	var saveBoxLeft = startLeft + dirSelectorBox.offsetWidth + gap;
-	saveBox.style.top = startTop + 'px';
-	saveBox.style.left = saveBoxLeft + 'px';
+	// Separator - between directory selector and save box
+	var separatorLeft = startLeft + dirSelectorBox.offsetWidth + gap;
+	if (separator) {
+		separator.style.top = startTop + 'px';
+		separator.style.left = separatorLeft + 'px';
+		separator.style.height = dirSelectorBox.offsetHeight + 'px';
+	}
 	
-	// Save button - to the right of save box
-	if (saveButtonContainer) {
-		var saveButtonLeft = saveBoxLeft + saveBox.offsetWidth + gap;
-		saveButtonContainer.style.top = startTop + 'px';
-		saveButtonContainer.style.left = saveButtonLeft + 'px';
+	// Box 2: Save Box (collapsed or expanded) - to the right of separator
+	var separatorWidth = separator ? separator.offsetWidth : 0;
+	var saveBoxLeft = separatorLeft + separatorWidth + gap;
+	
+	// Determine which box is visible and position it
+	var activeBox = null;
+	if (saveBox && saveBox.style.display !== 'none') {
+		activeBox = saveBox;
+	} else if (saveBoxExpanded && saveBoxExpanded.style.display !== 'none') {
+		activeBox = saveBoxExpanded;
+	}
+	
+	if (activeBox) {
+		activeBox.style.top = startTop + 'px';
+		activeBox.style.left = saveBoxLeft + 'px';
+		
+		// Save button - to the right of active save box
+		if (saveButtonContainer) {
+			var saveButtonLeft = saveBoxLeft + activeBox.offsetWidth + gap;
+			saveButtonContainer.style.top = startTop + 'px';
+			saveButtonContainer.style.left = saveButtonLeft + 'px';
+		}
 	}
 }
 
@@ -1026,25 +1072,22 @@ function saveSketchToFile(filename) {
  * Toggle save box between collapsed and expanded states
  */
 function toggleSaveBox() {
-	var collapsedView = document.getElementById('save-box-collapsed');
-	var expandedView = document.getElementById('save-box-expanded');
-	var saveBox = document.getElementById('save-box');
+	var collapsedBox = document.getElementById('save-box');
+	var expandedBox = document.getElementById('save-box-expanded');
 	
-	if (!collapsedView || !expandedView || !saveBox) return;
+	if (!collapsedBox || !expandedBox) return;
 	
-	var isCollapsed = collapsedView.style.display !== 'none';
+	var isCollapsed = collapsedBox.style.display !== 'none';
 	
 	if (isCollapsed) {
-		// Expand
-		collapsedView.style.display = 'none';
-		expandedView.style.display = 'block';
-		saveBox.style.width = '320px'; // Fixed width when expanded
+		// Expand - hide collapsed, show expanded
+		collapsedBox.style.display = 'none';
+		expandedBox.style.display = 'block';
 		console.log('📂 Save box expanded');
 	} else {
-		// Collapse
-		collapsedView.style.display = 'flex';
-		expandedView.style.display = 'none';
-		saveBox.style.width = 'auto'; // Auto width when collapsed (fits content)
+		// Collapse - show collapsed, hide expanded
+		collapsedBox.style.display = 'block';
+		expandedBox.style.display = 'none';
 		console.log('📁 Save box collapsed');
 	}
 	
