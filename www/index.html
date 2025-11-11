@@ -149,24 +149,6 @@ a {
 }
 
 /* File Explorer Styles */
-#choose-directory-btn:hover {
-	background: #7a8854;
-}
-
-/* Directory selector button hover */
-#select-directory-btn:hover {
-	background: #7a8854;
-}
-
-/* Imported file indicator */
-#imported-file-indicator {
-	animation: fadeIn 0.3s ease-in-out;
-}
-
-@keyframes fadeIn {
-	from { opacity: 0; }
-	to { opacity: 1; }
-}
 
 /* File list empty state */
 #file-list-empty-state {
@@ -338,7 +320,7 @@ if (typeof btoa == 'undefined') {
 	</div>
 	
 	<!-- Directory Selector Box (Box 1) - Simple directory selection -->
-	<div id="directory-selector-box" style="
+	<div id="directory-selector-box" onclick="chooseSketchDirectory()" title="Click to select a directory" style="
 		position: absolute;
 		top: 20px;
 		left: 20px;
@@ -351,22 +333,11 @@ if (typeof btoa == 'undefined') {
 		border: 1px solid rgba(0,0,0,0.1);
 		z-index: 9;
 		display: block;
-	">
-		<button id="select-directory-btn" onclick="chooseSketchDirectory()" style="
-			background: #9aad6b;
-			color: white;
-			border: none;
-			padding: 10px 16px;
-			border-radius: 5px;
-			cursor: pointer;
-			font-size: 12px;
-			font-family: inherit;
-			transition: background-color 0.2s;
-			text-align: left;
-			white-space: nowrap;
-		">
-			Select Directory
-		</button>
+		cursor: pointer;
+		transition: background-color 0.2s;
+		text-align: center;
+	" onmouseover="this.style.background='rgba(200, 200, 200, 0.9)'" onmouseout="this.style.background='rgba(223, 223, 223, 0.9)'">
+		Select Directory
 	</div>
 
 	<!-- Save Box (Box 2) - File saving interface with collapsible state -->
@@ -415,23 +386,6 @@ if (typeof btoa == 'undefined') {
 					transition: background-color 0.2s;
 				" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'">▲</button>
 			</div>
-			
-			<!-- Imported file indicator -->
-			<div id="imported-file-indicator" style="
-				margin: 0 0 12px 0;
-				padding: 8px;
-				background: #f0f8ff;
-				border: 1px solid #b3d9ff;
-				border-radius: 4px;
-				font-size: 11px;
-				color: #0066cc;
-				text-align: center;
-				display: none;
-			">
-				<span id="imported-filename-text"></span>
-			</div>
-			
-			<h3 style="margin: 0 0 12px 0; font-size: 14px; color: #333;">Active sketch:</h3>
 			
 			<!-- Filename input -->
 			<div style="margin-bottom: 12px;">
@@ -766,16 +720,16 @@ function updateSaveBoxPosition() {
  * Update directory status display
  */
 function updateDirectoryDisplay(directoryName, path) {
-	var selectDirBtn = document.getElementById('select-directory-btn');
+	var dirSelectorBox = document.getElementById('directory-selector-box');
 	
-	if (selectDirBtn) {
+	if (dirSelectorBox) {
 		if (directoryName && path) {
 			// Show directory name with trailing slash
-			selectDirBtn.textContent = '/.../' + directoryName + '/';
-			selectDirBtn.title = path; // Tooltip for additional context
+			dirSelectorBox.textContent = '/.../' + directoryName + '/';
+			dirSelectorBox.title = 'Current directory: ' + path + '\nClick to change directory'; // Tooltip for additional context
 		} else {
-			selectDirBtn.textContent = 'Select Directory';
-			selectDirBtn.title = '';
+			dirSelectorBox.textContent = 'Select Directory';
+			dirSelectorBox.title = 'Click to select a directory';
 		}
 	}
 	
@@ -1138,15 +1092,10 @@ function syncCollapsedFilename() {
  * Update imported filename display indicator
  */
 function updateImportedFilenameDisplay(filename) {
-	var indicator = document.getElementById('imported-file-indicator');
-	var filenameText = document.getElementById('imported-filename-text');
-	
-	if (!indicator || !filenameText) return;
+	// Element removed from UI, but keep function for compatibility
+	// Just update the collapsed view and localStorage
 	
 	if (filename) {
-		filenameText.textContent = 'Imported: ' + filename;
-		indicator.style.display = 'block';
-		
 		// Update collapsed view
 		updateCollapsedFilename(filename);
 		
@@ -1156,9 +1105,6 @@ function updateImportedFilenameDisplay(filename) {
 			localStorage['fsm_is_imported'] = 'true';
 		}
 	} else {
-		indicator.style.display = 'none';
-		filenameText.textContent = '';
-		
 		// Reset to default
 		updateCollapsedFilename(null);
 		
@@ -1251,6 +1197,12 @@ function restoreFileExplorerState() {
 		// Show imported indicator if it was imported
 		if (isImported) {
 			updateImportedFilenameDisplay(filenameToRestore);
+		}
+		
+		// Set the current filename in FileExplorerManager to maintain selection state
+		if (typeof FileExplorerManager !== 'undefined' && isImported) {
+			FileExplorerManager.currentFilename = filenameToRestore;
+			console.log('✅ Set FileExplorerManager.currentFilename to:', filenameToRestore);
 		}
 	} else {
 		console.log('📝 No filename to restore, using default');
