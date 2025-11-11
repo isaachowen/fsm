@@ -879,10 +879,10 @@ function updateFileListDisplay() {
 	// Add file items after New button
 	files.forEach(function(file, index) {
 		var isSelected = FileExplorerManager.currentFilename === file.name;
-		html += '<div class="file-item' + (isSelected ? ' selected' : '') + '" onclick="selectFile(\'' + file.name + '\')">';
+		html += '<div class="file-item' + (isSelected ? ' selected' : '') + '" onclick="selectFile(\'' + file.name + '\')" ondblclick="loadSketchFile(\'' + file.name + '\')">';
 		html += '  <span class="file-name">' + file.name + '</span>';
 		html += '  <div class="file-actions">';
-		html += '    <button class="file-action-btn" onclick="event.stopPropagation(); loadSketchFile(\'' + file.name + '\')" title="Load this file">Import</button>';
+		html += '    <button class="file-action-btn" onclick="event.stopPropagation(); loadSketchFile(\'' + file.name + '\')" title="Load this file">Open</button>';
 		html += '    <button class="file-action-btn file-delete-btn" onclick="event.stopPropagation(); confirmDeleteSketchFile(\'' + file.name + '\')" title="Delete this file">Del</button>';
 		html += '  </div>';
 		html += '</div>';
