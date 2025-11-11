@@ -1859,8 +1859,8 @@ function createLegendContainer() {
 	legendContainer = document.createElement('div');
 	legendContainer.id = 'legendbox';
 	legendContainer.style.position = 'absolute';
-	legendContainer.style.top = '20px';
-	legendContainer.style.right = '20px';
+	legendContainer.style.bottom = '20px';
+	legendContainer.style.left = '20px';
 	legendContainer.style.background = 'rgba(223, 223, 223, 0.9)';
 	legendContainer.style.borderRadius = '10px';
 	legendContainer.style.padding = '15px';
