@@ -4248,10 +4248,25 @@ function processJSONData(jsonData, filename) {
 		for (var legendKey in jsonData.legend) {
 			// Create legend entry structure if it doesn't exist
 			if (!legendEntries[legendKey]) {
-				var parts = legendKey.split('_');
-				if (parts.length === 2) {
+				// FIX: Split on dash, not underscore
+				var parts = legendKey.split('-');
+				
+				// Handle both node and edge keys
+				if (parts[0] === 'node' && parts.length === 2) {
+					// node-A format
 					legendEntries[legendKey] = {
-						color: parts[0],
+						type: 'node',
+						colorKey: parts[1],
+						description: jsonData.legend[legendKey],
+						count: 0,
+						inputElement: null
+					};
+				} else if (parts[0] === 'edge' && parts.length === 3) {
+					// edge-A-arrow format
+					legendEntries[legendKey] = {
+						type: 'edge',
+						colorKey: parts[1],
+						arrowType: parts[2],
 						description: jsonData.legend[legendKey],
 						count: 0,
 						inputElement: null
